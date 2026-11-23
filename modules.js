@@ -1029,7 +1029,7 @@
           if (remember) {
             localStorage.setItem(
               AUTH_STORAGE_KEY,
-              JSON.stringify({ hash: EXPECTED_HASH, expires: Date.now() + 30 * 86400000 })
+              JSON.stringify({ hash: EXPECTED_HASH, expires: Date.now() + 7 * 86400000 })
             );
           } else {
             localStorage.removeItem(AUTH_STORAGE_KEY);
