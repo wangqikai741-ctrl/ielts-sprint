@@ -1,27 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#161822"/>
-      <stop offset="100%" stop-color="#0A0B10"/>
+      <stop offset="0%" stop-color="#171923"/>
+      <stop offset="100%" stop-color="#090A0F"/>
     </linearGradient>
-    <linearGradient id="gemMain" x1="20" y1="104" x2="106" y2="20" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="46%" stop-color="#818CF8"/>
-      <stop offset="100%" stop-color="#F472B6"/>
+    <radialGradient id="coreGlow" cx="50%" cy="54%" r="48%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.28"/>
+      <stop offset="65%" stop-color="#818CF8" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="triStroke" x1="20" y1="26" x2="108" y2="102" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="52%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#7DD3FC"/>
     </linearGradient>
-    <linearGradient id="gemSub" x1="74" y1="48" x2="108" y2="18" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#BAE6FD"/>
-      <stop offset="100%" stop-color="#FFFFFF"/>
+    <linearGradient id="midFill" x1="53" y1="54" x2="75" y2="74" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#818CF8" stop-opacity="0.45"/>
     </linearGradient>
   </defs>
 
-  <!-- Sleek Dark Squircle -->
+  <!-- Obsidian Squircle -->
   <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#bg)"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#coreGlow)"/>
   <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="white" stroke-opacity="0.14" stroke-width="1.5"/>
 
-  <!-- Bold Minimalist AI 4-Point Curved Star (Gemini / Apple Intelligence silhouette) -->
-  <path d="M58 18C58 46.5 36.5 68 8 68C36.5 68 58 89.5 58 118C58 89.5 79.5 68 108 68C79.5 68 58 46.5 58 18Z" transform="translate(4 -4)" fill="url(#gemMain)"/>
+  <!-- Translucent Crystal Facet Fills (3 Identical Equilateral Triangles + Luminous Core) -->
+  <polygon points="47.80,26.59 20.80,73.35 74.80,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
+  <polygon points="80.20,26.59 53.20,73.35 107.20,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
+  <polygon points="64.00,54.65 37.00,101.41 91.00,101.41" fill="#38BDF8" fill-opacity="0.08"/>
+  <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="url(#midFill)"/>
 
-  <!-- Secondary Accent Spark -->
-  <path d="M96 16C96 25.5 88.5 33 79 33C88.5 33 96 40.5 96 50C96 40.5 103.5 33 113 33C103.5 33 96 25.5 96 16Z" fill="url(#gemSub)"/>
+  <!-- Precision Symmetric Equilateral Geometry (Side L=54.0, Mid s=21.6, Axis x=64.0) -->
+  <g stroke="url(#triStroke)" stroke-width="6.8" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="47.80,26.59 20.80,73.35 74.80,73.35"/>
+    <polygon points="80.20,26.59 53.20,73.35 107.20,73.35"/>
+    <polygon points="64.00,54.65 37.00,101.41 91.00,101.41"/>
+  </g>
 </svg>
