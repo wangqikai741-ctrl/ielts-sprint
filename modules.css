@@ -622,6 +622,209 @@ body.auth-locked {
   color: var(--text-muted);
 }
 
+/* ---------- Cambridge Passage Vocabulary Radar ---------- */
+.analyzer-dialog {
+  max-width: 1180px;
+  width: 95vw;
+  max-height: 90vh;
+}
+.analyzer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.analyzer-top-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.analyzer-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+.az-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.az-b-core {
+  background: rgba(22, 163, 74, 0.14);
+  color: #15803d;
+}
+body.dark .az-b-core { color: #4ade80; }
+.az-b-vocab {
+  background: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+}
+body.dark .az-b-vocab { color: #fbbf24; }
+.az-b-new {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+}
+.analyzer-split {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 14px;
+  min-height: 360px;
+}
+.analyzer-article {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  max-height: 460px;
+  overflow-y: auto;
+  font-size: 15.5px;
+  line-height: 1.85;
+}
+.analyzer-article p {
+  margin-bottom: 12px;
+}
+.az-tok {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 2px;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.az-tok:hover {
+  background: rgba(59, 130, 246, 0.16);
+}
+.az-tok.active {
+  box-shadow: 0 0 0 2px var(--primary);
+}
+.az-tok-core {
+  background: rgba(22, 163, 74, 0.18);
+  color: #166534;
+  font-weight: 700;
+  border-bottom: 2px solid #16a34a;
+}
+body.dark .az-tok-core {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.25);
+}
+.az-tok-vocab {
+  background: rgba(245, 158, 11, 0.24);
+  color: #92400e;
+  font-weight: 700;
+  border-bottom: 2px solid #f59e0b;
+}
+body.dark .az-tok-vocab {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.28);
+}
+.az-tok-new {
+  border-bottom: 1.5px dashed rgba(37, 99, 235, 0.55);
+}
+.analyzer-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.az-inspector {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.az-insp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.az-insp-word {
+  font-size: 19px;
+  color: var(--primary);
+}
+.az-meaning-box {
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.az-dict-links {
+  display: flex;
+  gap: 10px;
+  font-size: 12.5px;
+  align-items: center;
+}
+.az-dict-links a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.az-lists-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 250px;
+}
+.az-word-chips {
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+.az-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.az-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.az-chip small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.az-match-row {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.az-match-row:hover {
+  border-color: var(--primary);
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .skill-grid { grid-template-columns: repeat(2, 1fr); }

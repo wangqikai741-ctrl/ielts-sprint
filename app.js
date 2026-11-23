@@ -645,8 +645,9 @@
                 <span class="muted">${escapeHtml(r.date || "")} ${r.minutes ? `· ${escapeHtml(r.minutes)}分钟` : ""}</span>
                 <h3 style="margin-top:4px;font-size:16px;">${escapeHtml(r.source)}</h3>
               </div>
-              <div style="display:flex;align-items:center;gap:6px;">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 ${r.correct !== "" ? `<span class="record-score-badge">${escapeHtml(r.correct)} / ${escapeHtml(r.total)}${pct !== null ? ` (${pct}%)` : ""}</span>` : ""}
+                ${r.excerpt ? `<button class="btn btn-outline btn-sm" data-pr-analyze="${escapeHtml(r.id)}">🔬 词频雷达</button>` : ""}
                 <button class="btn btn-ghost btn-sm" data-pr-edit="${escapeHtml(r.id)}">编辑</button>
                 <button class="btn btn-danger-ghost btn-sm" data-pr-del="${escapeHtml(r.id)}">删</button>
               </div>

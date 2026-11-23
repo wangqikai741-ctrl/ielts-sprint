@@ -66,6 +66,7 @@
 
     <div class="topbar-right">
       <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">🔍 查词 / 同义替换 <kbd>/</kbd></button>
+      <button class="btn btn-ghost btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 真题原文雷达</button>
       <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入每日包</button>
       <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份/恢复</button>
       <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定工作台">🔒 锁定</button>
@@ -396,6 +397,7 @@
               <button class="pill active" data-type="all">全部记录</button>
               <button class="pill" data-type="listening">🎧 仅听力</button>
               <button class="pill" data-type="reading">📖 仅阅读</button>
+              <button class="btn btn-sm btn-primary" id="btnOpenAnalyzer" style="margin-left:auto;">🔬 真题原文词频雷达</button>
             </div>
           </div>
 
@@ -604,6 +606,75 @@
         <button class="btn btn-ghost btn-sm modal-close">Esc</button>
       </div>
       <div class="search-body" id="globalSearchResults"></div>
+    </div>
+  </div>
+
+  <!-- Cambridge Passage Vocabulary Radar Modal -->
+  <div class="modal-backdrop hidden" id="modalAnalyzer">
+    <div class="modal-dialog analyzer-dialog">
+      <div class="modal-header">
+        <h3>🔬 剑桥真题原文 · 熟词/生词智能雷达</h3>
+        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+      </div>
+      <div class="modal-body analyzer-body">
+        <div class="analyzer-input-wrap" id="analyzerInputWrap">
+          <div class="analyzer-top-row">
+            <input type="text" id="azTitleInput" class="text-input input-sm" placeholder="文章来源（如：剑10 Test 1 Passage 1 Stepwells）" style="flex:1;" />
+            <button class="btn btn-primary btn-sm" id="btnRunAnalyzer">🚀 开始扫描匹配</button>
+            <button class="btn btn-outline btn-sm" id="btnSaveAzToPractice" title="把这篇原文存入精听精读记录">💾 存入精听精读记录</button>
+          </div>
+          <textarea id="azRawText" class="textarea-input full-width" rows="5" placeholder="把精读完的剑桥雅思阅读 Passage 原文、或者听力 Audio Script 对话全文粘贴到这里，点击「开始扫描匹配」..."></textarea>
+        </div>
+
+        <div class="analyzer-summary-bar" id="azSummaryBar">
+          <span class="az-badge az-b-core">🟢 已背串文高频词：<b id="azCountCore">0</b></span>
+          <span class="az-badge az-b-vocab">🟠 生词本记录词：<b id="azCountVocab">0</b></span>
+          <span class="az-badge az-b-new">🔵 未记录中高级新词：<b id="azCountNew">0</b></span>
+          <span class="muted" style="margin-left:auto;font-size:12px;">💡 点击文中任意单词即可右侧查词 &amp; 一键加入生词本</span>
+        </div>
+
+        <div class="analyzer-split">
+          <!-- Left: Annotated Article -->
+          <div class="analyzer-article" id="azArticleView">
+            <div class="empty-state">在上方粘贴剑桥真题原文并点击「🚀 开始扫描匹配」，这里会自动用颜色标出你背过的串文词、生词本里的词，并筛出未记录的新词。</div>
+          </div>
+
+          <!-- Right: Word Inspector + Unrecorded Words List -->
+          <div class="analyzer-side">
+            <div class="az-inspector" id="azInspector">
+              <div class="az-insp-head">
+                <div>
+                  <strong class="az-insp-word" id="azInspWord">点击左侧任意单词</strong>
+                  <span class="phonetic" id="azInspPhonetic"></span>
+                </div>
+                <button class="btn btn-sm btn-ghost" id="btnAzSpeak" disabled>🔊 发音</button>
+              </div>
+              <div class="az-insp-status" id="azInspStatus">点击文中绿色/橙色词看已有释义，点击普通词可立即查词并加入生词本</div>
+              <div class="az-insp-dict" id="azInspDict"></div>
+              <div class="az-quick-add" id="azQuickAddForm">
+                <input type="text" id="azAddMeaning" class="text-input input-sm full-width" placeholder="输入中文释义（可点上方剑桥/有道速查）..." />
+                <div style="display:flex;gap:6px;margin-top:6px;">
+                  <select id="azAddCat" class="select-input select-sm">
+                    <option value="阅读同义">阅读同义</option>
+                    <option value="听力拼写">听力拼写</option>
+                    <option value="雅思哥生词">雅思哥生词</option>
+                    <option value="口语活词">口语活词</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="btnAzAddVocab" style="flex:1;" disabled>➕ 加入我的生词本</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="az-lists-card">
+              <div class="filter-pills" id="azListTabs">
+                <button class="pill active" data-az-tab="new">🔵 未记录新词 (<span id="azTabNewCnt">0</span>)</button>
+                <button class="pill" data-az-tab="matched">🟢🟠 已匹配熟词 (<span id="azTabMatchCnt">0</span>)</button>
+              </div>
+              <div class="az-word-chips" id="azWordList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

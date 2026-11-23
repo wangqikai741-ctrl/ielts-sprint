@@ -1052,6 +1052,309 @@
     }
   }
 
+  // ==================== 5) 剑桥真题原文 · 熟词/生词智能雷达 ====================
+  const BASIC_STOPWORDS = new Set(
+    ("a,about,above,across,after,again,against,ago,all,almost,alone,along,already,also,although,always,am,among,an,and,another,any,anyone,anything,appear,area,around,as,ask,at,away,back,bad,be,became,because,become,bed,been,before,began,begin,behind,being,believe,below,best,better,between,big,bird,black,blue,boat,body,book,both,box,boy,bring,brought,build,built,bus,but,buy,by,call,called,came,can,cannot,car,care,carry,case,cat,change,check,child,children,city,class,clear,close,cold,color,come,coming,common,company,complete,could,country,course,cover,cut,dark,data,day,days,decide,deep,did,different,do,does,dog,doing,done,door,down,draw,drive,dry,during,each,early,earth,east,easy,eat,eight,either,else,end,enough,even,ever,every,everyone,everything,example,eye,eyes,face,fact,fall,family,far,farm,fast,father,feel,feet,few,field,find,fine,fire,first,fish,five,floor,follow,food,foot,for,form,found,four,free,friend,friends,from,front,full,fun,game,gave,get,getting,girl,give,given,glass,go,going,gold,gone,good,got,government,great,green,ground,group,grow,had,hair,half,hand,hands,happen,happened,happy,hard,has,have,having,he,head,hear,heard,heart,heavy,help,her,here,high,him,himself,his,hold,home,horse,hot,hour,hours,house,how,however,hundred,idea,if,important,in,information,inside,instead,into,is,island,it,its,itself,job,just,keep,kept,kind,king,knew,know,known,land,language,large,last,late,later,laugh,law,lay,lead,learn,least,leave,left,less,let,letter,level,life,light,like,likely,line,list,listen,little,live,lived,living,local,long,longer,look,looked,looking,lost,lot,love,low,machine,made,main,make,making,man,many,map,mark,matter,may,maybe,me,mean,means,men,might,mile,miles,million,mind,minute,minutes,miss,Modern,money,month,months,moon,more,morning,most,mother,mountain,move,moved,much,music,must,my,myself,name,national,natural,near,nearly,need,needed,needs,never,new,news,next,nice,night,nine,no,none,nor,north,not,note,nothing,notice,now,number,numbers,of,off,often,oh,oil,ok,old,on,once,one,ones,only,open,opened,or,order,other,others,our,out,outside,over,own,page,paper,part,parts,pass,passed,past,pay,people,per,perhaps,period,person,picture,piece,place,places,plan,plane,plant,plants,play,played,please,point,points,poor,possible,power,present,president,press,pretty,price,probably,problem,problems,program,public,pull,put,question,questions,quickly,quite,rain,ran,reach,read,reading,ready,real,really,reason,red,remember,rest,result,results,return,rich,ride,right,Direct,river,road,rock,room,round,rule,run,running,said,same,sat,saw,say,saying,says,school,science,sea,second,section,see,seem,seemed,seems,seen,self,send,sense,sent,service,set,seven,several,shall,shape,she,ship,short,should,show,showed,shown,shows,side,simple,since,sing,single,sister,sit,six,size,sleep,slow,small,snow,so,social,some,someone,something,sometimes,son,song,soon,sound,south,space,speak,special,stand,star,start,started,state,states,stay,step,steps,still,stood,stop,story,street,strong,student,students,study,such,suddenly,summer,sun,sure,surface,system,table,take,taken,taking,talk,tall,teach,team,tell,ten,test,than,that,the,their,them,themselves,then,there,therefore,these,they,thing,things,think,thinking,third,this,those,though,thought,thousand,three,through,thus,time,times,to,today,together,told,too,took,top,total,toward,towards,town,trade,train,tree,trees,tried,true,try,trying,turn,turned,two,type,under,understand,unit,until,up,upon,us,use,used,using,usually,value,various,very,view,voice,wait,walk,walked,wall,want,wanted,wants,war,warm,was,watch,water,way,ways,we,week,weeks,weight,well,went,were,west,what,whatever,when,where,whether,which,while,white,who,whole,whom,whose,why,wide,wife,will,wind,window,winter,wish,with,within,without,woman,women,wonder,wood,word,words,work,worked,working,works,world,would,write,written,wrong,wrote,year,years,yes,yet,you,young,your").toLowerCase().split(",")
+  );
+
+  let azCurrentListTab = "new";
+  let azLastResult = { coreList: [], vocabList: [], newList: [] };
+  let azSelectedToken = "";
+
+  function buildWordIndex() {
+    const s = S();
+    const coreMap = new Map();
+    const vocabMap = new Map();
+
+    const addVariants = (map, wordStr, obj) => {
+      const w = wordStr.trim().toLowerCase();
+      if (!w) return;
+      map.set(w, obj);
+      // Common inflection variants
+      map.set(w + "s", obj);
+      map.set(w + "es", obj);
+      map.set(w + "d", obj);
+      map.set(w + "ed", obj);
+      map.set(w + "ing", obj);
+      map.set(w + "ly", obj);
+      if (w.endsWith("e")) {
+        map.set(w.slice(0, -1) + "ing", obj);
+        map.set(w.slice(0, -1) + "ed", obj);
+      }
+      if (w.endsWith("y") && w.length > 2) {
+        map.set(w.slice(0, -1) + "ies", obj);
+        map.set(w.slice(0, -1) + "ied", obj);
+      }
+    };
+
+    (s.days || []).forEach((d) => {
+      (d.words || []).forEach((wObj) => {
+        const item = { ...wObj, dayId: d.id, dayLabel: (d.label || "").split(" · ")[0] || d.id };
+        addVariants(coreMap, wObj.word, item);
+        (wObj.forms || []).forEach((f) => addVariants(coreMap, f, item));
+      });
+    });
+
+    (s.vocabBook || []).forEach((vObj) => {
+      addVariants(vocabMap, vObj.word, vObj);
+    });
+
+    return { coreMap, vocabMap };
+  }
+
+  function guessBaseWord(rawLower, coreMap, vocabMap) {
+    if (vocabMap.has(rawLower)) return { type: "vocab", data: vocabMap.get(rawLower) };
+    if (coreMap.has(rawLower)) return { type: "core", data: coreMap.get(rawLower) };
+    return null;
+  }
+
+  function runPassageAnalyzer() {
+    const raw = ($("azRawText").value || "").trim();
+    if (!raw) {
+      App.toast("请先粘贴剑桥雅思阅读或听力原文");
+      return;
+    }
+
+    const { coreMap, vocabMap } = buildWordIndex();
+    const matchedCore = new Map();
+    const matchedVocab = new Map();
+    const newWords = new Map();
+
+    // Split into paragraphs and tokenize words while keeping punctuation
+    const paragraphs = raw.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+    const htmlParagraphs = paragraphs.map((para) => {
+      const tokens = para.split(/([A-Za-z]+(?:['’-][A-Za-z]+)*)/g);
+      return (
+        "<p>" +
+        tokens
+          .map((tok) => {
+            if (!/^[A-Za-z]/.test(tok)) return esc(tok);
+            const low = tok.toLowerCase();
+            const match = guessBaseWord(low, coreMap, vocabMap);
+            if (match && match.type === "vocab") {
+              const v = match.data;
+              matchedVocab.set(v.word.toLowerCase(), v);
+              return `<span class="az-tok az-tok-vocab" data-az-word="${esc(v.word)}" title="生词本：${esc(v.meaning)}">${esc(tok)}</span>`;
+            }
+            if (match && match.type === "core") {
+              const c = match.data;
+              matchedCore.set(c.word.toLowerCase(), c);
+              return `<span class="az-tok az-tok-core" data-az-word="${esc(c.word)}" title="${esc(c.dayLabel)} 高频词：${esc(c.cn)}">${esc(tok)}</span>`;
+            }
+            // Check if candidate for unrecorded medium/advanced word
+            const cleanWord = low.replace(/['’-].*$/, "");
+            if (cleanWord.length >= 4 && !BASIC_STOPWORDS.has(low) && !BASIC_STOPWORDS.has(cleanWord)) {
+              newWords.set(low, (newWords.get(low) || 0) + 1);
+              return `<span class="az-tok az-tok-new" data-az-word="${esc(low)}">${esc(tok)}</span>`;
+            }
+            return `<span class="az-tok" data-az-word="${esc(low)}">${esc(tok)}</span>`;
+          })
+          .join("") +
+        "</p>"
+      );
+    });
+
+    $("azArticleView").innerHTML = htmlParagraphs.join("");
+
+    azLastResult = {
+      coreList: Array.from(matchedCore.values()),
+      vocabList: Array.from(matchedVocab.values()),
+      newList: Array.from(newWords.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([w, count]) => ({ word: w, count }))
+    };
+
+    $("azCountCore").textContent = azLastResult.coreList.length;
+    $("azCountVocab").textContent = azLastResult.vocabList.length;
+    $("azCountNew").textContent = azLastResult.newList.length;
+    $("azTabNewCnt").textContent = azLastResult.newList.length;
+    $("azTabMatchCnt").textContent = azLastResult.coreList.length + azLastResult.vocabList.length;
+
+    renderAzSideList();
+  }
+
+  function renderAzSideList() {
+    const box = $("azWordList");
+    if (!box) return;
+    if (azCurrentListTab === "new") {
+      if (!azLastResult.newList.length) {
+        box.innerHTML = `<div class="sr-empty">太强了！文中没有筛出未记录的陌生难词，或请先点击上方「🚀 开始扫描匹配」。</div>`;
+        return;
+      }
+      box.innerHTML = azLastResult.newList
+        .map(
+          (item) => `
+          <button class="az-chip az-chip-new" data-az-pick="${esc(item.word)}">
+            <span>${esc(item.word)}</span>
+            ${item.count > 1 ? `<small>×${item.count}</small>` : ""}
+          </button>`
+        )
+        .join("");
+    } else {
+      const allMatched = [
+        ...azLastResult.vocabList.map((v) => ({ kind: "vocab", word: v.word, cn: v.meaning, tag: "生词本" })),
+        ...azLastResult.coreList.map((c) => ({ kind: "core", word: c.word, cn: c.cn, tag: c.dayLabel }))
+      ];
+      if (!allMatched.length) {
+        box.innerHTML = `<div class="sr-empty">本篇暂未匹配到之前背过的串文词或生词本词汇。</div>`;
+        return;
+      }
+      box.innerHTML = allMatched
+        .map(
+          (m) => `
+          <div class="az-match-row ${m.kind === "vocab" ? "is-vocab" : "is-core"}" data-az-pick="${esc(m.word)}">
+            <div><b>${esc(m.word)}</b> <span class="cat-chip">${esc(m.tag)}</span></div>
+            <div class="muted">${esc(m.cn)}</div>
+          </div>`
+        )
+        .join("");
+    }
+  }
+
+  function inspectAzWord(rawWord) {
+    const clean = (rawWord || "").trim();
+    if (!clean) return;
+    azSelectedToken = clean;
+    const low = clean.toLowerCase();
+    const { coreMap, vocabMap } = buildWordIndex();
+    const match = guessBaseWord(low, coreMap, vocabMap);
+
+    $("azInspWord").textContent = match ? match.data.word : clean;
+    $("btnAzSpeak").disabled = false;
+    $("btnAzAddVocab").disabled = false;
+
+    const dictLinks = `
+      <div class="az-dict-links">
+        <span>速查释义：</span>
+        <a href="https://dictionary.cambridge.org/zhs/词典/英语-汉语-简体/${encodeURIComponent(clean)}" target="_blank" rel="noopener">剑桥词典 ↗</a>
+        <a href="https://www.youdao.com/result?word=${encodeURIComponent(clean)}&lang=en" target="_blank" rel="noopener">有道词典 ↗</a>
+      </div>`;
+
+    if (match && match.type === "vocab") {
+      const v = match.data;
+      $("azInspPhonetic").textContent = "";
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-vocab">🟠 已在我的生词本 (${esc(v.category)})</span>`;
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>释义：</b>${esc(v.meaning)}${v.note ? `<br><small class="muted">备注：${esc(v.note)}</small>` : ""}</div>${dictLinks}`;
+      $("azAddMeaning").value = v.meaning === "（待补充翻译）" ? "" : v.meaning;
+      $("btnAzAddVocab").textContent = "🔄 更新生词本释义";
+    } else if (match && match.type === "core") {
+      const c = match.data;
+      $("azInspPhonetic").textContent = c.phonetic || "";
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-core">🟢 已背串文词 (${esc(c.dayLabel)} · ${esc(c.category)})</span>`;
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${c.tip ? `<br><small class="muted">💡 ${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
+      $("azAddMeaning").value = `${c.pos ? c.pos + " " : ""}${c.cn}`;
+      $("btnAzAddVocab").textContent = "⭐ 同时存入我的生词本";
+    } else {
+      $("azInspPhonetic").textContent = "";
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-new">🔵 未记录新词（生词本中尚未收录）</span>`;
+      $("azInspDict").innerHTML = dictLinks;
+      $("azAddMeaning").value = "";
+      $("btnAzAddVocab").textContent = "➕ 加入我的生词本";
+      $("azAddMeaning").focus();
+    }
+  }
+
+  function openPassageAnalyzer(title = "", text = "") {
+    App.openModal("modalAnalyzer");
+    if (title) $("azTitleInput").value = title;
+    if (text) {
+      $("azRawText").value = text;
+      runPassageAnalyzer();
+    }
+  }
+
+  function bindAnalyzer() {
+    const btnOpen = $("btnOpenAnalyzer");
+    if (btnOpen) {
+      btnOpen.addEventListener("click", () => {
+        const src = ($("prSource") && $("prSource").value.trim()) || "";
+        const exc = ($("prExcerpt") && $("prExcerpt").value.trim()) || "";
+        openPassageAnalyzer(src, exc);
+      });
+    }
+    const btnTop = $("btnTopAnalyzer");
+    if (btnTop) {
+      btnTop.addEventListener("click", () => openPassageAnalyzer("", ""));
+    }
+
+    $("btnRunAnalyzer").addEventListener("click", runPassageAnalyzer);
+
+    $("btnSaveAzToPractice").addEventListener("click", () => {
+      const raw = ($("azRawText").value || "").trim();
+      if (!raw) return App.toast("请先粘贴原文");
+      const title = ($("azTitleInput").value || "").trim() || `剑雅真题精读 (${today()})`;
+      const s = S();
+      s.practiceRecords.unshift({
+        id: "pr-" + Date.now(),
+        type: "reading",
+        date: today(),
+        source: title,
+        correct: "",
+        total: 13,
+        minutes: "",
+        synonyms: "",
+        notes: `词频雷达扫描：匹配已背高频词 ${azLastResult.coreList.length} 个，生词本词汇 ${azLastResult.vocabList.length} 个，筛出未记录新词 ${azLastResult.newList.length} 个。`,
+        excerpt: raw
+      });
+      App.save();
+      App.refresh();
+      App.toast("已存入「🎧 精听 & 精读记录」！");
+    });
+
+    $("azArticleView").addEventListener("click", (e) => {
+      const tok = e.target.closest("[data-az-word]");
+      if (!tok) return;
+      $("azArticleView").querySelectorAll(".az-tok.active").forEach((el) => el.classList.remove("active"));
+      tok.classList.add("active");
+      inspectAzWord(tok.dataset.azWord);
+    });
+
+    $("azListTabs").addEventListener("click", (e) => {
+      const p = e.target.closest("[data-az-tab]");
+      if (!p) return;
+      $("azListTabs").querySelectorAll(".pill").forEach((x) => x.classList.remove("active"));
+      p.classList.add("active");
+      azCurrentListTab = p.dataset.azTab;
+      renderAzSideList();
+    });
+
+    $("azWordList").addEventListener("click", (e) => {
+      const item = e.target.closest("[data-az-pick]");
+      if (!item) return;
+      inspectAzWord(item.dataset.azPick);
+    });
+
+    $("btnAzSpeak").addEventListener("click", () => {
+      if (azSelectedToken) App.speak(azSelectedToken);
+    });
+
+    $("btnAzAddVocab").addEventListener("click", () => {
+      if (!azSelectedToken) return;
+      const meaning = ($("azAddMeaning").value || "").trim() || "（待补充翻译）";
+      const cat = $("azAddCat").value;
+      const src = ($("azTitleInput").value || "").trim();
+      App.addWord({
+        word: azSelectedToken,
+        meaning,
+        category: cat,
+        note: src ? `来自真题：${src}` : ""
+      });
+      runPassageAnalyzer();
+      inspectAzWord(azSelectedToken);
+    });
+
+    // Listen to "🔬 词频雷达" button inside existing practice records list
+    const prList = $("practiceRecordsList");
+    if (prList) {
+      prList.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-pr-analyze]");
+        if (!btn) return;
+        const rec = S().practiceRecords.find((r) => r.id === btn.dataset.prAnalyze);
+        if (rec) openPassageAnalyzer(rec.source, rec.excerpt);
+      });
+    }
+  }
+
   // ==================== 启动 ====================
   function renderAll() {
     ensureFields();
@@ -1065,6 +1368,7 @@
   bindDashboard();
   bindWriting();
   bindSearch();
+  bindAnalyzer();
   renderAll();
 
   let pending = false;
