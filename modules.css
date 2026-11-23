@@ -688,14 +688,12 @@ body.auth-revealing .main-container {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(
-    200px circle at var(--mx, -300px) var(--my, -300px),
-    rgba(255, 255, 255, 0.22),
-    rgba(125, 211, 252, 0.16) 42%,
-    transparent 74%
-  );
+  background:
+    radial-gradient(280px circle at var(--mx, -400px) var(--my, -400px), rgba(255, 255, 255, 0.22), rgba(125, 211, 252, 0.16) 44%, transparent 74%),
+    radial-gradient(340px circle at var(--tx1, -400px) var(--ty1, -400px), rgba(56, 189, 248, 0.24), rgba(99, 102, 241, 0.14) 48%, transparent 76%),
+    radial-gradient(390px circle at var(--tx2, -400px) var(--ty2, -400px), rgba(168, 85, 247, 0.22), rgba(244, 114, 182, 0.1) 50%, transparent 78%);
   mix-blend-mode: screen;
-  transition: opacity 0.25s ease;
+  will-change: background;
 }
 .aurora-ribbon {
   position: absolute;
@@ -1600,14 +1598,14 @@ body.dark .nav-tab.active {
 .skill-card:hover,
 .record-card:hover {
   background:
-    radial-gradient(190px circle at var(--cx, -200px) var(--cy, -200px), rgba(0, 113, 227, 0.075), transparent 72%),
+    radial-gradient(250px circle at var(--cx, -250px) var(--cy, -250px), rgba(0, 113, 227, 0.08), transparent 72%),
     var(--surface) !important;
 }
 body.dark .card:hover,
 body.dark .skill-card:hover,
 body.dark .record-card:hover {
   background:
-    radial-gradient(190px circle at var(--cx, -200px) var(--cy, -200px), rgba(56, 189, 248, 0.13), transparent 72%),
+    radial-gradient(250px circle at var(--cx, -250px) var(--cy, -250px), rgba(56, 189, 248, 0.14), transparent 72%),
     var(--surface) !important;
 }
 .skill-card:hover,

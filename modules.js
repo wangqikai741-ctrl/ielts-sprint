@@ -1133,13 +1133,52 @@
       });
     }
 
-    // Interactive Cursor Spotlight on Lock Screen + Subtle 3D Card Glare
+    // Interactive Fluid Trailing Aurora Spotlight on Lock Screen (3-stage inertia comet tail)
+    let targetX = -400, targetY = -400;
+    let mx = -400, my = -400;
+    let tx1 = -400, ty1 = -400;
+    let tx2 = -400, ty2 = -400;
+    let trailActive = false;
+    let trailRaf = null;
+
+    function stepTrail() {
+      if (gate.classList.contains("hidden")) {
+        trailRaf = null;
+        return;
+      }
+      mx += (targetX - mx) * 0.3;
+      my += (targetY - my) * 0.3;
+      tx1 += (targetX - tx1) * 0.11;
+      ty1 += (targetY - ty1) * 0.11;
+      tx2 += (targetX - tx2) * 0.055;
+      ty2 += (targetY - ty2) * 0.055;
+
+      gate.style.setProperty("--mx", `${mx.toFixed(1)}px`);
+      gate.style.setProperty("--my", `${my.toFixed(1)}px`);
+      gate.style.setProperty("--tx1", `${tx1.toFixed(1)}px`);
+      gate.style.setProperty("--ty1", `${ty1.toFixed(1)}px`);
+      gate.style.setProperty("--tx2", `${tx2.toFixed(1)}px`);
+      gate.style.setProperty("--ty2", `${ty2.toFixed(1)}px`);
+
+      const dist = Math.hypot(targetX - tx2, targetY - ty2);
+      if (dist > 0.6) {
+        trailRaf = requestAnimationFrame(stepTrail);
+      } else {
+        trailRaf = null;
+      }
+    }
+
     gate.addEventListener("mousemove", (e) => {
       const rect = gate.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      gate.style.setProperty("--mx", `${x}px`);
-      gate.style.setProperty("--my", `${y}px`);
+      targetX = e.clientX - rect.left;
+      targetY = e.clientY - rect.top;
+      if (!trailActive) {
+        trailActive = true;
+        mx = tx1 = tx2 = targetX;
+        my = ty1 = ty2 = targetY;
+      }
+      if (!trailRaf) trailRaf = requestAnimationFrame(stepTrail);
+
       const card = $("authCard");
       if (card) {
         const cr = card.getBoundingClientRect();
