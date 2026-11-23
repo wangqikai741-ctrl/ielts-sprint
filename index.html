@@ -12,39 +12,43 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124f" />
-  <link rel="stylesheet" href="modules.css?v=20261124f" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124f" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124f" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124f" />
+  <link rel="stylesheet" href="styles.css?v=20261124g" />
+  <link rel="stylesheet" href="modules.css?v=20261124g" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124g" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124g" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124g" />
 </head>
 <body>
-  <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Glass Card) -->
+  <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Interactive Cursor Spotlight) -->
   <div class="auth-gate" id="authGate">
     <div class="auth-aurora-canvas">
       <div class="aurora-ribbon ribbon-1"></div>
       <div class="aurora-ribbon ribbon-2"></div>
       <div class="aurora-ribbon ribbon-3"></div>
+      <div class="auth-cursor-glow" id="authCursorGlow"></div>
       <div class="aurora-grid-overlay"></div>
     </div>
-    <div class="auth-card">
+    <div class="auth-card" id="authCard">
       <div class="auth-logo">
-        <div class="auth-squircle">
-          <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="lgOrbitRing" x1="26" y1="98" x2="102" y2="26" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#38BDF8"/>
-                <stop offset="48%" stop-color="#818CF8"/>
-                <stop offset="100%" stop-color="#F472B6"/>
-              </linearGradient>
-              <linearGradient id="lgStarCore" x1="44" y1="84" x2="88" y2="38" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#E0F2FE"/>
-                <stop offset="100%" stop-color="#FFFFFF"/>
-              </linearGradient>
-            </defs>
-            <path d="M92.5 52A32 32 0 1 1 76 35.5" stroke="url(#lgOrbitRing)" stroke-width="10.5" stroke-linecap="round"/>
-            <path d="M68 28C68 47.5 80.5 60 100 60C80.5 60 68 72.5 68 92C68 72.5 55.5 60 36 60C55.5 60 68 47.5 68 28Z" fill="url(#lgStarCore)"/>
-          </svg>
+        <div class="auth-logo-halo-wrap">
+          <div class="auth-prismatic-halo"></div>
+          <div class="auth-squircle">
+            <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lgGemMain" x1="20" y1="104" x2="106" y2="20" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#38BDF8"/>
+                  <stop offset="46%" stop-color="#818CF8"/>
+                  <stop offset="100%" stop-color="#F472B6"/>
+                </linearGradient>
+                <linearGradient id="lgGemSub" x1="74" y1="48" x2="108" y2="18" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#BAE6FD"/>
+                  <stop offset="100%" stop-color="#FFFFFF"/>
+                </linearGradient>
+              </defs>
+              <path d="M58 18C58 46.5 36.5 68 8 68C36.5 68 58 89.5 58 118C58 89.5 79.5 68 108 68C79.5 68 58 46.5 58 18Z" transform="translate(4 -4)" fill="url(#lgGemMain)"/>
+              <path d="M96 16C96 25.5 88.5 33 79 33C88.5 33 96 40.5 96 50C96 40.5 103.5 33 113 33C103.5 33 96 25.5 96 16Z" fill="url(#lgGemSub)"/>
+            </svg>
+          </div>
         </div>
       </div>
       <h2 class="auth-title">Sign in to BandUp</h2>
@@ -91,14 +95,14 @@
           <span class="brand-badge" aria-hidden="true">
             <svg class="brand-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="tbRing" x1="26" y1="98" x2="102" y2="26" gradientUnits="userSpaceOnUse">
+                <linearGradient id="tbGem" x1="20" y1="104" x2="106" y2="20" gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stop-color="#38BDF8"/>
                   <stop offset="50%" stop-color="#818CF8"/>
                   <stop offset="100%" stop-color="#F472B6"/>
                 </linearGradient>
               </defs>
-              <path d="M92.5 52A32 32 0 1 1 76 35.5" stroke="url(#tbRing)" stroke-width="11.5" stroke-linecap="round"/>
-              <path d="M68 28C68 47.5 80.5 60 100 60C80.5 60 68 72.5 68 92C68 72.5 55.5 60 36 60C55.5 60 68 47.5 68 28Z" fill="#FFFFFF"/>
+              <path d="M58 18C58 46.5 36.5 68 8 68C36.5 68 58 89.5 58 118C58 89.5 79.5 68 108 68C79.5 68 58 46.5 58 18Z" transform="translate(4 -4)" fill="url(#tbGem)"/>
+              <path d="M96 16C96 25.5 88.5 33 79 33C88.5 33 96 40.5 96 50C96 40.5 103.5 33 113 33C103.5 33 96 25.5 96 16Z" fill="#FFFFFF"/>
             </svg>
           </span>
           <div>
@@ -769,8 +773,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124f"></script>
-  <script src="app.js?v=20261124f"></script>
-  <script src="modules.js?v=20261124f"></script>
+  <script src="data.js?v=20261124g"></script>
+  <script src="app.js?v=20261124g"></script>
+  <script src="modules.js?v=20261124g"></script>
 </body>
 </html>

@@ -259,16 +259,16 @@
       const cur = est != null ? est : base;
       const p = Math.max(0, Math.min(100, ((cur - 4) / (7 - 4)) * 100));
       const tp = ((target - 4) / 3) * 100;
-      const reached = est != null && est >= target;
+      const reached = cur >= target;
       return `
         <div class="skill-card ${reached ? "reached" : ""}">
           <div class="skill-top">
             <span class="skill-name">${label}</span>
-            <span class="skill-est">${est != null ? est.toFixed(1) : "—"}<small>${est != null ? "当前估分" : "暂无数据"}</small></span>
+            <span class="skill-est">${cur.toFixed(1)}<small>${est != null ? "近期模考估分" : "当前基准 Band"}</small></span>
           </div>
           <div class="skill-bar">
             <div class="skill-fill" style="width:${p}%"></div>
-            <div class="skill-target" style="left:${tp}%" title="目标 ${target}"></div>
+            <div class="skill-target" style="left:${tp}%" title="目标 Band ${target.toFixed(1)}"></div>
           </div>
           <div class="skill-foot"><span>起点 ${base.toFixed(1)}</span><span>${extra}</span><span>目标 <b>${target.toFixed(1)}</b></span></div>
         </div>`;
@@ -1129,9 +1129,33 @@
     if (btnLock) {
       btnLock.addEventListener("click", () => {
         lockGate();
-        App.toast("工作台已锁定 🔒");
+        App.toast("BandUp Locked");
       });
     }
+
+    // Interactive Cursor Spotlight on Lock Screen + Subtle 3D Card Glare
+    gate.addEventListener("mousemove", (e) => {
+      const rect = gate.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      gate.style.setProperty("--mx", `${x}px`);
+      gate.style.setProperty("--my", `${y}px`);
+      const card = $("authCard");
+      if (card) {
+        const cr = card.getBoundingClientRect();
+        card.style.setProperty("--cx", `${e.clientX - cr.left}px`);
+        card.style.setProperty("--cy", `${e.clientY - cr.top}px`);
+      }
+    });
+
+    // Global Card Cursor Spotlight inside Workbench (Linear / Vercel style hover feedback)
+    document.addEventListener("mousemove", (e) => {
+      const card = e.target.closest(".card, .skill-card, .record-card");
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--cx", `${e.clientX - r.left}px`);
+      card.style.setProperty("--cy", `${e.clientY - r.top}px`);
+    });
   }
 
   // ==================== 5) 剑桥真题原文 · 熟词/生词智能雷达 ====================

@@ -671,58 +671,72 @@ body.auth-revealing .main-container {
   transition: opacity 0.56s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Apple Event Aurora Silk Mesh Wallpaper */
+/* Apple Event Aurora Silk Mesh Wallpaper + Interactive Cursor Spotlight */
 .auth-aurora-canvas {
   position: absolute;
-  inset: -20%;
+  inset: -15%;
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(900px 500px at 50% 0%, rgba(14, 165, 233, 0.22), transparent 70%),
-    radial-gradient(800px 600px at 85% 90%, rgba(139, 92, 246, 0.25), transparent 70%),
-    #06070c;
+    radial-gradient(1000px 620px at 50% -5%, rgba(56, 189, 248, 0.34), transparent 72%),
+    radial-gradient(920px 680px at 88% 92%, rgba(168, 85, 247, 0.36), transparent 72%),
+    radial-gradient(850px 580px at 12% 85%, rgba(37, 99, 235, 0.32), transparent 72%),
+    #0b0e17;
+}
+.auth-cursor-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    540px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(96, 165, 250, 0.28),
+    rgba(192, 132, 252, 0.14) 38%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.3s ease;
 }
 .aurora-ribbon {
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
+  filter: blur(76px);
   mix-blend-mode: screen;
-  opacity: 0.78;
+  opacity: 0.86;
   will-change: transform;
 }
 .aurora-ribbon.ribbon-1 {
-  width: 680px;
-  height: 440px;
-  top: 8%;
-  left: 12%;
-  background: linear-gradient(135deg, #0071e3 0%, #38bdf8 55%, #6366f1 100%);
+  width: 720px;
+  height: 460px;
+  top: 6%;
+  left: 10%;
+  background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #818cf8 100%);
   animation: auroraFlow1 16s ease-in-out infinite alternate;
 }
 .aurora-ribbon.ribbon-2 {
-  width: 620px;
-  height: 480px;
-  bottom: 6%;
-  right: 10%;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  width: 660px;
+  height: 500px;
+  bottom: 4%;
+  right: 8%;
+  background: linear-gradient(135deg, #6366f1 0%, #c084fc 50%, #f472b6 100%);
   animation: auroraFlow2 19s ease-in-out infinite alternate;
 }
 .aurora-ribbon.ribbon-3 {
-  width: 520px;
-  height: 360px;
-  top: 38%;
-  left: 42%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.75) 0%, rgba(14, 165, 233, 0) 70%);
+  width: 560px;
+  height: 390px;
+  top: 34%;
+  left: 38%;
+  background: radial-gradient(circle, rgba(125, 211, 252, 0.82) 0%, rgba(56, 189, 248, 0) 70%);
   animation: auroraFlow3 13s ease-in-out infinite alternate;
 }
 .aurora-grid-overlay {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 20%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 20%, transparent 75%);
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9) 25%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.9) 25%, transparent 78%);
 }
 @keyframes auroraFlow1 {
   0% { transform: translate(-6%, -4%) rotate(-8deg) scale(1); }
@@ -751,18 +765,20 @@ body.auth-revealing .main-container {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 376px;
-  background: rgba(20, 22, 32, 0.62);
-  backdrop-filter: saturate(190%) blur(36px);
-  -webkit-backdrop-filter: saturate(190%) blur(36px);
+  max-width: 382px;
+  background:
+    radial-gradient(320px circle at var(--cx, 50%) var(--cy, 0%), rgba(255, 255, 255, 0.14), transparent 70%),
+    rgba(24, 28, 42, 0.56);
+  backdrop-filter: saturate(200%) blur(40px);
+  -webkit-backdrop-filter: saturate(200%) blur(40px);
   color: #f5f5f7;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 28px;
-  padding: 40px 34px 28px;
+  padding: 42px 34px 28px;
   box-shadow:
-    0 32px 80px -12px rgba(0, 0, 0, 0.72),
-    0 0 48px -8px rgba(56, 189, 248, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    0 32px 80px -12px rgba(0, 0, 0, 0.6),
+    0 0 56px -10px rgba(96, 165, 250, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   text-align: center;
   transition:
     transform 0.52s cubic-bezier(0.22, 1, 0.36, 1),
@@ -786,39 +802,79 @@ body.auth-revealing .main-container {
 .auth-logo {
   display: flex;
   justify-content: center;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
+.auth-logo-halo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Apple Intelligence / Siri Colorful Prismatic Aura around Logo */
+.auth-prismatic-halo {
+  position: absolute;
+  inset: -8px;
+  border-radius: 26px;
+  background: conic-gradient(
+    from 0deg,
+    #38bdf8,
+    #818cf8,
+    #c084fc,
+    #f472b6,
+    #fb7185,
+    #34d399,
+    #38bdf8
+  );
+  filter: blur(14px);
+  opacity: 0.38;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+  animation: haloSpin 6s linear infinite;
+}
+@keyframes haloSpin {
+  to { transform: rotate(360deg); }
+}
+/* When password verified: burst into vibrant colorful aura halo around logo! */
+.auth-card.is-verified .auth-prismatic-halo {
+  inset: -14px;
+  opacity: 0.98;
+  filter: blur(16px);
+  animation: haloSpinFast 1.4s linear infinite;
+}
+@keyframes haloSpinFast {
+  0% { transform: rotate(0deg) scale(1.05); }
+  50% { transform: rotate(180deg) scale(1.18); }
+  100% { transform: rotate(360deg) scale(1.05); }
+}
+
 .auth-squircle {
+  position: relative;
+  z-index: 1;
   width: 68px;
   height: 68px;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 78% 20%, rgba(96, 165, 250, 0.35), transparent 65%),
-    linear-gradient(145deg, #1a1c28 0%, #090a10 100%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+    radial-gradient(circle at 78% 20%, rgba(96, 165, 250, 0.28), transparent 65%),
+    linear-gradient(145deg, #181a26 0%, #0a0b12 100%);
+  border: 1px solid rgba(255, 255, 255, 0.24);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 16px 36px -6px rgba(0, 0, 0, 0.65),
-    0 0 28px rgba(99, 102, 241, 0.28),
+    0 14px 32px -6px rgba(0, 0, 0, 0.6),
     inset 0 1px 1px rgba(255, 255, 255, 0.28);
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s ease;
 }
 .bandup-mark-svg {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
 }
 .brand-mark-svg {
-  width: 23px;
-  height: 23px;
+  width: 22px;
+  height: 22px;
 }
 .auth-card.is-verified .auth-squircle {
-  transform: scale(1.08);
-  border-color: rgba(52, 199, 89, 0.75);
-  box-shadow:
-    0 0 0 4px rgba(52, 199, 89, 0.25),
-    0 14px 32px -6px rgba(52, 199, 89, 0.45);
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.75);
 }
 
 .auth-title {
@@ -1308,28 +1364,28 @@ body.dark .az-tok-vocab {
 }
 
 body.dark {
-  --bg: #000000;
-  --surface: rgba(28, 28, 30, 0.88);
-  --surface-alt: #2c2c2e;
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #f5f5f7;
-  --text-muted: #98989d;
-  --primary: #0a84ff;
-  --primary-hover: #409cff;
-  --primary-soft: rgba(10, 132, 255, 0.18);
-  --danger: #ff453a;
-  --success: #30d158;
-  --c-warn: #ff9f0a;
-  --c-listen: #0a84ff;
-  --c-read: #64d2ff;
+  --bg: #0c0e14;
+  --surface: rgba(23, 26, 36, 0.88);
+  --surface-alt: #1b1f2b;
+  --border: rgba(255, 255, 255, 0.09);
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
+  --primary-soft: rgba(56, 189, 248, 0.16);
+  --danger: #fb7185;
+  --success: #34d399;
+  --c-warn: #fbbf24;
+  --c-listen: #38bdf8;
+  --c-read: #818cf8;
   --shadow:
-    0 2px 8px rgba(0, 0, 0, 0.4),
-    0 14px 32px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    0 2px 10px rgba(0, 0, 0, 0.35),
+    0 16px 36px -4px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --shadow-hover:
-    0 6px 16px rgba(0, 0, 0, 0.55),
-    0 20px 44px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 8px 20px rgba(0, 0, 0, 0.48),
+    0 24px 48px -6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 body {
@@ -1339,7 +1395,14 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: radial-gradient(1200px 420px at 50% -100px, rgba(0, 113, 227, 0.06), transparent 70%);
+  background-attachment: fixed;
   transition: background-color 0.35s var(--ease-spring), color 0.25s ease;
+}
+body.dark {
+  background-image:
+    radial-gradient(1100px 500px at 50% -120px, rgba(56, 189, 248, 0.11), transparent 70%),
+    radial-gradient(900px 480px at 85% 100%, rgba(129, 140, 248, 0.08), transparent 70%);
 }
 
 /* Tier 1: Claude Editorial Serif for Brand, Sign-in, Hero, and Section Headings */
@@ -1415,13 +1478,20 @@ kbd {
 
 /* ---------- Translucent macOSVibrancy Topbar & Segmented Control ---------- */
 .topbar {
-  background: rgba(255, 255, 255, 0.72) !important;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: saturate(180%) blur(22px) !important;
   -webkit-backdrop-filter: saturate(180%) blur(22px) !important;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none !important;
 }
 body.dark .topbar {
-  background: rgba(22, 22, 24, 0.72) !important;
+  background: rgba(12, 14, 20, 0.85) !important;
+}
+.topbar-inner {
+  width: 100%;
+  padding: 0 24px !important;
 }
 
 .brand-badge {
@@ -1440,16 +1510,19 @@ body.dark .brand-badge {
 
 .nav-tabs {
   position: sticky;
-  top: 55px;
-  z-index: 48;
-  background: rgba(245, 245, 247, 0.82) !important;
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  top: 56px;
+  z-index: 49;
+  margin-top: -1px;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
   border-bottom: 1px solid var(--border);
-  padding: 6px 0;
+  padding: 4px 0 10px;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.04);
 }
 body.dark .nav-tabs {
-  background: rgba(14, 14, 16, 0.78) !important;
+  background: rgba(12, 14, 20, 0.85) !important;
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.45);
 }
 .nav-tabs-inner {
   background: rgba(118, 118, 128, 0.12);
@@ -1505,11 +1578,14 @@ body.dark .nav-tab.active {
   border-color: transparent !important;
 }
 
-/* ---------- Cards: Cupertino Surface & Hover Physics ---------- */
+/* ---------- Cards: Cupertino Surface & Interactive Cursor Spotlight ---------- */
 .card,
 .skill-card,
 .record-card {
-  background: var(--surface) !important;
+  position: relative;
+  background:
+    radial-gradient(380px circle at var(--cx, -200px) var(--cy, -200px), rgba(0, 113, 227, 0.055), transparent 70%),
+    var(--surface) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border) !important;
@@ -1520,13 +1596,52 @@ body.dark .nav-tab.active {
     box-shadow 0.35s var(--ease-spring),
     border-color 0.25s ease !important;
 }
+body.dark .card,
+body.dark .skill-card,
+body.dark .record-card {
+  background:
+    radial-gradient(380px circle at var(--cx, -200px) var(--cy, -200px), rgba(56, 189, 248, 0.1), transparent 70%),
+    var(--surface) !important;
+}
 .skill-card:hover,
 .stat-card:hover,
 .record-card:hover,
 .dash-tip:hover {
   transform: translateY(-2.5px);
   box-shadow: var(--shadow-hover) !important;
-  border-color: rgba(0, 113, 227, 0.22) !important;
+  border-color: rgba(0, 113, 227, 0.28) !important;
+}
+body.dark .skill-card:hover,
+body.dark .stat-card:hover,
+body.dark .record-card:hover,
+body.dark .dash-tip:hover {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+/* Refined Target Marker & Quota Badges (No Harsh Error Red) */
+.skill-target {
+  position: absolute;
+  top: -4px !important;
+  width: 6px !important;
+  height: 13px !important;
+  margin-left: -3px !important;
+  border-radius: 999px !important;
+  background: var(--text) !important;
+  border: 2px solid var(--surface) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.quota-row b {
+  color: var(--text-muted) !important;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.quota-row.ok b {
+  color: var(--success) !important;
+  border-color: rgba(52, 199, 89, 0.4);
+  background: rgba(52, 199, 89, 0.1);
 }
 
 /* ---------- Tactile Apple Buttons & Inputs ---------- */
