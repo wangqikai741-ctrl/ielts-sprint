@@ -1013,7 +1013,7 @@
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-verifying", "is-success");
-      submitBtn.innerHTML = "🔓 解锁进入工作台";
+      submitBtn.innerHTML = "🔓 解锁进入 BandUp";
     }
     const card = gate.querySelector(".auth-card");
     if (card) card.classList.remove("is-verified", "shake");
@@ -1086,7 +1086,7 @@
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-verifying");
-          submitBtn.innerHTML = "🔓 解锁进入工作台";
+          submitBtn.innerHTML = "🔓 解锁进入 BandUp";
         }
         errEl.classList.remove("hidden");
         if (card) {

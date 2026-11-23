@@ -2,24 +2,30 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>雅思冲刺工作台 | IELTS Sprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="BandUp" />
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <title>BandUp</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="modules.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230071e3%22/><text x=%2250%22 y=%2268%22 font-family=%22-apple-system,SF Pro Display,sans-serif%22 font-size=%2254%22 font-weight=%22800%22 fill=%22white%22 text-anchor=%22middle%22>B</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22><rect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230071e3%22/><text x=%2290%22 y=%22124%22 font-family=%22-apple-system,SF Pro Display,sans-serif%22 font-size=%22100%22 font-weight=%22800%22 fill=%22white%22 text-anchor=%22middle%22>B</text></svg>" />
 </head>
 <body>
   <!-- Auth Lock Screen (Full-screen overlay) -->
   <div class="auth-gate" id="authGate">
     <div class="auth-card">
-      <div class="auth-logo">🎯</div>
-      <div class="auth-badge">BANDUP.VIP · PRIVATE WORKBENCH</div>
-      <h2 class="auth-title">雅思冲刺工作台</h2>
-      <p class="auth-sub">私人专属备考空间 · 请输入通行账号与密码解锁</p>
+      <div class="auth-logo"><span class="auth-monogram">B</span></div>
+      <div class="auth-badge">BANDUP.VIP</div>
+      <h2 class="auth-title">BandUp</h2>
+      <p class="auth-sub">IELTS Academic Studio · 请输入通行账号解锁</p>
       <form id="authForm" class="auth-form" autocomplete="on">
         <div class="auth-field">
           <label for="authUser">通行账号</label>
-          <input type="text" id="authUser" class="text-input full-width" placeholder="请输入账号" autocomplete="username" required />
+          <input type="text" id="authUser" class="text-input full-width" placeholder="请输入账号" autocomplete="username" autocapitalize="none" autocorrect="off" required />
         </div>
         <div class="auth-field">
           <label for="authPass">访问密码</label>
@@ -32,9 +38,9 @@
           </label>
         </div>
         <div class="auth-error hidden" id="authError">账号或密码不正确，请重试</div>
-        <button type="submit" class="btn btn-primary full-width auth-submit">🔓 解锁进入工作台</button>
+        <button type="submit" class="btn btn-primary full-width auth-submit">🔓 解锁进入 BandUp</button>
       </form>
-      <p class="auth-foot">🔒 已启用 SHA-256 校验保护 · 本地数据隔离</p>
+      <p class="auth-foot">🔒 SHA-256 Encrypted · Private Study Space</p>
     </div>
   </div>
 
@@ -43,10 +49,10 @@
     <div class="topbar-inner">
       <div class="topbar-left">
         <div class="brand">
-          <span class="brand-badge">IELTS</span>
+          <span class="brand-badge">B</span>
           <div>
-            <h1 class="brand-title">雅思冲刺工作台</h1>
-            <p class="brand-sub">Target 2027-01-20 · Overall 6.0</p>
+            <h1 class="brand-title">BandUp</h1>
+            <p class="brand-sub">IELTS Academic · Target 6.0</p>
           </div>
         </div>
         <div class="countdown-pill" id="countdownPill" title="距离目标考试天数">
@@ -58,40 +64,40 @@
 
       <div class="topbar-right">
         <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">
-          <span>🔍 查词 / 同义替换</span>
+          <span>🔍 <em class="search-trigger-label">查词 / 同义替换</em></span>
           <kbd>/</kbd>
         </button>
         <div class="topbar-actions">
-          <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 真题雷达</button>
-          <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入</button>
-          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份</button>
-          <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定工作台">🔒</button>
-          <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换护眼模式">🌙</button>
+          <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 <span class="btn-label-desktop">真题雷达</span></button>
+          <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 <span class="btn-label-desktop">导入</span></button>
+          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 <span class="btn-label-desktop">备份</span></button>
+          <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定 BandUp">🔒</button>
+          <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换深色模式">🌙</button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Navigation Tabs -->
+  <!-- Main Navigation Tabs (Desktop Segmented Control / iPhone Bottom Tab Bar) -->
   <nav class="nav-tabs" role="tablist">
     <div class="nav-tabs-inner">
       <button class="nav-tab active" data-tab="dashboard" role="tab">
-        🏠 冲刺总览
+        <span class="tab-ic">🏠</span><span class="tab-tx-full">冲刺总览</span><span class="tab-tx-short">总览</span>
       </button>
       <button class="nav-tab" data-tab="daily" role="tab">
-        📖 每日计划 & 串词精读
+        <span class="tab-ic">📖</span><span class="tab-tx-full">每日计划 & 串词精读</span><span class="tab-tx-short">每日</span>
       </button>
       <button class="nav-tab" data-tab="vocab" role="tab">
-        🗂️ 我的生词本 <span class="tab-count" id="vocabCountBadge">0</span>
+        <span class="tab-ic">🗂️</span><span class="tab-tx-full">我的生词本</span><span class="tab-tx-short">生词</span> <span class="tab-count" id="vocabCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="practice" role="tab">
-        🎧 精听 & 精读记录 <span class="tab-count" id="practiceCountBadge">0</span>
+        <span class="tab-ic">🎧</span><span class="tab-tx-full">精听 & 精读记录</span><span class="tab-tx-short">听读</span> <span class="tab-count" id="practiceCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="speaking" role="tab">
-        🗣️ 口语话题库 <span class="tab-count" id="speakingCountBadge">0</span>
+        <span class="tab-ic">🗣️</span><span class="tab-tx-full">口语话题库</span><span class="tab-tx-short">口语</span> <span class="tab-count" id="speakingCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="writing" role="tab">
-        ✍️ 写作批改 <span class="tab-count" id="writingCountBadge">0</span>
+        <span class="tab-ic">✍️</span><span class="tab-tx-full">写作批改</span><span class="tab-tx-short">写作</span> <span class="tab-count" id="writingCountBadge">0</span>
       </button>
     </div>
   </nav>

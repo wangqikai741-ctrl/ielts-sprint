@@ -792,8 +792,11 @@
 
   // ==================== EVENT BINDING ====================
   function bindEvents() {
-    // Selection highlight listener
+    // Selection highlight listener (Desktop mouseup + iPhone touchend)
     document.addEventListener("mouseup", handleSelectionMouseUp);
+    document.addEventListener("touchend", (e) => {
+      setTimeout(() => handleSelectionMouseUp(e), 80);
+    });
 
     $("hlToolbar").addEventListener("click", (e) => {
       const hlBtn = e.target.closest("[data-hl]");

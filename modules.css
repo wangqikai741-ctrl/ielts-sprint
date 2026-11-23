@@ -1382,7 +1382,41 @@ body.dark .nav-tab.active {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
-/* ---------- Responsive ---------- */
+/* BandUp Monogram Logo & Desktop/Mobile Label Helpers */
+.auth-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #0077ed 0%, #005bb5 100%);
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow:
+    0 10px 24px rgba(0, 113, 227, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.brand-badge {
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px !important;
+  font-weight: 800;
+}
+.search-trigger-label {
+  font-style: normal;
+}
+.tab-tx-short {
+  display: none;
+}
+
+/* ---------- Responsive & iPhone (iOS Human Interface) Adaptation ---------- */
 @media (max-width: 1100px) {
   .skill-grid { grid-template-columns: repeat(2, 1fr); }
   .dash-grid.three { grid-template-columns: 1fr 1fr; }
@@ -1394,13 +1428,201 @@ body.dark .nav-tab.active {
   .topbar-inner { flex-wrap: wrap; }
 }
 @media (max-width: 640px) {
-  .dash-hero { flex-direction: column !important; align-items: stretch; }
-  .hero-right { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 16px; }
-  .hero-focus, .task-strip { grid-template-columns: 1fr; }
-  .skill-grid { grid-template-columns: 1fr; }
-  .criteria-grid { grid-template-columns: 1fr 1fr; }
-  .heatmap { grid-template-columns: repeat(6, 1fr); }
-  .main-container { padding: 12px; }
-  .nav-tabs-inner { overflow-x: auto; flex-wrap: nowrap; padding: 6px 12px; }
-  .nav-tab { white-space: nowrap; }
+  /* Safe area padding for iPhone Notch / Dynamic Island & Home Indicator */
+  .topbar {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .topbar-inner {
+    padding: 8px 14px !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+  .topbar-left {
+    gap: 8px !important;
+    min-width: 0;
+  }
+  .brand {
+    gap: 8px !important;
+  }
+  .brand-title {
+    font-size: 16px !important;
+  }
+  .brand-sub {
+    display: none;
+  }
+  .countdown-pill {
+    padding: 3px 9px !important;
+    font-size: 11px !important;
+  }
+  .countdown-days {
+    font-size: 14px !important;
+  }
+  .topbar-right {
+    gap: 4px !important;
+  }
+  .search-trigger {
+    min-width: 0 !important;
+    padding: 6px 10px !important;
+  }
+  .search-trigger-label,
+  .search-trigger kbd,
+  .btn-label-desktop {
+    display: none !important;
+  }
+  .topbar-actions {
+    padding-left: 4px !important;
+    gap: 2px !important;
+  }
+  .topbar-actions .btn-sm {
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* iOS Floating Translucent Bottom Tab Bar */
+  .nav-tabs {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 120;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    background: rgba(255, 255, 255, 0.84) !important;
+    backdrop-filter: saturate(180%) blur(24px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+    border-top: 0.5px solid var(--border) !important;
+    border-bottom: none !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+  }
+  body.dark .nav-tabs {
+    background: rgba(22, 22, 24, 0.86) !important;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+  }
+  .nav-tabs-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px !important;
+  }
+  .nav-tab {
+    flex-direction: column !important;
+    justify-content: center;
+    padding: 5px 2px !important;
+    gap: 2px !important;
+    border-radius: 10px !important;
+    position: relative;
+  }
+  .tab-ic {
+    font-size: 17px;
+    line-height: 1.1;
+  }
+  .tab-tx-full {
+    display: none;
+  }
+  .tab-tx-short {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .nav-tab .tab-count {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 9px !important;
+    padding: 0 4px !important;
+    min-width: 14px;
+    height: 14px;
+    line-height: 14px;
+  }
+
+  /* Leave space at bottom for iOS Tab Bar */
+  .main-container {
+    padding: 12px 12px calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Prevent iOS Safari auto-zoom on input focus (must be >= 16px) */
+  .text-input,
+  .select-input,
+  .textarea-input,
+  .search-input,
+  .cloze-input {
+    font-size: 16px !important;
+  }
+
+  /* Stack mobile cards cleanly */
+  .card, .skill-card, .record-card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+  .dash-hero {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 18px 16px !important;
+    gap: 16px !important;
+  }
+  .hero-right {
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+    padding-left: 0 !important;
+    padding-top: 16px;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    width: 100%;
+  }
+  .hero-mini {
+    border-top: none !important;
+    width: auto !important;
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px !important;
+  }
+  .hero-focus,
+  .task-strip,
+  .form-row-2,
+  .form-row-3,
+  .vocab-add-bar,
+  .quick-add-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .skill-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .skill-est {
+    font-size: 19px !important;
+  }
+  .phase-strip {
+    flex-direction: column;
+  }
+  .heatmap {
+    grid-template-columns: repeat(10, 1fr) !important;
+    gap: 5px !important;
+  }
+  .heat-cell {
+    height: 28px !important;
+    font-size: 10px !important;
+  }
+  .criteria-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .overall-box {
+    grid-column: span 2;
+  }
+  .toast {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    width: max-content;
+    max-width: 90vw;
+  }
+  .modal-backdrop {
+    padding: 10px !important;
+    align-items: flex-end !important;
+  }
+  .modal-dialog {
+    max-height: 86vh !important;
+    border-radius: 20px 20px 16px 16px !important;
+  }
 }
