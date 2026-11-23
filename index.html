@@ -40,60 +40,60 @@
 
   <!-- Top Navigation & Countdown Bar -->
   <header class="topbar">
-    <div class="topbar-left">
-      <div class="brand">
-        <span class="brand-badge">IELTS</span>
-        <div>
-          <h1 class="brand-title">雅思机考冲刺工作台</h1>
-          <p class="brand-sub">目标 2027-01-20 · L 5.5+ · R 6.0 · S 6.0 · W 6.0</p>
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <div class="brand">
+          <span class="brand-badge">IELTS</span>
+          <div>
+            <h1 class="brand-title">雅思冲刺工作台</h1>
+            <p class="brand-sub">Target 2027-01-20 · Overall 6.0</p>
+          </div>
+        </div>
+        <div class="countdown-pill" id="countdownPill" title="距离目标考试天数">
+          <span class="countdown-label">距考试</span>
+          <strong class="countdown-days" id="daysLeft">--</strong>
+          <span class="countdown-label">天</span>
         </div>
       </div>
-    </div>
 
-    <div class="topbar-center">
-      <div class="countdown-pill" id="countdownPill">
-        <span class="countdown-label">距目标考试</span>
-        <strong class="countdown-days" id="daysLeft">--</strong>
-        <span class="countdown-label">天</span>
+      <div class="topbar-right">
+        <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">
+          <span>🔍 查词 / 同义替换</span>
+          <kbd>/</kbd>
+        </button>
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 真题雷达</button>
+          <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入</button>
+          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份</button>
+          <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定工作台">🔒</button>
+          <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换护眼模式">🌙</button>
+        </div>
       </div>
-      <div class="score-pills">
-        <span class="score-pill">听 4.5→<b>5.5+</b></span>
-        <span class="score-pill">读 5.0→<b>6.0</b></span>
-        <span class="score-pill">口 5.0→<b>6.0</b></span>
-        <span class="score-pill">写 6.0→<b>6.0</b></span>
-      </div>
-    </div>
-
-    <div class="topbar-right">
-      <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">🔍 查词 / 同义替换 <kbd>/</kbd></button>
-      <button class="btn btn-ghost btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 真题原文雷达</button>
-      <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入每日包</button>
-      <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份/恢复</button>
-      <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定工作台">🔒 锁定</button>
-      <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换护眼模式">🌙</button>
     </div>
   </header>
 
   <!-- Main Navigation Tabs -->
   <nav class="nav-tabs" role="tablist">
-    <button class="nav-tab active" data-tab="dashboard" role="tab">
-      🏠 冲刺总览
-    </button>
-    <button class="nav-tab" data-tab="daily" role="tab">
-      📖 每日计划 & 串词精读
-    </button>
-    <button class="nav-tab" data-tab="vocab" role="tab">
-      🗂️ 我的生词本 <span class="tab-count" id="vocabCountBadge">0</span>
-    </button>
-    <button class="nav-tab" data-tab="practice" role="tab">
-      🎧 精听 & 精读记录 <span class="tab-count" id="practiceCountBadge">0</span>
-    </button>
-    <button class="nav-tab" data-tab="speaking" role="tab">
-      🗣️ 口语话题库 <span class="tab-count" id="speakingCountBadge">0</span>
-    </button>
-    <button class="nav-tab" data-tab="writing" role="tab">
-      ✍️ 写作批改 <span class="tab-count" id="writingCountBadge">0</span>
-    </button>
+    <div class="nav-tabs-inner">
+      <button class="nav-tab active" data-tab="dashboard" role="tab">
+        🏠 冲刺总览
+      </button>
+      <button class="nav-tab" data-tab="daily" role="tab">
+        📖 每日计划 & 串词精读
+      </button>
+      <button class="nav-tab" data-tab="vocab" role="tab">
+        🗂️ 我的生词本 <span class="tab-count" id="vocabCountBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="practice" role="tab">
+        🎧 精听 & 精读记录 <span class="tab-count" id="practiceCountBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="speaking" role="tab">
+        🗣️ 口语话题库 <span class="tab-count" id="speakingCountBadge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="writing" role="tab">
+        ✍️ 写作批改 <span class="tab-count" id="writingCountBadge">0</span>
+      </button>
+    </div>
   </nav>
 
   <!-- Floating IELTS-style Highlight Toolbar -->
