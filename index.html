@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>雅思 58 天机考冲刺工作台 | IELTS Sprint</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="modules.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>" />
+</head>
+<body>
+  <!-- Top Navigation & Countdown Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <span class="brand-badge">IELTS</span>
+        <div>
+          <h1 class="brand-title">雅思机考冲刺工作台</h1>
+          <p class="brand-sub">目标 2027-01-20 · L 5.5+ · R 6.0 · S 6.0 · W 6.0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div class="countdown-pill" id="countdownPill">
+        <span class="countdown-label">距目标考试</span>
+        <strong class="countdown-days" id="daysLeft">--</strong>
+        <span class="countdown-label">天</span>
+      </div>
+      <div class="score-pills">
+        <span class="score-pill">听 4.5→<b>5.5+</b></span>
+        <span class="score-pill">读 5.0→<b>6.0</b></span>
+        <span class="score-pill">口 5.0→<b>6.0</b></span>
+        <span class="score-pill">写 6.0→<b>6.0</b></span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">🔍 查词 / 同义替换 <kbd>/</kbd></button>
+      <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入每日包</button>
+      <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份/恢复</button>
+      <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换护眼模式">🌙</button>
+    </div>
+  </header>
+
+  <!-- Main Navigation Tabs -->
+  <nav class="nav-tabs" role="tablist">
+    <button class="nav-tab active" data-tab="dashboard" role="tab">
+      🏠 冲刺总览
+    </button>
+    <button class="nav-tab" data-tab="daily" role="tab">
+      📖 每日计划 & 串词精读
+    </button>
+    <button class="nav-tab" data-tab="vocab" role="tab">
+      🗂️ 我的生词本 <span class="tab-count" id="vocabCountBadge">0</span>
+    </button>
+    <button class="nav-tab" data-tab="practice" role="tab">
+      🎧 精听 & 精读记录 <span class="tab-count" id="practiceCountBadge">0</span>
+    </button>
+    <button class="nav-tab" data-tab="speaking" role="tab">
+      🗣️ 口语话题库 <span class="tab-count" id="speakingCountBadge">0</span>
+    </button>
+    <button class="nav-tab" data-tab="writing" role="tab">
+      ✍️ 写作批改 <span class="tab-count" id="writingCountBadge">0</span>
+    </button>
+  </nav>
+
+  <!-- Floating IELTS-style Highlight Toolbar -->
+  <div class="hl-toolbar hidden" id="hlToolbar" role="toolbar">
+    <button class="hl-btn hl-yellow" data-hl="yellow" title="黄色高亮（仿机考）">黄</button>
+    <button class="hl-btn hl-green" data-hl="green" title="绿色高亮">绿</button>
+    <button class="hl-btn hl-pink" data-hl="pink" title="粉色高亮">粉</button>
+    <button class="hl-btn hl-clear" data-hl="clear" title="清除高亮">✕</button>
+    <span class="hl-divider"></span>
+    <button class="hl-action" id="hlSpeakBtn" title="英音朗读选中词">🔊</button>
+    <button class="hl-action" id="hlAddWordBtn" title="加入生词本并记录翻译">➕ 记生词</button>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="main-container">
+
+    <!-- ==================== TAB 1: DAILY PLAN & STORY ==================== -->
+    <!-- ==================== TAB 0: DASHBOARD ==================== -->
+    <section class="tab-panel active" id="tab-dashboard">
+      <div id="dashboardRoot"></div>
+    </section>
+
+    <section class="tab-panel" id="tab-daily">
+      <!-- Day Selector & Daily Checklist Strip -->
+      <div class="card day-header-card">
+        <div class="day-selector-row">
+          <div class="day-select-group">
+            <label for="daySelect" class="field-label-inline">当前学习日：</label>
+            <select id="daySelect" class="select-input"></select>
+            <button class="btn btn-outline btn-sm" id="btnNewDay">+ 手动新建一天</button>
+          </div>
+          <div class="day-progress-wrap">
+            <span class="progress-text" id="dayProgressText">今日完成 0 / 0</span>
+            <div class="progress-bar">
+              <div class="progress-fill" id="dayProgressFill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-strip" id="dailyTaskList"></div>
+        <div class="add-task-inline">
+          <input type="text" id="newTaskInput" class="text-input input-sm" placeholder="临时加一条今日待办（回车添加，如：刷雅思哥 Part 1 Hometown）..." />
+          <button class="btn btn-outline btn-sm" id="btnAddTask">添加任务</button>
+        </div>
+      </div>
+
+      <!-- IELTS Split-Screen Reading & Vocabulary Workbench -->
+      <div class="split-workbench">
+        <!-- Left Pane: Passage & IELTS Highlighting / Cloze -->
+        <div class="card pane-left">
+          <div class="pane-toolbar">
+            <div>
+              <span class="pill-tag">高频词情景串文</span>
+              <h2 class="passage-title" id="passageTitle">加载中...</h2>
+            </div>
+            <div class="toolbar-actions">
+              <button class="btn btn-sm btn-outline" id="btnToggleCloze" title="挖空听力高频词，练机考打字拼写">✍️ 拼写挖空模式</button>
+              <button class="btn btn-sm btn-outline" id="btnToggleTrans">🀄 中文译文</button>
+              <button class="btn btn-sm btn-outline" id="btnReadPassage">🔊 英音朗读</button>
+              <button class="btn btn-sm btn-ghost" id="btnClearPassageHl" title="清除本篇所有手动高亮">🧹 清高亮</button>
+            </div>
+          </div>
+
+          <div class="ielts-hint-bar">
+            <span>💡 <b>机考仿真操作</b>：点击粗体高频词立即查释义与发音；<b>鼠标选中任意英文</b>可黄/绿/粉高亮或一键收录进右侧生词本。</span>
+          </div>
+
+          <!-- Cloze Score Bar (visible only in cloze mode) -->
+          <div class="cloze-bar hidden" id="clozeBar">
+            <div class="cloze-controls">
+              <span>挖空范围：</span>
+              <select id="clozeScope" class="select-input select-sm">
+                <option value="listening">仅听力必会拼写词</option>
+                <option value="all">全部核心词</option>
+              </select>
+              <button class="btn btn-primary btn-sm" id="btnCheckCloze">核对拼写</button>
+              <button class="btn btn-outline btn-sm" id="btnRevealCloze">显示答案</button>
+            </div>
+            <span class="cloze-score" id="clozeScore">填写后点击核对</span>
+          </div>
+
+          <article class="passage-content" id="passageContent"></article>
+
+          <div class="translation-box hidden" id="translationBox">
+            <h4>📖 参考译文</h4>
+            <div id="translationContent"></div>
+          </div>
+        </div>
+
+        <!-- Right Pane: Word Inspector + Side Notes + Core Word List -->
+        <aside class="pane-right">
+          <!-- Selected Word Inspector -->
+          <div class="card inspector-card" id="wordInspector">
+            <div class="inspector-header">
+              <div>
+                <div class="inspector-word-row">
+                  <h3 id="inspWord">点击左侧任意粗体词</h3>
+                  <span class="phonetic" id="inspPhonetic"></span>
+                </div>
+                <span class="cat-badge hidden" id="inspCat"></span>
+              </div>
+              <div class="inspector-btns">
+                <button class="btn btn-sm btn-outline" id="btnInspSpeak" disabled>🔊 英音</button>
+                <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>⭐ 存进生词本</button>
+              </div>
+            </div>
+            <p class="insp-meaning" id="inspMeaning">选中左侧串文中的高频词，这里会立即显示词性、中文释义、同义替换和听力拼写避坑提示。</p>
+            <p class="insp-tip hidden" id="inspTip"></p>
+            <div class="insp-note-wrap hidden" id="inspNoteWrap">
+              <label class="field-label">我的记忆笔记 / 自填翻译：</label>
+              <div class="insp-note-row">
+                <input type="text" id="inspNoteInput" class="text-input input-sm" placeholder="写下你的联想记忆、例句或补充翻译..." />
+                <button class="btn btn-sm btn-outline" id="btnSaveInspNote">保存笔记</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Add Unknown Word to Vocab Book -->
+          <div class="card quick-add-card">
+            <h4 class="card-section-title">➕ 随手记不会的词（支持雅思哥生词）</h4>
+            <div class="quick-add-grid">
+              <input type="text" id="quickWord" class="text-input input-sm" placeholder="英文单词/短语" />
+              <input type="text" id="quickMeaning" class="text-input input-sm" placeholder="中文翻译" />
+              <select id="quickCategory" class="select-input select-sm">
+                <option value="雅思哥生词">雅思哥生词</option>
+                <option value="听力拼写">听力拼写</option>
+                <option value="阅读同义">阅读同义</option>
+                <option value="口语活词">口语活词</option>
+              </select>
+              <input type="text" id="quickNote" class="text-input input-sm" placeholder="同义替换 / 易错拼写 / 备注（选填）" />
+            </div>
+            <button class="btn btn-primary btn-sm full-width" id="btnQuickAddWord">记录到我的生词本</button>
+          </div>
+
+          <!-- Day's Core Word List -->
+          <div class="card core-list-card">
+            <div class="core-list-header">
+              <h4 class="card-section-title">📋 本日核心词表 (<span id="coreWordCount">0</span>)</h4>
+              <div class="filter-pills" id="coreFilterPills">
+                <button class="pill active" data-cat="all">全部</button>
+                <button class="pill" data-cat="听力拼写">听力</button>
+                <button class="pill" data-cat="阅读同义">阅读</button>
+                <button class="pill" data-cat="口语活词">口语</button>
+              </div>
+            </div>
+            <input type="text" id="coreWordSearch" class="text-input input-sm search-mb" placeholder="🔍 搜索本日词汇或中文翻译..." />
+            <div class="core-word-list" id="coreWordList"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: PERSONAL VOCAB BOOK ==================== -->
+    <section class="tab-panel" id="tab-vocab">
+      <div class="card">
+        <div class="panel-header">
+          <div>
+            <h2>🗂️ 我的生词本 & 错词本</h2>
+            <p class="muted">收录来自每日串文、雅思哥真题中所有不会的词；复习完把未掌握词一键复制给我，明天自动编进新串文帮你复现！</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-outline btn-sm" id="btnToggleHideCn">🙈 遮挡中文自测</button>
+            <button class="btn btn-outline btn-sm" id="btnStartVocabQuiz">🎯 听音拼写抽测</button>
+            <button class="btn btn-outline btn-sm" id="btnCopyUnmastered">📋 复制未掌握词发AI</button>
+            <button class="btn btn-primary btn-sm" id="btnOpenBatchVocab">+ 批量导入生词</button>
+          </div>
+        </div>
+
+        <!-- Inline Quick Add -->
+        <div class="vocab-add-bar">
+          <input type="text" id="vbWord" class="text-input" placeholder="英文单词/词组（如：deteriorate）" />
+          <input type="text" id="vbMeaning" class="text-input" placeholder="中文翻译（如：恶化，变坏）" />
+          <select id="vbCategory" class="select-input">
+            <option value="雅思哥生词">雅思哥生词</option>
+            <option value="听力拼写">听力拼写</option>
+            <option value="阅读同义">阅读同义</option>
+            <option value="口语活词">口语活词</option>
+          </select>
+          <input type="text" id="vbNote" class="text-input" placeholder="同义词 / 出处（如：剑10 T1 P1）" />
+          <button class="btn btn-primary" id="btnAddVocab">添加</button>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="vocab-filter-bar">
+          <input type="text" id="vbSearch" class="text-input input-sm" placeholder="🔍 搜索单词、翻译或备注..." />
+          <select id="vbFilterCat" class="select-input select-sm">
+            <option value="all">全部分类</option>
+            <option value="听力拼写">听力拼写</option>
+            <option value="阅读同义">阅读同义</option>
+            <option value="口语活词">口语活词</option>
+            <option value="雅思哥生词">雅思哥生词</option>
+          </select>
+          <select id="vbFilterStatus" class="select-input select-sm">
+            <option value="all">全部状态</option>
+            <option value="unmastered">未掌握（重点复习）</option>
+            <option value="mastered">已掌握</option>
+          </select>
+          <span class="vocab-stats" id="vocabStats">共 0 词 · 待掌握 0 词</span>
+        </div>
+
+        <!-- Dictation Quiz Drawer -->
+        <div class="quiz-box hidden" id="vocabQuizBox">
+          <div class="quiz-header">
+            <h4>🎯 听音/看义拼写抽测（仅抽未掌握词汇）</h4>
+            <button class="btn btn-ghost btn-sm" id="btnCloseQuiz">关闭</button>
+          </div>
+          <div class="quiz-body" id="vocabQuizBody"></div>
+        </div>
+
+        <!-- Vocab Table -->
+        <div class="vocab-grid" id="vocabList"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: INTENSIVE LISTENING & READING LOG ==================== -->
+    <section class="tab-panel" id="tab-practice">
+      <div class="practice-layout">
+        <!-- Left: Add / Edit Practice Record -->
+        <div class="card practice-form-card">
+          <h2 id="practiceFormTitle">🎧 新增精听 / 精读记录</h2>
+          <p class="muted">把每天在雅思哥刷完的剑雅真题记在这里：对题数、同义替换、错因和原文高亮全留档。</p>
+
+          <input type="hidden" id="prEditId" value="" />
+          <div class="form-row-2">
+            <div>
+              <label class="field-label">科目类型</label>
+              <select id="prType" class="select-input full-width">
+                <option value="listening">🎧 听力精听</option>
+                <option value="reading">📖 阅读精读</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">日期</label>
+              <input type="date" id="prDate" class="text-input full-width" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">真题来源（如：剑10 Test 1 Part 1–2 / Passage 1）</label>
+            <input type="text" id="prSource" class="text-input full-width" placeholder="例如：剑10 Test 1 Passage 1" />
+          </div>
+
+          <div class="form-row-3">
+            <div>
+              <label class="field-label">做对题数</label>
+              <input type="number" id="prCorrect" class="text-input full-width" min="0" max="40" placeholder="如 16" />
+            </div>
+            <div>
+              <label class="field-label">总题数</label>
+              <input type="number" id="prTotal" class="text-input full-width" min="1" max="40" value="20" />
+            </div>
+            <div>
+              <label class="field-label">耗时（分钟）</label>
+              <input type="number" id="prMinutes" class="text-input full-width" min="1" placeholder="如 20" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">同义替换积累（每行一组，格式：题干词 = 原文词）</label>
+            <textarea id="prSynonyms" class="textarea-input full-width" rows="3" placeholder="mandatory = compulsory&#10;reserve = book&#10;expense = cost"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">错题复盘 / 精听漏词（漏听哪个词、被什么干扰项骗了）</label>
+            <textarea id="prNotes" class="textarea-input full-width" rows="3" placeholder="例：Q7 把 receipt 拼错了；Q14 没听出转折词 however 后的真正答案"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">精读长难句 / 听力原文片段（保存后可在右侧像机考一样划词高亮！）</label>
+            <textarea id="prExcerpt" class="textarea-input full-width" rows="4" placeholder="把你精读的难段或精听的对话原文粘贴在这里（选填）..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btnSavePractice">保存精听/精读记录</button>
+            <button class="btn btn-ghost hidden" id="btnCancelPracticeEdit">取消编辑</button>
+          </div>
+        </div>
+
+        <!-- Right: Saved Records & Interactive Highlighter -->
+        <div class="practice-list-col">
+          <div class="card practice-summary-card">
+            <div class="summary-stats" id="practiceStats">
+              <div class="stat-box">
+                <span class="stat-label">累计精听</span>
+                <strong id="statListenCount">0 篇</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">听力均正确率</span>
+                <strong id="statListenAcc">--</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">累计精读</span>
+                <strong id="statReadCount">0 篇</strong>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">阅读均正确率</span>
+                <strong id="statReadAcc">--</strong>
+              </div>
+            </div>
+            <div class="filter-pills" id="practiceFilterPills">
+              <button class="pill active" data-type="all">全部记录</button>
+              <button class="pill" data-type="listening">🎧 仅听力</button>
+              <button class="pill" data-type="reading">📖 仅阅读</button>
+            </div>
+          </div>
+
+          <div id="practiceRecordsList" class="records-stack"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: SPEAKING PRACTICE BANK ==================== -->
+    <section class="tab-panel" id="tab-speaking">
+      <div class="speaking-layout">
+        <!-- Left: Add Topic + Timer -->
+        <div class="speaking-side">
+          <!-- IELTS Speaking Timer -->
+          <div class="card timer-card">
+            <h3 class="card-section-title">⏱️ 雅思口语模拟计时器</h3>
+            <div class="timer-display" id="timerDisplay">01:00</div>
+            <div class="timer-presets">
+              <button class="btn btn-sm btn-outline" data-sec="60">Part 2 准备 (1分)</button>
+              <button class="btn btn-sm btn-outline" data-sec="120">Part 2 陈述 (2分)</button>
+              <button class="btn btn-sm btn-outline" data-sec="30">Part 1 快答 (30秒)</button>
+            </div>
+            <div class="timer-controls">
+              <button class="btn btn-primary btn-sm" id="btnTimerStart">开始</button>
+              <button class="btn btn-outline btn-sm" id="btnTimerPause">暂停</button>
+              <button class="btn btn-ghost btn-sm" id="btnTimerReset">重置</button>
+            </div>
+          </div>
+
+          <!-- Add Speaking Question from IELTS Bro -->
+          <div class="card">
+            <h3 class="card-section-title" id="spFormTitle">➕ 从雅思哥添加今日口语题</h3>
+            <input type="hidden" id="spEditId" value="" />
+            <div class="form-row-2">
+              <div>
+                <label class="field-label">题型</label>
+                <select id="spPart" class="select-input full-width">
+                  <option value="Part 1">Part 1</option>
+                  <option value="Part 2">Part 2</option>
+                  <option value="Part 3">Part 3</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">标签</label>
+                <select id="spTag" class="select-input full-width">
+                  <option value="今日必练">今日必练</option>
+                  <option value="高频旧题">高频旧题</option>
+                  <option value="1月新题">1月新题</option>
+                  <option value="万能串题素材">万能串题素材</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="field-label">话题主题（如：Accommodation / Hometown）</label>
+              <input type="text" id="spTopic" class="text-input full-width" placeholder="输入雅思哥话题名" />
+            </div>
+            <div class="form-group">
+              <label class="field-label">题目内容</label>
+              <textarea id="spQuestion" class="textarea-input full-width" rows="2" placeholder="粘贴雅思哥上的英文题目..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="field-label">我的作答草稿（练完可一键复制发给我批改）</label>
+              <textarea id="spDraft" class="textarea-input full-width" rows="3" placeholder="写下你的口语回答或语音转文字稿..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="field-label">AI 升级后的 6.0–6.5 地道版（批改后贴进来背）</label>
+              <textarea id="spPolished" class="textarea-input full-width" rows="3" placeholder="批改升级后的表达贴在这里，方便考前反复朗读..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="field-label">要硬套的高分关键词（逗号分隔）</label>
+              <input type="text" id="spKeywords" class="text-input full-width" placeholder="如：convenient, atmosphere, affordable" />
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="btnSaveSpeaking">保存口语题</button>
+              <button class="btn btn-ghost hidden" id="btnCancelSpEdit">取消</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Speaking Question Cards -->
+        <div class="speaking-main">
+          <div class="card speaking-filter-bar">
+            <div class="filter-pills" id="spFilterPart">
+              <button class="pill active" data-part="all">全部 Part</button>
+              <button class="pill" data-part="Part 1">Part 1</button>
+              <button class="pill" data-part="Part 2">Part 2</button>
+              <button class="pill" data-part="Part 3">Part 3</button>
+              <button class="pill" data-part="万能串题素材">⭐ 万能素材</button>
+            </div>
+            <input type="text" id="spSearch" class="text-input input-sm" placeholder="🔍 搜索口语话题或题目..." />
+          </div>
+          <div id="speakingList" class="records-stack"></div>
+        </div>
+      </div>
+    </section>
+    <!-- ==================== TAB 5: WRITING ==================== -->
+    <section class="tab-panel" id="tab-writing">
+      <div id="writingRoot"></div>
+    </section>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal 1: Import Daily Pack (JSON from AI) -->
+  <div class="modal-backdrop hidden" id="modalImportDaily">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📥 导入 AI 每日词文与计划包</h3>
+        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted">把每天我发给你的 <code>JSON 每日包</code> 直接粘贴在下面，点导入即可自动新增一天（含任务清单、高频词串文、词义库和今日口语题）。</p>
+        <textarea id="importDailyJson" class="textarea-input full-width code-area" rows="10" placeholder='{"id":"day2","label":"Day 2 (11-24) · 环境与交通", ...}'></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close">取消</button>
+        <button class="btn btn-primary" id="btnConfirmImportDaily">确认导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Batch Import Unknown Words -->
+  <div class="modal-backdrop hidden" id="modalBatchVocab">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>➕ 批量导入不会的生词（雅思哥 / 错题生词）</h3>
+        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted">每行一个词，支持用 <code>-</code>、<code>:</code>、<code>Tab</code> 或空格分隔英文与中文（也支持带备注：<code>单词 - 中文 - 备注</code>）：</p>
+        <div class="form-group">
+          <label class="field-label">默认归类</label>
+          <select id="batchVocabCat" class="select-input">
+            <option value="雅思哥生词">雅思哥生词</option>
+            <option value="听力拼写">听力拼写</option>
+            <option value="阅读同义">阅读同义</option>
+            <option value="口语活词">口语活词</option>
+          </select>
+        </div>
+        <textarea id="batchVocabText" class="textarea-input full-width code-area" rows="8" placeholder="deteriorate - 恶化 - 剑10 T1 P2&#10;pedestrian - 行人 - 听力地图题&#10;incentive - 激励，动机"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close">取消</button>
+        <button class="btn btn-primary" id="btnConfirmBatchVocab">一键导入生词本</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Backup & Restore -->
+  <div class="modal-backdrop hidden" id="modalBackup">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>💾 学习数据备份与恢复</h3>
+        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted">你的所有高亮、生词本、精听精读记录和口语草稿默认自动保存在当前浏览器中。换电脑/清浏览器缓存前，点一下导出备份即可万无一失。</p>
+        <div class="backup-actions">
+          <button class="btn btn-primary" id="btnExportAll">⬇️ 导出全部数据 (.json)</button>
+          <label class="btn btn-outline file-btn">
+            ⬆️ 从备份文件恢复
+            <input type="file" id="inputRestoreFile" accept=".json" hidden />
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Manual New Day -->
+  <div class="modal-backdrop hidden" id="modalNewDay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>+ 手动新建一天学习计划</h3>
+        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="field-label">标题（如：Day 2 (11-24) · 交通与环境）</label>
+          <input type="text" id="newDayLabel" class="text-input full-width" placeholder="Day 2 (11-24) · 主题名" />
+        </div>
+        <div class="form-group">
+          <label class="field-label">串词短文英文（可用 **word** 标出核心词）</label>
+          <textarea id="newDayPassage" class="textarea-input full-width" rows="5" placeholder="粘贴英文段落..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="field-label">中文参考译文（选填）</label>
+          <textarea id="newDayTrans" class="textarea-input full-width" rows="3" placeholder="粘贴中文译文..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost modal-close">取消</button>
+        <button class="btn btn-primary" id="btnConfirmNewDay">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Search Modal -->
+  <div class="modal-backdrop hidden" id="modalSearch">
+    <div class="modal-dialog search-dialog">
+      <div class="search-head">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="globalSearchInput" class="search-input" placeholder="输入英文或中文：查所有串文高频词、生词本、同义替换..." autocomplete="off" />
+        <button class="btn btn-ghost btn-sm modal-close">Esc</button>
+      </div>
+      <div class="search-body" id="globalSearchResults"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="modules.js"></script>
+</body>
+</html>
