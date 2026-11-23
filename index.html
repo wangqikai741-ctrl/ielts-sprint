@@ -9,6 +9,35 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>" />
 </head>
 <body>
+  <!-- Auth Lock Screen (Full-screen overlay) -->
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <div class="auth-logo">🎯</div>
+      <div class="auth-badge">BANDUP.VIP · PRIVATE WORKBENCH</div>
+      <h2 class="auth-title">雅思 58 天机考冲刺工作台</h2>
+      <p class="auth-sub">私人专属备考空间 · 请输入通行账号与密码解锁</p>
+      <form id="authForm" class="auth-form" autocomplete="on">
+        <div class="auth-field">
+          <label for="authUser">通行账号</label>
+          <input type="text" id="authUser" class="text-input full-width" placeholder="请输入账号" autocomplete="username" required />
+        </div>
+        <div class="auth-field">
+          <label for="authPass">访问密码</label>
+          <input type="password" id="authPass" class="text-input full-width" placeholder="请输入密码" autocomplete="current-password" required />
+        </div>
+        <div class="auth-options">
+          <label class="auth-remember">
+            <input type="checkbox" id="authRemember" checked />
+            <span>在这台设备上记住我（30 天免密）</span>
+          </label>
+        </div>
+        <div class="auth-error hidden" id="authError">账号或密码不正确，请重试</div>
+        <button type="submit" class="btn btn-primary full-width auth-submit">🔓 解锁进入工作台</button>
+      </form>
+      <p class="auth-foot">🔒 已启用 SHA-256 校验保护 · 本地数据隔离</p>
+    </div>
+  </div>
+
   <!-- Top Navigation & Countdown Bar -->
   <header class="topbar">
     <div class="topbar-left">
@@ -39,6 +68,7 @@
       <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">🔍 查词 / 同义替换 <kbd>/</kbd></button>
       <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 导入每日包</button>
       <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 备份/恢复</button>
+      <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定工作台">🔒 锁定</button>
       <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换护眼模式">🌙</button>
     </div>
   </header>

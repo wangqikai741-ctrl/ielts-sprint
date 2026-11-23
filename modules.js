@@ -890,6 +890,168 @@
     });
   }
 
+  // ==================== 4) 私人密码锁 (SHA-256) ====================
+  const AUTH_STORAGE_KEY = "ielts_sprint_auth_token_v1";
+  const EXPECTED_HASH = "39d411484740fb251bdbcce20f2c1eac54bba96f00c26ad63df072a4a4f96f48";
+
+  async function sha256Hex(str) {
+    if (window.crypto && window.crypto.subtle) {
+      const buf = new TextEncoder().encode(str);
+      const digest = await window.crypto.subtle.digest("SHA-256", buf);
+      return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+    // Pure JS SHA-256 fallback for non-secure file:// contexts if subtle is unavailable
+    function rightRotate(value, amount) {
+      return (value >>> amount) | (value << (32 - amount));
+    }
+    const mathPow = Math.pow;
+    const maxWord = mathPow(2, 32);
+    let result = "";
+    const words = [];
+    const asciiBitLength = str.length * 8;
+    let hash = [];
+    const k = [];
+    let primeCounter = 0;
+    const isComposite = {};
+    for (let candidate = 2; primeCounter < 64; candidate++) {
+      if (!isComposite[candidate]) {
+        for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+        hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+        k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+      }
+    }
+    str += "\x80";
+    while ((str.length % 64) - 56) str += "\x00";
+    for (let i = 0; i < str.length; i++) {
+      const j = str.charCodeAt(i);
+      words[i >> 2] |= j << (((3 - i) % 4) * 8);
+    }
+    words[words.length] = (asciiBitLength / maxWord) | 0;
+    words[words.length] = asciiBitLength;
+    for (let j = 0; j < words.length; ) {
+      const w = words.slice(j, (j += 16));
+      const oldHash = hash.slice(0);
+      for (let i = 0; i < 64; i++) {
+        const w15 = w[i - 15], w2 = w[i - 2];
+        const a = hash[0], e = hash[4];
+        const temp1 =
+          hash[7] +
+          (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+          ((e & hash[5]) ^ (~e & hash[6])) +
+          k[i] +
+          (w[i] =
+            i < 16
+              ? w[i]
+              : (w[i - 16] +
+                  (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                  w[i - 7] +
+                  (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+                0);
+        const temp2 =
+          (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+          ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(temp1 + temp2) | 0].concat(hash);
+        hash[4] = (hash[4] + temp1) | 0;
+        hash.pop();
+      }
+      for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+    for (let i = 0; i < 8; i++) {
+      for (let j = 3; j + 1; j--) {
+        const b = (hash[i] >> (j * 8)) & 255;
+        result += (b < 16 ? 0 : "") + b.toString(16);
+      }
+    }
+    return result;
+  }
+
+  function isUnlocked() {
+    try {
+      const sessionToken = sessionStorage.getItem(AUTH_STORAGE_KEY);
+      if (sessionToken === EXPECTED_HASH) return true;
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.hash === EXPECTED_HASH && parsed.expires > Date.now()) {
+        return true;
+      }
+    } catch (e) { /* ignore */ }
+    return false;
+  }
+
+  function unlockGate() {
+    const gate = $("authGate");
+    if (!gate) return;
+    gate.classList.add("hidden");
+    document.body.classList.remove("auth-locked");
+  }
+
+  function lockGate() {
+    const gate = $("authGate");
+    if (!gate) return;
+    try {
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch (e) { /* ignore */ }
+    if ($("authPass")) $("authPass").value = "";
+    if ($("authError")) $("authError").classList.add("hidden");
+    gate.classList.remove("hidden");
+    document.body.classList.add("auth-locked");
+    setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
+  }
+
+  function initAuthGate() {
+    const gate = $("authGate");
+    const form = $("authForm");
+    if (!gate || !form) return;
+
+    if (isUnlocked()) {
+      unlockGate();
+    } else {
+      document.body.classList.add("auth-locked");
+      setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const user = ($("authUser").value || "").trim().toLowerCase();
+      const pass = ($("authPass").value || "").trim();
+      const remember = $("authRemember").checked;
+      const errEl = $("authError");
+      const hash = await sha256Hex(`ielts_sprint_v1:${user}:${pass}`);
+      if (hash === EXPECTED_HASH) {
+        errEl.classList.add("hidden");
+        try {
+          sessionStorage.setItem(AUTH_STORAGE_KEY, EXPECTED_HASH);
+          if (remember) {
+            localStorage.setItem(
+              AUTH_STORAGE_KEY,
+              JSON.stringify({ hash: EXPECTED_HASH, expires: Date.now() + 30 * 86400000 })
+            );
+          } else {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+          }
+        } catch (err) { /* ignore */ }
+        unlockGate();
+        App.toast("欢迎回来，Kai！今日冲刺继续 💪");
+      } else {
+        errEl.classList.remove("hidden");
+        $("authPass").value = "";
+        $("authPass").focus();
+      }
+    });
+
+    const btnLock = $("btnLockApp");
+    if (btnLock) {
+      btnLock.addEventListener("click", () => {
+        lockGate();
+        App.toast("工作台已锁定 🔒");
+      });
+    }
+  }
+
   // ==================== 启动 ====================
   function renderAll() {
     ensureFields();
@@ -897,6 +1059,7 @@
     renderWritingList();
   }
 
+  initAuthGate();
   ensureFields();
   renderWritingShell();
   bindDashboard();
