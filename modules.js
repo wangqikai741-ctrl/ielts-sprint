@@ -855,6 +855,7 @@
     renderSearch();
     setTimeout(() => { inp.focus(); inp.select(); }, 30);
   }
+  App.openSearch = openSearch;
 
   function bindSearch() {
     $("btnGlobalSearch").addEventListener("click", () => openSearch());

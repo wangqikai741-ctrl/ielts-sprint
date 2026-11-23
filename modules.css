@@ -716,6 +716,88 @@ body.auth-locked {
   color: var(--text-muted);
 }
 
+/* ---------- Micro-interactions & Ergonomic Polish ---------- */
+/* Collapsible Quick Add Word Card */
+.quick-add-card {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.quick-add-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 13px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: background 0.15s;
+}
+.quick-add-summary::-webkit-details-marker { display: none; }
+.quick-add-summary:hover { background: var(--surface-alt); }
+.quick-add-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+.quick-add-card[open] .quick-add-chevron {
+  transform: rotate(180deg);
+}
+.quick-add-body {
+  padding: 4px 18px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Core word list active sync & taller scroll area */
+.core-word-list {
+  max-height: 360px !important;
+}
+.core-word-row.active-row {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* Speaking inline draft box */
+.sp-inline-draft {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sp-inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Subtle card hover elevation */
+.skill-card,
+.stat-card,
+.record-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.skill-card:hover,
+.stat-card:hover,
+.record-card:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+}
+
 /* ---------- Cambridge Passage Vocabulary Radar ---------- */
 .analyzer-dialog {
   max-width: 1180px;

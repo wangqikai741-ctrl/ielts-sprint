@@ -104,6 +104,7 @@
     <button class="hl-btn hl-clear" data-hl="clear" title="清除高亮">✕</button>
     <span class="hl-divider"></span>
     <button class="hl-action" id="hlSpeakBtn" title="英音朗读选中词">🔊</button>
+    <button class="hl-action" id="hlSearchBtn" title="全局查词 / 剑桥词典">🔍 查词</button>
     <button class="hl-action" id="hlAddWordBtn" title="加入生词本并记录翻译">➕ 记生词</button>
   </div>
 
@@ -211,22 +212,27 @@
             </div>
           </div>
 
-          <!-- Quick Add Unknown Word to Vocab Book -->
-          <div class="card quick-add-card">
-            <h4 class="card-section-title">➕ 随手记不会的词（支持雅思哥生词）</h4>
-            <div class="quick-add-grid">
-              <input type="text" id="quickWord" class="text-input input-sm" placeholder="英文单词/短语" />
-              <input type="text" id="quickMeaning" class="text-input input-sm" placeholder="中文翻译" />
-              <select id="quickCategory" class="select-input select-sm">
-                <option value="雅思哥生词">雅思哥生词</option>
-                <option value="听力拼写">听力拼写</option>
-                <option value="阅读同义">阅读同义</option>
-                <option value="口语活词">口语活词</option>
-              </select>
-              <input type="text" id="quickNote" class="text-input input-sm" placeholder="同义替换 / 易错拼写 / 备注（选填）" />
+          <!-- Quick Add Unknown Word to Vocab Book (Collapsible to keep sidebar clean) -->
+          <details class="card quick-add-card" id="quickAddDetails">
+            <summary class="quick-add-summary">
+              <span>➕ 随手记不会的词（支持雅思哥生词）</span>
+              <span class="quick-add-chevron">▾</span>
+            </summary>
+            <div class="quick-add-body">
+              <div class="quick-add-grid">
+                <input type="text" id="quickWord" class="text-input input-sm" placeholder="英文单词/短语" />
+                <input type="text" id="quickMeaning" class="text-input input-sm" placeholder="中文翻译" />
+                <select id="quickCategory" class="select-input select-sm">
+                  <option value="雅思哥生词">雅思哥生词</option>
+                  <option value="听力拼写">听力拼写</option>
+                  <option value="阅读同义">阅读同义</option>
+                  <option value="口语活词">口语活词</option>
+                </select>
+                <input type="text" id="quickNote" class="text-input input-sm" placeholder="同义替换 / 易错拼写 / 备注（选填）" />
+              </div>
+              <button class="btn btn-primary btn-sm full-width" id="btnQuickAddWord">记录到我的生词本</button>
             </div>
-            <button class="btn btn-primary btn-sm full-width" id="btnQuickAddWord">记录到我的生词本</button>
-          </div>
+          </details>
 
           <!-- Day's Core Word List -->
           <div class="card core-list-card">

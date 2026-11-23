@@ -741,7 +741,15 @@
               <div class="field-label">我的口语草稿：</div>
               ${escapeHtml(item.draft)}
             </div>
-          ` : `<p class="muted" style="margin-top:6px;">尚未填写回答，点「编辑」写入你的语音转文字稿，再一键发给我批改！</p>`}
+          ` : `
+            <div class="sp-inline-draft">
+              <textarea class="textarea-input full-width" rows="2" data-sp-inline-input="${escapeHtml(item.id)}" placeholder="直接在这里打字或语音转文字填入你的回答草稿..."></textarea>
+              <div class="sp-inline-actions">
+                <button class="btn btn-primary btn-sm" data-sp-inline-save="${escapeHtml(item.id)}">💾 保存草稿</button>
+                <button class="btn btn-outline btn-sm" data-sp-inline-ai="${escapeHtml(item.id)}">📋 保存并复制发 AI 批改</button>
+              </div>
+            </div>
+          `}
           ${item.polished ? `
             <div class="sp-answer-block polished">
               <div class="field-label" style="color:var(--success);display:flex;justify-content:space-between;">
@@ -798,9 +806,18 @@
         if (text) speakText(text);
         return;
       }
+      if (e.target.closest("#hlSearchBtn")) {
+        const text = savedSelectionRange ? savedSelectionRange.toString().trim() : "";
+        hideHlToolbar();
+        if (text && window.IELTSApp && window.IELTSApp.openSearch) {
+          window.IELTSApp.openSearch(text);
+        }
+        return;
+      }
       if (e.target.closest("#hlAddWordBtn")) {
         const text = savedSelectionRange ? savedSelectionRange.toString().trim() : "";
         if (text) {
+          if ($("quickAddDetails")) $("quickAddDetails").open = true;
           $("quickWord").value = text;
           const day = getCurrentDay();
           const matched = findWordObjInDay(day, text);
@@ -873,13 +890,37 @@
       if (e.key === "Enter") addTask();
     });
 
-    // Passage click to inspect core word
+    // Passage click to inspect core word (and scroll matching item into view in right list)
     $("passageContent").addEventListener("click", (e) => {
       const span = e.target.closest(".core-word");
       if (!span) return;
       const sel = window.getSelection();
       if (sel && sel.toString().trim().length > 0) return; // Don't hijack drag selection
-      inspectWord(span.dataset.word || span.textContent);
+      const wKey = span.dataset.word || span.textContent;
+      inspectWord(wKey);
+      const row = document.querySelector(`#coreWordList .core-word-row[data-inspect-word="${CSS.escape(wKey)}"]`);
+      if (row) {
+        document.querySelectorAll("#coreWordList .core-word-row.active-row").forEach((r) => r.classList.remove("active-row"));
+        row.classList.add("active-row");
+        row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
+
+    // Cloze mode keyboard flow: Enter / Tab moves to next input; Enter on last checks answers
+    $("passageContent").addEventListener("keydown", (e) => {
+      const inp = e.target.closest(".cloze-input");
+      if (!inp) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const all = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+        const i = all.indexOf(inp);
+        if (i >= 0 && i < all.length - 1) {
+          all[i + 1].focus();
+          all[i + 1].select();
+        } else {
+          $("btnCheckCloze").click();
+        }
+      }
     });
 
     // Passage controls
@@ -1307,6 +1348,30 @@
     $("speakingList").addEventListener("click", (e) => {
       const spk = e.target.closest("[data-sp-speak]");
       if (spk) return speakText(spk.dataset.spSpeak);
+
+      const inSave = e.target.closest("[data-sp-inline-save]");
+      const inAi = e.target.closest("[data-sp-inline-ai]");
+      if (inSave || inAi) {
+        const id = (inSave || inAi).dataset.spInlineSave || (inSave || inAi).dataset.spInlineAi;
+        const ta = $("speakingList").querySelector(`textarea[data-sp-inline-input="${CSS.escape(id)}"]`);
+        const val = ta ? ta.value.trim() : "";
+        if (!val) return showToast("请先输入你的口语回答草稿");
+        const item = state.speakingTopics.find((s) => s.id === id);
+        if (!item) return;
+        item.draft = val;
+        saveState();
+        renderSpeakingList();
+        if (inAi) {
+          const msg = `请按雅思口语 6.0–6.5 标准帮我批改并升级这道题：\n【${item.part} · ${item.topic}】\n题目：${item.question}\n我的回答：${item.draft}`;
+          navigator.clipboard.writeText(msg).then(
+            () => showToast("草稿已保存并复制，直接粘贴发给 AI 批改！"),
+            () => showToast("草稿已保存！")
+          );
+        } else {
+          showToast("口语草稿已保存！");
+        }
+        return;
+      }
 
       const cpy = e.target.closest("[data-sp-copy]");
       if (cpy) {
