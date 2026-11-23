@@ -18,28 +18,28 @@
     {
       name: "阶段一 · 夯实基础", from: "2026-11-23", to: "2026-12-10", range: "Day 1–18",
       focus: [
-        "🎧 听力：剑10–13 Part 1 & 2，冲 18–21 题",
-        "📖 阅读：Passage 1 & 2 准确率 + 同义替换",
-        "🗣️ 口语：Part 1 高频题逐题过",
-        "✍️ 写作：每周 1 大 1 小保手感"
+        "听力：剑10–13 Part 1 & 2，冲 18–21 题",
+        "阅读：Passage 1 & 2 准确率 + 同义替换",
+        "口语：Part 1 高频题逐题过",
+        "写作：每周 1 大 1 小保手感"
       ]
     },
     {
       name: "阶段二 · 整套限时", from: "2026-12-11", to: "2027-01-03", range: "Day 19–42",
       focus: [
-        "🎧 剑14–16 整套限时，攻 Part 3/4",
-        "📖 阅读严格 60 分钟/套",
-        "🗣️ 搭 6–8 个 Part 2 万能串题素材 + Part 3 拓展",
-        "✍️ 写作每周 1 大 1 小，盯 TR/CC"
+        "听力：剑14–16 整套限时，攻 Part 3/4",
+        "阅读：严格 60 分钟/套",
+        "口语：搭 6–8 个 Part 2 万能串题素材 + Part 3",
+        "写作：每周 1 大 1 小，盯 TR/CC"
       ]
     },
     {
       name: "阶段三 · 全真模考", from: "2027-01-04", to: "2027-01-19", range: "Day 43–58",
       focus: [
-        "📝 剑17–19 全真机考连考",
-        "🗣️ 紧盯雅思哥 1–4 月换题季新题",
-        "🧠 错题本 + 生词本全面回炉",
-        "😴 考前 2 天减量、调作息"
+        "模考：剑17–19 全真机考连考",
+        "口语：紧盯雅思哥 1–4 月换题季新题",
+        "复盘：错题本 + 生词本全面回炉",
+        "状态：考前 2 天减量、调作息"
       ]
     }
   ];
@@ -283,7 +283,7 @@
       const cls = [`lv${a.level}`, d === t ? "is-today" : "", d > t ? "future" : "", `ph${ph}`].join(" ");
       heat += `<div class="heat-cell ${cls}" title="Day ${i + 1} · ${d}${a.detail.length ? "\n" + a.detail.join(" · ") : ""}"><span>${i + 1}</span></div>`;
     }
-    heat += `<div class="heat-cell exam-cell" title="2027-01-20 考试日">🎯</div>`;
+    heat += `<div class="heat-cell exam-cell" title="2027-01-20 考试日">★</div>`;
 
     root.innerHTML = `
       <div class="dash-grid">
@@ -291,11 +291,11 @@
           <div class="hero-left">
             <div class="hero-kicker">${t < START ? "闭关即将开始" : n > TOTAL_DAYS ? "考试日" : `Day ${n} / ${TOTAL_DAYS}`} · ${t}</div>
             <h2 class="hero-title">${phase.name} <span class="hero-range">${phase.range}</span></h2>
-            <ul class="hero-focus">${phase.focus.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+            <ul class="hero-focus">${phase.focus.map((f) => `<li><span class="focus-dot"></span>${esc(f)}</li>`).join("")}</ul>
             <div class="hero-actions">
-              <button class="btn btn-primary" data-dash="go-daily">📖 开始今日计划</button>
-              <button class="btn btn-outline" data-dash="report">📋 一键生成今日汇报</button>
-              <button class="btn btn-outline ${s.checkins[t] ? "active-toggle" : ""}" data-dash="checkin">${s.checkins[t] ? "✅ 今日已打卡" : "☑️ 今日打卡"}</button>
+              <button class="btn btn-primary" data-dash="go-daily">开始今日计划 →</button>
+              <button class="btn btn-outline" data-dash="report">生成今日汇报</button>
+              <button class="btn btn-outline ${s.checkins[t] ? "active-toggle" : ""}" data-dash="checkin">${s.checkins[t] ? "✓ 今日已打卡" : "今日打卡"}</button>
             </div>
           </div>
           <div class="hero-right">
@@ -314,23 +314,26 @@
         </div>
 
         <div class="card dash-tip">
-          <div class="tip-head">💡 教练今日提醒</div>
+          <div class="tip-head">
+            <svg class="sf-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>
+            <span>教练今日提醒</span>
+          </div>
           <p>${esc(tip)}</p>
-          ${examWarn ? `<div class="exam-alert">🎫 ${sinceCheck === null ? "你还没刷过考位！" : `已经 ${sinceCheck} 天没刷考位了！`}去官网看看开封 / 郑州 1 月机考。</div>` : ""}
+          ${examWarn ? `<div class="exam-alert">${sinceCheck === null ? "尚未查询考位" : `已 ${sinceCheck} 天未查考位`} · 建议前往官网查看开封 / 郑州 1 月机考。</div>` : ""}
         </div>
       </div>
 
       <div class="skill-grid">
-        ${skill("L", "🎧 听力", estL, `${s.practiceRecords.filter((r) => r.type === "listening").length} 次精听`)}
-        ${skill("R", "📖 阅读", estR, `${s.practiceRecords.filter((r) => r.type === "reading").length} 次精读`)}
-        ${skill("S", "🗣️ 口语", null, `${spDone}/${s.speakingTopics.length} 题已升级`)}
-        ${skill("W", "✍️ 写作", estW, `${s.writings.length} 篇`)}
+        ${skill("L", "Listening · 听力", estL, `${s.practiceRecords.filter((r) => r.type === "listening").length} 次精听`)}
+        ${skill("R", "Reading · 阅读", estR, `${s.practiceRecords.filter((r) => r.type === "reading").length} 次精读`)}
+        ${skill("S", "Speaking · 口语", null, `${spDone}/${s.speakingTopics.length} 题已升级`)}
+        ${skill("W", "Writing · 写作", estW, `${s.writings.length} 篇`)}
       </div>
 
       <div class="dash-grid two">
         <div class="card">
           <div class="card-head-row">
-            <h3 class="card-section-title">📅 58 天闭关打卡图</h3>
+            <h3 class="card-section-title">58 天闭关矩阵</h3>
             <div class="heat-legend">少 <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> 多</div>
           </div>
           <div class="phase-strip">
@@ -341,14 +344,14 @@
         </div>
 
         <div class="card">
-          <h3 class="card-section-title">📈 听力 / 阅读正确率走势</h3>
+          <h3 class="card-section-title">听力 / 阅读正确率走势</h3>
           ${trendChart()}
         </div>
       </div>
 
       <div class="dash-grid three">
         <div class="card stat-card">
-          <h3 class="card-section-title">🗂️ 词汇</h3>
+          <h3 class="card-section-title">词汇积累</h3>
           <div class="big-stats">
             <div><strong>${coreWords}</strong><span>串文高频词</span></div>
             <div><strong>${vocabTotal}</strong><span>生词本</span></div>
@@ -359,23 +362,23 @@
         </div>
 
         <div class="card stat-card">
-          <h3 class="card-section-title">✍️ 本周写作配额 <small class="muted">${mmdd(wkMon)}–${mmdd(wkSun)}</small></h3>
+          <h3 class="card-section-title">本周写作配额 <small class="muted">${mmdd(wkMon)}–${mmdd(wkSun)}</small></h3>
           <div class="quota-row ${wkT1 >= 1 ? "ok" : ""}"><span>小作文 Task 1</span><b>${wkT1} / 1</b></div>
           <div class="quota-row ${wkT2 >= 1 ? "ok" : ""}"><span>大作文 Task 2</span><b>${wkT2} / 1</b></div>
           <button class="btn btn-sm btn-outline full-width" data-dash="go-writing">去写作批改 →</button>
         </div>
 
         <div class="card stat-card">
-          <h3 class="card-section-title">🎫 考位追踪</h3>
+          <h3 class="card-section-title">考位追踪</h3>
           ${et.booked
-            ? `<div class="booked-box">✅ 已报名<br><b>${esc(et.bookedInfo || "")}</b></div>
+            ? `<div class="booked-box">✓ 已报名<br><b>${esc(et.bookedInfo || "")}</b></div>
                <button class="btn btn-sm btn-ghost full-width" data-dash="unbook">修改报名信息</button>`
             : `<p class="muted">目标：开封 1 月机考（备选郑州）。每 1–2 天刷一次。</p>
-               <div class="check-status ${examWarn ? "warn" : "ok"}">${et.lastCheck ? `上次刷：${et.lastCheck}（${sinceCheck === 0 ? "今天" : sinceCheck + " 天前"}）` : "还没刷过"}</div>
+               <div class="check-status ${examWarn ? "warn" : "ok"}">${et.lastCheck ? `上次刷：${et.lastCheck}（${sinceCheck === 0 ? "今天" : sinceCheck + " 天前"}）` : "尚未查询官网考位"}</div>
                <div class="btn-row">
-                 <a class="btn btn-sm btn-primary" href="https://ielts.neea.cn/" target="_blank" rel="noopener">打开雅思官网 ↗</a>
-                 <button class="btn btn-sm btn-outline" data-dash="checked">我刚刷过</button>
-                 <button class="btn btn-sm btn-outline" data-dash="book">已报上 🎉</button>
+                 <a class="btn btn-sm btn-primary" href="https://ielts.neea.cn/" target="_blank" rel="noopener">雅思官网 ↗</a>
+                 <button class="btn btn-sm btn-outline" data-dash="checked">刚刷过</button>
+                 <button class="btn btn-sm btn-outline" data-dash="book">已报上</button>
                </div>`}
         </div>
       </div>
@@ -1021,8 +1024,10 @@
     const card = gate.querySelector(".auth-card");
     if (card) card.classList.remove("is-verified", "shake");
     gate.classList.remove("hidden", "unlocking");
+    gate.classList.add("locking");
     document.body.classList.add("auth-locked");
-    setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
+    setTimeout(() => gate.classList.remove("locking"), 560);
+    setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 120);
   }
 
   function initAuthGate() {

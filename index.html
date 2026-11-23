@@ -9,11 +9,11 @@
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <title>BandUp</title>
-  <link rel="stylesheet" href="styles.css?v=20261124c" />
-  <link rel="stylesheet" href="modules.css?v=20261124c" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124c" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124c" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124c" />
+  <link rel="stylesheet" href="styles.css?v=20261124d" />
+  <link rel="stylesheet" href="modules.css?v=20261124d" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124d" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124d" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124d" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple iCloud / macOS Sequoia Style) -->
@@ -104,15 +104,34 @@
 
       <div class="topbar-right">
         <button class="search-trigger" id="btnGlobalSearch" title="全局查词（快捷键 / 或 Ctrl+K）">
-          <span>🔍 <em class="search-trigger-label">查词 / 同义替换</em></span>
+          <span class="search-trigger-inner">
+            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line></svg>
+            <em class="search-trigger-label">查词 / 同义替换</em>
+          </span>
           <kbd>/</kbd>
         </button>
         <div class="topbar-actions">
-          <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">🔬 <span class="btn-label-desktop">真题雷达</span></button>
-          <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">📥 <span class="btn-label-desktop">导入</span></button>
-          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">💾 <span class="btn-label-desktop">备份</span></button>
-          <button class="btn btn-ghost btn-sm" id="btnLockApp" title="立即锁定 BandUp">🔒</button>
-          <button class="btn btn-ghost btn-sm" id="btnTheme" title="切换深色模式">🌙</button>
+          <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">
+            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path><path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16z"></path></svg>
+            <span class="btn-label-desktop">真题雷达</span>
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnImportDaily" title="导入AI每日生成的词文和计划">
+            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+            <span class="btn-label-desktop">导入</span>
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">
+            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+            <span class="btn-label-desktop">备份</span>
+          </button>
+          <button class="btn btn-ghost btn-sm icon-btn-circle" id="btnLockApp" title="立即锁定 BandUp" aria-label="Lock">
+            <svg class="sf-icon sf-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"></rect><path class="lock-shackle" d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          </button>
+          <button class="btn btn-ghost btn-sm icon-btn-circle" id="btnTheme" title="切换深浅色外观" aria-label="Theme">
+            <span class="theme-icon-wrap">
+              <svg class="sf-icon sf-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2v2.2M12 19.8V22M4.93 4.93l1.55 1.55M17.52 17.52l1.55 1.55M2 12h2.2M19.8 12H22M4.93 19.07l1.55-1.55M17.52 6.48l1.55-1.55"></path></svg>
+              <svg class="sf-icon sf-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -122,22 +141,28 @@
   <nav class="nav-tabs" role="tablist">
     <div class="nav-tabs-inner">
       <button class="nav-tab active" data-tab="dashboard" role="tab">
-        <span class="tab-ic">🏠</span><span class="tab-tx-full">冲刺总览</span><span class="tab-tx-short">总览</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"></rect><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"></rect><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"></rect><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"></rect></svg></span>
+        <span class="tab-tx-full">冲刺总览</span><span class="tab-tx-short">总览</span>
       </button>
       <button class="nav-tab" data-tab="daily" role="tab">
-        <span class="tab-ic">📖</span><span class="tab-tx-full">每日计划 & 串词精读</span><span class="tab-tx-short">每日</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2H12v18H4.5A2.5 2.5 0 0 0 2 22.5v-18z"></path><path d="M22 4.5A2.5 2.5 0 0 0 19.5 2H12v18h7.5a2.5 2.5 0 0 1 2.5 2.5v-18z"></path></svg></span>
+        <span class="tab-tx-full">每日计划 & 串词精读</span><span class="tab-tx-short">每日</span>
       </button>
       <button class="nav-tab" data-tab="vocab" role="tab">
-        <span class="tab-ic">🗂️</span><span class="tab-tx-full">我的生词本</span><span class="tab-tx-short">生词</span> <span class="tab-count" id="vocabCountBadge">0</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg></span>
+        <span class="tab-tx-full">我的生词本</span><span class="tab-tx-short">生词</span> <span class="tab-count" id="vocabCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="practice" role="tab">
-        <span class="tab-ic">🎧</span><span class="tab-tx-full">精听 & 精读记录</span><span class="tab-tx-short">听读</span> <span class="tab-count" id="practiceCountBadge">0</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg></span>
+        <span class="tab-tx-full">精听 & 精读记录</span><span class="tab-tx-short">听读</span> <span class="tab-count" id="practiceCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="speaking" role="tab">
-        <span class="tab-ic">🗣️</span><span class="tab-tx-full">口语话题库</span><span class="tab-tx-short">口语</span> <span class="tab-count" id="speakingCountBadge">0</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="17" x2="12" y2="21"></line><line x1="8" y1="21" x2="16" y2="21"></line></svg></span>
+        <span class="tab-tx-full">口语话题库</span><span class="tab-tx-short">口语</span> <span class="tab-count" id="speakingCountBadge">0</span>
       </button>
       <button class="nav-tab" data-tab="writing" role="tab">
-        <span class="tab-ic">✍️</span><span class="tab-tx-full">写作批改</span><span class="tab-tx-short">写作</span> <span class="tab-count" id="writingCountBadge">0</span>
+        <span class="tab-ic"><svg class="sf-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></span>
+        <span class="tab-tx-full">写作批改</span><span class="tab-tx-short">写作</span> <span class="tab-count" id="writingCountBadge">0</span>
       </button>
     </div>
   </nav>
@@ -733,8 +758,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124b"></script>
-  <script src="app.js?v=20261124b"></script>
-  <script src="modules.js?v=20261124b"></script>
+  <script src="data.js?v=20261124d"></script>
+  <script src="app.js?v=20261124d"></script>
+  <script src="modules.js?v=20261124d"></script>
 </body>
 </html>

@@ -167,11 +167,9 @@
     });
 
     if (state.dark) document.body.classList.add("dark");
-    $("btnTheme").textContent = state.dark ? "☀️" : "🌙";
     $("btnTheme").addEventListener("click", () => {
       state.dark = !state.dark;
       document.body.classList.toggle("dark", state.dark);
-      $("btnTheme").textContent = state.dark ? "☀️" : "🌙";
       saveState();
     });
   }

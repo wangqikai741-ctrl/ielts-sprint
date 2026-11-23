@@ -1579,8 +1579,161 @@ body.dark .nav-tab.active {
 .search-trigger-label {
   font-style: normal;
 }
+.search-trigger-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
 .tab-tx-short {
   display: none;
+}
+
+/* ---------- Custom Apple SF Symbols Vector Icon System ---------- */
+.sf-icon {
+  width: 15.5px;
+  height: 15.5px;
+  flex-shrink: 0;
+  stroke-width: 1.9;
+  transition: transform 0.25s var(--ease-spring), color 0.2s ease;
+}
+.sf-tab-svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  transition: transform 0.25s var(--ease-spring), color 0.2s ease;
+}
+.tab-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+.nav-tab.active .tab-ic {
+  color: var(--primary);
+}
+body.dark .nav-tab.active .tab-ic {
+  color: #64d2ff;
+}
+.sf-icon-title {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* Circular Glass Icon Buttons (Lock & Day/Night Mode) */
+.icon-btn-circle {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(118, 118, 128, 0.1) !important;
+  color: var(--text) !important;
+  border: 1px solid transparent !important;
+}
+body.dark .icon-btn-circle {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.icon-btn-circle:hover {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: rgba(0, 113, 227, 0.25) !important;
+}
+
+/* Lock shackle micro-motion on hover */
+.lock-shackle {
+  transition: transform 0.25s var(--ease-spring);
+  transform-origin: 16px 11px;
+}
+#btnLockApp:hover .lock-shackle {
+  transform: translateY(-1.5px);
+}
+
+/* Sun <-> Moon 360° Morphing Animation */
+.theme-icon-wrap {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-icon-wrap .sf-sun,
+.theme-icon-wrap .sf-moon {
+  position: absolute;
+  inset: 0;
+  width: 16px;
+  height: 16px;
+  transition:
+    transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.32s ease;
+}
+/* In light mode: show Moon (click to enter Dark), or show Sun/Moon intuitively */
+body:not(.dark) .theme-icon-wrap .sf-sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+body:not(.dark) .theme-icon-wrap .sf-moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.4);
+}
+body.dark .theme-icon-wrap .sf-sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.4);
+}
+body.dark .theme-icon-wrap .sf-moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+  color: #ffd60a;
+}
+
+/* Lock Engagement Animation (when clicking Lock button) */
+.auth-gate.locking {
+  animation: authGateEngage 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.auth-gate.locking .auth-card {
+  animation: authCardDropIn 0.54s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+@keyframes authGateEngage {
+  from {
+    opacity: 0;
+    backdrop-filter: saturate(100%) blur(0px);
+    -webkit-backdrop-filter: saturate(100%) blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: saturate(180%) blur(32px);
+    -webkit-backdrop-filter: saturate(180%) blur(32px);
+  }
+}
+@keyframes authCardDropIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Clean focus dots in hero focus list */
+.hero-focus li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.focus-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 /* ---------- Responsive & iPhone (iOS Human Interface) Adaptation ---------- */
