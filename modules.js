@@ -1000,6 +1000,9 @@
     }, 560);
   }
 
+  const APPLE_ARROW_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+  const APPLE_CHECK_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
   function lockGate() {
     const gate = $("authGate");
     if (!gate) return;
@@ -1013,7 +1016,7 @@
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.classList.remove("is-verifying", "is-success");
-      submitBtn.innerHTML = "🔓 解锁进入 BandUp";
+      submitBtn.innerHTML = APPLE_ARROW_SVG;
     }
     const card = gate.querySelector(".auth-card");
     if (card) card.classList.remove("is-verified", "shake");
@@ -1050,12 +1053,12 @@
       if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.classList.add("is-verifying");
-        submitBtn.innerHTML = `<span class="auth-spinner"></span> 正在校验身份与同步数据...`;
+        submitBtn.innerHTML = `<span class="auth-spinner"></span>`;
       }
 
       const [hash] = await Promise.all([
         sha256Hex(`ielts_sprint_v1:${user}:${pass}`),
-        new Promise((r) => setTimeout(r, 480))
+        new Promise((r) => setTimeout(r, 460))
       ]);
 
       if (hash === EXPECTED_HASH) {
@@ -1075,18 +1078,18 @@
         if (submitBtn) {
           submitBtn.classList.remove("is-verifying");
           submitBtn.classList.add("is-success");
-          submitBtn.innerHTML = `✅ 验证通过 · 欢迎回来，Kai`;
+          submitBtn.innerHTML = APPLE_CHECK_SVG;
         }
 
         setTimeout(() => {
           unlockGate(false);
-          App.toast("欢迎回来，Kai！今日冲刺继续 💪");
-        }, 460);
+          App.toast("Welcome back, Kai");
+        }, 420);
       } else {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-verifying");
-          submitBtn.innerHTML = "🔓 解锁进入 BandUp";
+          submitBtn.innerHTML = APPLE_ARROW_SVG;
         }
         errEl.classList.remove("hidden");
         if (card) {

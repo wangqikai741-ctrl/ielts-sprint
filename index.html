@@ -9,38 +9,55 @@
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <title>BandUp</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="modules.css" />
+  <link rel="stylesheet" href="styles.css?v=20261124b" />
+  <link rel="stylesheet" href="modules.css?v=20261124b" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230071e3%22/><text x=%2250%22 y=%2268%22 font-family=%22-apple-system,SF Pro Display,sans-serif%22 font-size=%2254%22 font-weight=%22800%22 fill=%22white%22 text-anchor=%22middle%22>B</text></svg>" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 180 180%22><rect width=%22180%22 height=%22180%22 rx=%2240%22 fill=%22%230071e3%22/><text x=%2290%22 y=%22124%22 font-family=%22-apple-system,SF Pro Display,sans-serif%22 font-size=%22100%22 font-weight=%22800%22 fill=%22white%22 text-anchor=%22middle%22>B</text></svg>" />
 </head>
 <body>
-  <!-- Auth Lock Screen (Full-screen overlay) -->
+  <!-- Auth Lock Screen (Apple iCloud / macOS Sequoia Style) -->
   <div class="auth-gate" id="authGate">
+    <div class="auth-ambient-orb orb-1"></div>
+    <div class="auth-ambient-orb orb-2"></div>
     <div class="auth-card">
-      <div class="auth-logo"><span class="auth-monogram">B</span></div>
-      <div class="auth-badge">BANDUP.VIP</div>
-      <h2 class="auth-title">BandUp</h2>
-      <p class="auth-sub">IELTS Academic Studio · 请输入通行账号解锁</p>
+      <div class="auth-logo">
+        <div class="auth-squircle">
+          <span>B</span>
+        </div>
+      </div>
+      <h2 class="auth-title">Sign in to BandUp</h2>
+      <p class="auth-sub">Enter your ID and password to continue</p>
+
       <form id="authForm" class="auth-form" autocomplete="on">
-        <div class="auth-field">
-          <label for="authUser">通行账号</label>
-          <input type="text" id="authUser" class="text-input full-width" placeholder="请输入账号" autocomplete="username" autocapitalize="none" autocorrect="off" required />
+        <div class="apple-input-pod" id="appleInputPod">
+          <div class="apple-pod-row">
+            <input type="text" id="authUser" class="apple-pod-input" placeholder="Account ID" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required />
+          </div>
+          <div class="apple-pod-divider"></div>
+          <div class="apple-pod-row">
+            <input type="password" id="authPass" class="apple-pod-input" placeholder="Password" autocomplete="current-password" required />
+            <button type="submit" class="apple-pod-submit auth-submit" aria-label="Sign In" title="Sign In">
+              <svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="auth-field">
-          <label for="authPass">访问密码</label>
-          <input type="password" id="authPass" class="text-input full-width" placeholder="请输入密码" autocomplete="current-password" required />
-        </div>
+
+        <div class="auth-error hidden" id="authError">Incorrect account ID or password.</div>
+
         <div class="auth-options">
           <label class="auth-remember">
             <input type="checkbox" id="authRemember" checked />
-            <span>在这台设备上记住我（7 天免密）</span>
+            <span>Keep me signed in for 7 days</span>
           </label>
         </div>
-        <div class="auth-error hidden" id="authError">账号或密码不正确，请重试</div>
-        <button type="submit" class="btn btn-primary full-width auth-submit">🔓 解锁进入 BandUp</button>
       </form>
-      <p class="auth-foot">🔒 SHA-256 Encrypted · Private Study Space</p>
+
+      <div class="auth-foot">
+        <span>bandup.vip · Private Study Space</span>
+      </div>
     </div>
   </div>
 
@@ -693,8 +710,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js"></script>
-  <script src="app.js"></script>
-  <script src="modules.js"></script>
+  <script src="data.js?v=20261124b"></script>
+  <script src="app.js?v=20261124b"></script>
+  <script src="modules.js?v=20261124b"></script>
 </body>
 </html>
