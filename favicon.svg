@@ -1,41 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#14161D"/>
-      <stop offset="100%" stop-color="#07080B"/>
+    <linearGradient id="bg" x1="16" y1="8" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#181920"/>
+      <stop offset="100%" stop-color="#090A0F"/>
     </linearGradient>
-    <radialGradient id="glow" cx="82%" cy="18%" r="75%">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.28"/>
-      <stop offset="55%" stop-color="#6366F1" stop-opacity="0.08"/>
+    <radialGradient id="aura" cx="75%" cy="22%" r="78%">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#818CF8" stop-opacity="0.14"/>
       <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="wingTop" x1="24" y1="68" x2="100" y2="26" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="55%" stop-color="#7DD3FC"/>
-      <stop offset="100%" stop-color="#818CF8"/>
-    </linearGradient>
-    <linearGradient id="wingBot" x1="28" y1="98" x2="100" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="ring" x1="26" y1="98" x2="102" y2="26" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="50%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#C084FC"/>
+      <stop offset="48%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#F472B6"/>
     </linearGradient>
-    <linearGradient id="star" x1="88" y1="18" x2="106" y2="36" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#7DD3FC"/>
+    <linearGradient id="spark" x1="44" y1="84" x2="88" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
     </linearGradient>
   </defs>
 
-  <!-- Obsidian Squircle Base -->
+  <!-- Squircle Obsidian Canvas -->
   <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#bg)"/>
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#glow)"/>
-  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="white" stroke-opacity="0.14" stroke-width="1.5"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#aura)"/>
+  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="white" stroke-opacity="0.15" stroke-width="1.5"/>
 
-  <!-- Lower Ascending Prism Wing -->
-  <path d="M30 85L64 64L98 85" stroke="url(#wingBot)" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+  <!-- Luminous Open Orbit Ring -->
+  <path d="M92.5 52A32 32 0 1 1 76 35.5" stroke="url(#ring)" stroke-width="10.5" stroke-linecap="round"/>
 
-  <!-- Upper Primary Ascending Prism Wing -->
-  <path d="M30 59L64 38L98 59" stroke="url(#wingTop)" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Apex 4-Point AI Sparkle -->
-  <path d="M97 19C97 24.8 99.2 27 105 27C99.2 27 97 29.2 97 35C97 29.2 94.8 27 89 27C94.8 27 97 24.8 97 19Z" fill="url(#star)"/>
+  <!-- Sculpted 4-Point Star Core (Ascending toward top-right) -->
+  <path d="M68 28C68 47.5 80.5 60 100 60C80.5 60 68 72.5 68 92C68 72.5 55.5 60 36 60C55.5 60 68 47.5 68 28Z" fill="url(#spark)"/>
 </svg>

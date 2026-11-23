@@ -391,7 +391,26 @@
       .map((r) => ({ ...r, acc: Math.min(100, (Number(r.correct) / Number(r.total)) * 100) }))
       .sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? -1 : 1));
     if (!recs.length) {
-      return `<div class="empty-chart"><div>📊</div><p>还没有精听 / 精读记录。<br>在「🎧 精听 &amp; 精读记录」录入对题数后，这里会自动画出走势，并换算成雅思分数。</p></div>`;
+      return `
+        <div class="empty-chart apple-ghost-chart">
+          <svg viewBox="0 0 420 120" class="ghost-wave-svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="gwGrad" x1="0" y1="0" x2="420" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#0071e3" stop-opacity="0.08"/>
+                <stop offset="50%" stop-color="#0071e3" stop-opacity="0.38"/>
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0.1"/>
+              </linearGradient>
+            </defs>
+            <line x1="20" x2="400" y1="30" y2="30" class="grid-line" stroke-dasharray="3 4"/>
+            <line x1="20" x2="400" y1="60" y2="60" class="grid-line" stroke-dasharray="3 4"/>
+            <line x1="20" x2="400" y1="90" y2="90" class="grid-line" stroke-dasharray="3 4"/>
+            <path d="M 24 86 C 95 82, 130 48, 205 54 C 275 60, 320 26, 396 22" fill="none" stroke="url(#gwGrad)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="205" cy="54" r="3.5" fill="#0071e3" opacity="0.45"/>
+            <circle cx="396" cy="22" r="4" fill="#6366f1" opacity="0.6"/>
+          </svg>
+          <p class="ghost-chart-title">暂无精听 / 精读曲线数据</p>
+          <span class="muted">在「精听 &amp; 精读记录」录入对题数后，将自动绘制正确率走势并折算 Band 分数</span>
+        </div>`;
     }
     const W = 520, H = 220, pl = 34, pr = 12, pt = 14, pb = 26;
     const iw = W - pl - pr, ih = H - pt - pb;

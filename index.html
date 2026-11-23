@@ -9,36 +9,38 @@
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
   <title>BandUp</title>
-  <link rel="stylesheet" href="styles.css?v=20261124d" />
-  <link rel="stylesheet" href="modules.css?v=20261124d" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124d" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124d" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124d" />
+  <link rel="stylesheet" href="styles.css?v=20261124e" />
+  <link rel="stylesheet" href="modules.css?v=20261124e" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124e" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124e" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124e" />
 </head>
 <body>
-  <!-- Auth Lock Screen (Apple iCloud / macOS Sequoia Style) -->
+  <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Glass Card) -->
   <div class="auth-gate" id="authGate">
-    <div class="auth-ambient-orb orb-1"></div>
-    <div class="auth-ambient-orb orb-2"></div>
+    <div class="auth-aurora-canvas">
+      <div class="aurora-ribbon ribbon-1"></div>
+      <div class="aurora-ribbon ribbon-2"></div>
+      <div class="aurora-ribbon ribbon-3"></div>
+      <div class="aurora-grid-overlay"></div>
+    </div>
     <div class="auth-card">
       <div class="auth-logo">
         <div class="auth-squircle">
           <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="lgWingTop" x1="24" y1="68" x2="100" y2="26" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#FFFFFF"/>
-                <stop offset="55%" stop-color="#7DD3FC"/>
-                <stop offset="100%" stop-color="#818CF8"/>
-              </linearGradient>
-              <linearGradient id="lgWingBot" x1="28" y1="98" x2="100" y2="56" gradientUnits="userSpaceOnUse">
+              <linearGradient id="lgOrbitRing" x1="26" y1="98" x2="102" y2="26" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#38BDF8"/>
-                <stop offset="50%" stop-color="#6366F1"/>
-                <stop offset="100%" stop-color="#C084FC"/>
+                <stop offset="48%" stop-color="#818CF8"/>
+                <stop offset="100%" stop-color="#F472B6"/>
+              </linearGradient>
+              <linearGradient id="lgStarCore" x1="44" y1="84" x2="88" y2="38" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#E0F2FE"/>
+                <stop offset="100%" stop-color="#FFFFFF"/>
               </linearGradient>
             </defs>
-            <path d="M30 85L64 64L98 85" stroke="url(#lgWingBot)" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
-            <path d="M30 59L64 38L98 59" stroke="url(#lgWingTop)" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M97 19C97 24.8 99.2 27 105 27C99.2 27 97 29.2 97 35C97 29.2 94.8 27 89 27C94.8 27 97 24.8 97 19Z" fill="#7DD3FC"/>
+            <path d="M92.5 52A32 32 0 1 1 76 35.5" stroke="url(#lgOrbitRing)" stroke-width="10.5" stroke-linecap="round"/>
+            <path d="M68 28C68 47.5 80.5 60 100 60C80.5 60 68 72.5 68 92C68 72.5 55.5 60 36 60C55.5 60 68 47.5 68 28Z" fill="url(#lgStarCore)"/>
           </svg>
         </div>
       </div>
@@ -85,9 +87,15 @@
         <div class="brand">
           <span class="brand-badge" aria-hidden="true">
             <svg class="brand-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M28 86L64 63L100 86" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>
-              <path d="M28 58L64 35L100 58" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M98 18C98 24 100.2 26.2 106 26.2C100.2 26.2 98 28.4 98 34.4C98 28.4 95.8 26.2 90 26.2C95.8 26.2 98 24 98 18Z" fill="#7DD3FC"/>
+              <defs>
+                <linearGradient id="tbRing" x1="26" y1="98" x2="102" y2="26" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#38BDF8"/>
+                  <stop offset="50%" stop-color="#818CF8"/>
+                  <stop offset="100%" stop-color="#F472B6"/>
+                </linearGradient>
+              </defs>
+              <path d="M92.5 52A32 32 0 1 1 76 35.5" stroke="url(#tbRing)" stroke-width="11.5" stroke-linecap="round"/>
+              <path d="M68 28C68 47.5 80.5 60 100 60C80.5 60 68 72.5 68 92C68 72.5 55.5 60 36 60C55.5 60 68 47.5 68 28Z" fill="#FFFFFF"/>
             </svg>
           </span>
           <div>
@@ -758,8 +766,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124d"></script>
-  <script src="app.js?v=20261124d"></script>
-  <script src="modules.js?v=20261124d"></script>
+  <script src="data.js?v=20261124e"></script>
+  <script src="app.js?v=20261124e"></script>
+  <script src="modules.js?v=20261124e"></script>
 </body>
 </html>
