@@ -982,11 +982,22 @@
     return false;
   }
 
-  function unlockGate() {
+  function unlockGate(instant = false) {
     const gate = $("authGate");
     if (!gate) return;
-    gate.classList.add("hidden");
+    if (instant) {
+      gate.classList.add("hidden");
+      document.body.classList.remove("auth-locked");
+      return;
+    }
+    gate.classList.add("unlocking");
     document.body.classList.remove("auth-locked");
+    document.body.classList.add("auth-revealing");
+    setTimeout(() => {
+      gate.classList.add("hidden");
+      gate.classList.remove("unlocking");
+      document.body.classList.remove("auth-revealing");
+    }, 560);
   }
 
   function lockGate() {
@@ -998,7 +1009,15 @@
     } catch (e) { /* ignore */ }
     if ($("authPass")) $("authPass").value = "";
     if ($("authError")) $("authError").classList.add("hidden");
-    gate.classList.remove("hidden");
+    const submitBtn = gate.querySelector(".auth-submit");
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("is-verifying", "is-success");
+      submitBtn.innerHTML = "🔓 解锁进入工作台";
+    }
+    const card = gate.querySelector(".auth-card");
+    if (card) card.classList.remove("is-verified", "shake");
+    gate.classList.remove("hidden", "unlocking");
     document.body.classList.add("auth-locked");
     setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
   }
@@ -1009,7 +1028,7 @@
     if (!gate || !form) return;
 
     if (isUnlocked()) {
-      unlockGate();
+      unlockGate(true);
     } else {
       document.body.classList.add("auth-locked");
       setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
@@ -1017,13 +1036,29 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const submitBtn = form.querySelector(".auth-submit");
+      const card = gate.querySelector(".auth-card");
+      if (submitBtn && submitBtn.disabled) return;
+
       const user = ($("authUser").value || "").trim().toLowerCase();
       const pass = ($("authPass").value || "").trim();
       const remember = $("authRemember").checked;
       const errEl = $("authError");
-      const hash = await sha256Hex(`ielts_sprint_v1:${user}:${pass}`);
+      errEl.classList.add("hidden");
+      if (card) card.classList.remove("shake");
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add("is-verifying");
+        submitBtn.innerHTML = `<span class="auth-spinner"></span> 正在校验身份与同步数据...`;
+      }
+
+      const [hash] = await Promise.all([
+        sha256Hex(`ielts_sprint_v1:${user}:${pass}`),
+        new Promise((r) => setTimeout(r, 480))
+      ]);
+
       if (hash === EXPECTED_HASH) {
-        errEl.classList.add("hidden");
         try {
           sessionStorage.setItem(AUTH_STORAGE_KEY, EXPECTED_HASH);
           if (remember) {
@@ -1035,10 +1070,29 @@
             localStorage.removeItem(AUTH_STORAGE_KEY);
           }
         } catch (err) { /* ignore */ }
-        unlockGate();
-        App.toast("欢迎回来，Kai！今日冲刺继续 💪");
+
+        if (card) card.classList.add("is-verified");
+        if (submitBtn) {
+          submitBtn.classList.remove("is-verifying");
+          submitBtn.classList.add("is-success");
+          submitBtn.innerHTML = `✅ 验证通过 · 欢迎回来，Kai`;
+        }
+
+        setTimeout(() => {
+          unlockGate(false);
+          App.toast("欢迎回来，Kai！今日冲刺继续 💪");
+        }, 460);
       } else {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove("is-verifying");
+          submitBtn.innerHTML = "🔓 解锁进入工作台";
+        }
         errEl.classList.remove("hidden");
+        if (card) {
+          void card.offsetWidth; // trigger reflow
+          card.classList.add("shake");
+        }
         $("authPass").value = "";
         $("authPass").focus();
       }
