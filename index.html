@@ -12,22 +12,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124h" />
-  <link rel="stylesheet" href="modules.css?v=20261124h" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124h" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124h" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124h" />
+  <link rel="stylesheet" href="styles.css?v=20261124i" />
+  <link rel="stylesheet" href="modules.css?v=20261124i" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124i" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124i" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124i" />
 </head>
 <body>
-  <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Interactive Cursor Spotlight) -->
+  <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
   <div class="auth-gate" id="authGate">
     <div class="auth-aurora-canvas">
       <div class="aurora-ribbon ribbon-1"></div>
       <div class="aurora-ribbon ribbon-2"></div>
       <div class="aurora-ribbon ribbon-3"></div>
-      <div class="auth-cursor-glow" id="authCursorGlow"></div>
       <div class="aurora-grid-overlay"></div>
     </div>
+    <div class="auth-cursor-glow" id="authCursorGlow"></div>
     <div class="auth-card" id="authCard">
       <div class="auth-logo">
         <div class="auth-logo-halo-wrap">
@@ -35,21 +35,13 @@
           <div class="auth-squircle">
             <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="lgTriStroke" x1="20" y1="26" x2="108" y2="102" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFFFFF"/>
-                  <stop offset="52%" stop-color="#E0F2FE"/>
-                  <stop offset="100%" stop-color="#7DD3FC"/>
-                </linearGradient>
-                <linearGradient id="lgMidFill" x1="53" y1="54" x2="75" y2="74" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.45"/>
-                  <stop offset="100%" stop-color="#818CF8" stop-opacity="0.45"/>
+                <linearGradient id="lgInkStroke" x1="24" y1="26" x2="104" y2="102" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#0B0C10"/>
+                  <stop offset="100%" stop-color="#1E222B"/>
                 </linearGradient>
               </defs>
-              <polygon points="47.80,26.59 20.80,73.35 74.80,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
-              <polygon points="80.20,26.59 53.20,73.35 107.20,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
-              <polygon points="64.00,54.65 37.00,101.41 91.00,101.41" fill="#38BDF8" fill-opacity="0.08"/>
-              <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="url(#lgMidFill)"/>
-              <g stroke="url(#lgTriStroke)" stroke-width="6.2" stroke-linejoin="round" stroke-linecap="round">
+              <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="#0B0C10" fill-opacity="0.1"/>
+              <g stroke="url(#lgInkStroke)" stroke-width="6.8" stroke-linejoin="round" stroke-linecap="round">
                 <polygon points="47.80,26.59 20.80,73.35 74.80,73.35"/>
                 <polygon points="80.20,26.59 53.20,73.35 107.20,73.35"/>
                 <polygon points="64.00,54.65 37.00,101.41 91.00,101.41"/>
@@ -101,15 +93,8 @@
         <div class="brand">
           <span class="brand-badge" aria-hidden="true">
             <svg class="brand-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="tbTri" x1="20" y1="26" x2="108" y2="102" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#FFFFFF"/>
-                  <stop offset="55%" stop-color="#E0F2FE"/>
-                  <stop offset="100%" stop-color="#7DD3FC"/>
-                </linearGradient>
-              </defs>
-              <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="#38BDF8" fill-opacity="0.45"/>
-              <g stroke="url(#tbTri)" stroke-width="7.6" stroke-linejoin="round" stroke-linecap="round">
+              <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="#0B0C10" fill-opacity="0.1"/>
+              <g stroke="#0B0C10" stroke-width="7.8" stroke-linejoin="round" stroke-linecap="round">
                 <polygon points="47.80,26.59 20.80,73.35 74.80,73.35"/>
                 <polygon points="80.20,26.59 53.20,73.35 107.20,73.35"/>
                 <polygon points="64.00,54.65 37.00,101.41 91.00,101.41"/>
@@ -784,8 +769,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124h"></script>
-  <script src="app.js?v=20261124h"></script>
-  <script src="modules.js?v=20261124h"></script>
+  <script src="data.js?v=20261124i"></script>
+  <script src="app.js?v=20261124i"></script>
+  <script src="modules.js?v=20261124i"></script>
 </body>
 </html>

@@ -1,38 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#171923"/>
-      <stop offset="100%" stop-color="#090A0F"/>
-    </linearGradient>
-    <radialGradient id="coreGlow" cx="50%" cy="54%" r="48%">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.28"/>
-      <stop offset="65%" stop-color="#818CF8" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="triStroke" x1="20" y1="26" x2="108" y2="102" gradientUnits="userSpaceOnUse">
+    <linearGradient id="ceramicBg" x1="20" y1="6" x2="108" y2="122" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="52%" stop-color="#E0F2FE"/>
-      <stop offset="100%" stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#ECEEF2"/>
     </linearGradient>
-    <linearGradient id="midFill" x1="53" y1="54" x2="75" y2="74" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.45"/>
-      <stop offset="100%" stop-color="#818CF8" stop-opacity="0.45"/>
+    <linearGradient id="inkStroke" x1="24" y1="26" x2="104" y2="102" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B0C10"/>
+      <stop offset="100%" stop-color="#1E222B"/>
     </linearGradient>
   </defs>
 
-  <!-- Obsidian Squircle -->
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#bg)"/>
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#coreGlow)"/>
-  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="white" stroke-opacity="0.14" stroke-width="1.5"/>
+  <!-- Ceramic White Squircle -->
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#ceramicBg)"/>
+  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="#0B0C10" stroke-opacity="0.08" stroke-width="1.5"/>
 
-  <!-- Translucent Crystal Facet Fills (3 Identical Equilateral Triangles + Luminous Core) -->
-  <polygon points="47.80,26.59 20.80,73.35 74.80,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
-  <polygon points="80.20,26.59 53.20,73.35 107.20,73.35" fill="#FFFFFF" fill-opacity="0.06"/>
-  <polygon points="64.00,54.65 37.00,101.41 91.00,101.41" fill="#38BDF8" fill-opacity="0.08"/>
-  <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="url(#midFill)"/>
+  <!-- Subtle Geometric Core Accent -->
+  <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="#0B0C10" fill-opacity="0.1"/>
 
-  <!-- Precision Symmetric Equilateral Geometry (Side L=54.0, Mid s=21.6, Axis x=64.0) -->
-  <g stroke="url(#triStroke)" stroke-width="6.8" stroke-linejoin="round" stroke-linecap="round">
+  <!-- Pure Obsidian Black Symmetric Equilateral Geometry (L=54.0, Mid s=21.6, Axis x=64.0) -->
+  <g stroke="url(#inkStroke)" stroke-width="7.2" stroke-linejoin="round" stroke-linecap="round">
     <polygon points="47.80,26.59 20.80,73.35 74.80,73.35"/>
     <polygon points="80.20,26.59 53.20,73.35 107.20,73.35"/>
     <polygon points="64.00,54.65 37.00,101.41 91.00,101.41"/>
