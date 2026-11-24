@@ -2203,7 +2203,9 @@
       });
       App.save();
       App.refresh();
-      App.toast("已存入「精听 & 精读记录」");
+      if (!(App.autoCheckTaskByTag && App.autoCheckTaskByTag("阅读", "真题雷达已入库"))) {
+        App.toast("已存入「精听 & 精读记录」");
+      }
     });
 
     $("azArticleView").addEventListener("click", (e) => {
@@ -2269,9 +2271,53 @@
     }
   }
 
-  // ==================== VISUAL PLAYBOOK GUIDE MODAL ====================
+  // ==================== VISUAL PLAYBOOK GUIDE + LIVE DAILY CHECKLIST ====================
+  let openFlashcardsFn = null;
+
+  function renderGuideChecklist() {
+    const prog = getSprintProgress();
+    const day = prog.activeDay || S().days[0];
+    const tasks = (day && Array.isArray(day.tasks)) ? day.tasks : [];
+    const done = tasks.filter((t) => t.done).length;
+    const total = tasks.length;
+    const allDone = total > 0 && done === total;
+
+    // 1) Update topbar live pill next to Guide
+    const topBtn = $("btnOpenChecklist");
+    const topCount = $("topbarChecklistCount");
+    if (topCount) topCount.textContent = `${done}/${total}`;
+    if (topBtn) topBtn.classList.toggle("is-all-done", allDone);
+
+    // 2) Update right-hand checklist card inside Guide modal
+    const labelEl = $("gcDayLabel");
+    const ratioEl = $("gcRatio");
+    const fillEl = $("gcBarFill");
+    const listEl = $("guideChecklistItems");
+    if (!listEl) return;
+
+    if (labelEl) labelEl.textContent = `DAY ${prog.activeSeq || 1} · ${allDone ? "今日全部完成" : "进行中"}`;
+    if (ratioEl) ratioEl.textContent = `${done} / ${total}`;
+    if (fillEl) fillEl.style.width = `${total ? Math.round((done / total) * 100) : 0}%`;
+
+    if (!tasks.length) {
+      listEl.innerHTML = `<div class="muted" style="font-size:12px;">今日暂无任务</div>`;
+      return;
+    }
+
+    listEl.innerHTML = tasks.map((t) => `
+      <label class="gc-item ${t.done ? "is-done" : ""}" data-gc-day="${esc(day.id)}" data-gc-task="${esc(t.id)}">
+        <input type="checkbox" ${t.done ? "checked" : ""} />
+        <div class="gc-item-body">
+          <span class="gc-item-tag">${esc(t.tag || "任务")}${t.done ? " · 已完成" : ""}</span>
+          <span class="gc-item-text">${esc(t.text)}</span>
+        </div>
+      </label>
+    `).join("");
+  }
+
   function bindGuide() {
     const btnOpen = $("btnOpenGuide");
+    const btnChecklist = $("btnOpenChecklist");
     const modal = $("modalGuide");
     const seg = $("guideSegTabs");
     if (!btnOpen || !modal) return;
@@ -2288,8 +2334,24 @@
     }
 
     btnOpen.addEventListener("click", () => {
+      renderGuideChecklist();
       modal.classList.remove("hidden");
     });
+
+    if (btnChecklist) {
+      btnChecklist.addEventListener("click", () => {
+        renderGuideChecklist();
+        switchGuidePanel("flow");
+        modal.classList.remove("hidden");
+        const card = modal.querySelector(".guide-checklist-card");
+        if (card) {
+          card.classList.remove("is-flash");
+          void card.offsetWidth;
+          card.classList.add("is-flash");
+          setTimeout(() => card.classList.remove("is-flash"), 1400);
+        }
+      });
+    }
 
     if (seg) {
       seg.addEventListener("click", (e) => {
@@ -2299,7 +2361,29 @@
       });
     }
 
+    const gcList = $("guideChecklistItems");
+    if (gcList) {
+      gcList.addEventListener("change", (e) => {
+        const row = e.target.closest("[data-gc-task]");
+        if (!row || !App || typeof App.toggleTaskDone !== "function") return;
+        App.toggleTaskDone(row.dataset.gcDay, row.dataset.gcTask);
+        renderGuideChecklist();
+      });
+    }
+
     modal.addEventListener("click", (e) => {
+      const actionBtn = e.target.closest("[data-guide-action]");
+      if (actionBtn) {
+        const act = actionBtn.dataset.guideAction;
+        modal.classList.add("hidden");
+        if (act === "flashcards" && openFlashcardsFn) openFlashcardsFn("today");
+        else if (act === "flashcards-weak" && openFlashcardsFn) openFlashcardsFn("weak");
+        else if (act === "analyzer") openPassageAnalyzer("", "");
+        else if (act === "search") openSearch();
+        else if (act === "report") openReport();
+        else if (act === "cloud" && $("btnBackup")) $("btnBackup").click();
+        return;
+      }
       const jump = e.target.closest("[data-guide-jump]");
       if (!jump) return;
       const targetTab = jump.dataset.guideJump;
@@ -2475,6 +2559,9 @@
       $("fcProgressFill").style.width = "100%";
       $("fcProgressText").textContent = `${fc.queue.length} / ${fc.queue.length}`;
       $("fcStatPill").textContent = `正确 ${fc.rightCount} · 不熟 ${fc.weakWords.size}`;
+      if (fc.pool.length > 0 && App && typeof App.autoCheckTaskByTag === "function") {
+        App.autoCheckTaskByTag("词汇", "已完成一轮动态闪卡验收");
+      }
 
       const totalAttempts = fc.rightCount + fc.weakWords.size;
       const acc = totalAttempts ? Math.round((fc.rightCount / Math.max(fc.pool.length, 1)) * 100) : 100;
@@ -2649,6 +2736,7 @@
       const scope = defaultScope === "weak" && weakCount === 0 ? "today" : (defaultScope || "today");
       startSession(scope, "visual");
     }
+    openFlashcardsFn = openFlashcards;
 
     const btnDaily = $("btnOpenFlashcards");
     if (btnDaily) btnDaily.addEventListener("click", () => openFlashcards("today"));
@@ -2755,6 +2843,7 @@
     ensureFields();
     renderDashboard();
     renderWritingList();
+    renderGuideChecklist();
     syncEmptyTabBadges();
   }
 

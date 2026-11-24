@@ -1665,6 +1665,9 @@
         }
       });
       $("clozeScore").textContent = `拼写正确：${correct} / ${inputs.length}`;
+      if (inputs.length > 0 && correct / inputs.length >= 0.8) {
+        autoCheckTaskByTag("词汇", `拼写挖空达标 ${correct}/${inputs.length}`);
+      }
     });
 
     $("btnRevealCloze").addEventListener("click", () => {
@@ -2030,7 +2033,10 @@
       resetPracticeForm();
       renderPracticeRecords();
       updateBadges();
-      showToast("精听/精读记录已保存！");
+      const autoTag = payload.type === "listening" ? "听力" : "阅读";
+      if (!autoCheckTaskByTag(autoTag, `已保存${autoTag}复盘`)) {
+        showToast("精听/精读记录已保存！");
+      }
     });
 
     $("btnCancelPracticeEdit").addEventListener("click", resetPracticeForm);
@@ -2094,7 +2100,7 @@
         } else {
           clearInterval(timerInterval);
           timerInterval = null;
-          showToast("⏰ 时间到！");
+          showToast("时间到！");
         }
       }, 1000);
     });
@@ -2142,7 +2148,9 @@
       resetSpeakingForm();
       renderSpeakingList();
       updateBadges();
-      showToast("口语题已保存！");
+      if (!(payload.draft && autoCheckTaskByTag("口语", "已保存口语作答草稿"))) {
+        showToast("口语题已保存！");
+      }
     });
 
     $("btnCancelSpEdit").addEventListener("click", resetSpeakingForm);
@@ -2416,6 +2424,54 @@
     return true;
   }
 
+  function getActiveSequentialDay() {
+    const ordered = [...(state.days || [])].sort((a, b) => {
+      const na = parseInt(String(a.id || "").replace(/\D+/g, ""), 10) || 0;
+      const nb = parseInt(String(b.id || "").replace(/\D+/g, ""), 10) || 0;
+      if (na !== nb) return na - nb;
+      return String(a.date || "").localeCompare(String(b.date || ""));
+    });
+    return ordered.find((d) => !d.tasks || !d.tasks.length || d.tasks.some((t) => !t.done)) || ordered[ordered.length - 1] || getCurrentDay();
+  }
+
+  function syncDayCompletionGlobal(day) {
+    if (!day || !Array.isArray(day.tasks)) return;
+    const allDone = day.tasks.length > 0 && day.tasks.every((t) => t.done);
+    if (allDone) {
+      if (!day.completedAt) day.completedAt = todayStr();
+    } else {
+      delete day.completedAt;
+    }
+  }
+
+  function autoCheckTaskByTag(tag, reason = "") {
+    const day = getCurrentDay() || getActiveSequentialDay();
+    if (!day || !Array.isArray(day.tasks)) return false;
+    const target = day.tasks.find((t) => !t.done && (t.tag === tag || String(t.text || "").includes(tag)));
+    if (!target) return false;
+    target.done = true;
+    target.doneAt = todayStr();
+    syncDayCompletionGlobal(day);
+    saveState();
+    renderDailyTasks();
+    showToast(`已自动勾选今日「${tag}」任务${reason ? "（" + reason + "）" : ""}`);
+    return true;
+  }
+
+  function toggleTaskDone(dayId, taskId) {
+    const day = (state.days || []).find((d) => d.id === dayId) || getCurrentDay();
+    if (!day || !Array.isArray(day.tasks)) return false;
+    const target = day.tasks.find((t) => t.id === taskId);
+    if (!target) return false;
+    target.done = !target.done;
+    if (target.done) target.doneAt = todayStr();
+    else delete target.doneAt;
+    syncDayCompletionGlobal(day);
+    saveState();
+    renderDailyTasks();
+    return true;
+  }
+
   // Public API for modules.js (dashboard / writing / global search / cloud sync)
   window.IELTSApp = {
     get state() { return state; },
@@ -2432,6 +2488,8 @@
     getWordEncounterStats,
     markWordWeak,
     markWordMastered,
+    autoCheckTaskByTag,
+    toggleTaskDone,
     refresh: initRenderAll,
     goTab,
     selectDay,

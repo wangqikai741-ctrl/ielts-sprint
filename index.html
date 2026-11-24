@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124w" />
-  <link rel="stylesheet" href="modules.css?v=20261124w" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124w" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124w" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124w" />
+  <link rel="stylesheet" href="styles.css?v=20261124x" />
+  <link rel="stylesheet" href="modules.css?v=20261124x" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124x" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124x" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124x" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -129,7 +129,7 @@
           <kbd>/</kbd>
         </button>
         <div class="topbar-actions">
-          <button class="btn btn-sm guide-topbar-btn" id="btnOpenGuide" title="58 天每日执行手册 & 网站使用指南">
+          <button class="btn btn-sm guide-topbar-btn" id="btnOpenGuide" title="58 天每日 6 小时执行手册 & 网站使用指南">
             <svg class="sf-icon guide-compass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="9.2"></circle>
               <g class="guide-compass-needle">
@@ -139,6 +139,11 @@
               </g>
             </svg>
             <span class="btn-label-desktop">指南</span>
+          </button>
+          <button class="btn btn-sm checklist-topbar-btn" id="btnOpenChecklist" title="今日完成清单（完成一项自动打勾，点开可同步查看指南）">
+            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            <span class="btn-label-desktop">今日清单</span>
+            <span class="cl-top-count" id="topbarChecklistCount">0/4</span>
           </button>
           <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">
             <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path><path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16z"></path></svg>
@@ -947,7 +952,7 @@
 
       <div class="guide-seg-wrap">
         <div class="guide-seg" id="guideSegTabs" role="tablist">
-          <button class="guide-seg-btn active" data-guide-tab="flow" role="tab">每日 5 步流</button>
+          <button class="guide-seg-btn active" data-guide-tab="flow" role="tab">每日 6 小时流 & 清单</button>
           <button class="guide-seg-btn" data-guide-tab="modules" role="tab">网站模块图解</button>
           <button class="guide-seg-btn" data-guide-tab="loop" role="tab">工具协作闭环</button>
           <button class="guide-seg-btn" data-guide-tab="roadmap" role="tab">58 天三阶段</button>
@@ -955,125 +960,175 @@
       </div>
 
       <div class="guide-body" id="guideBody">
-        <!-- Panel 1: Daily 5-Step Flow -->
+        <!-- Panel 1: Detailed 6-Hour Daily Flow + Synchronized Auto-Check Daily Checklist -->
         <div class="guide-panel active" data-guide-panel="flow">
           <div class="guide-timebar-card">
             <div class="guide-timebar-top">
-              <span class="guide-kicker">每日闭关节奏</span>
-              <span class="guide-mono-stat">约 4 – 4.5 小时 · 4 项全勾 = 点亮当天日历</span>
+              <span class="guide-kicker">每日 6 小时高强度闭关节奏（共 360 分钟）</span>
+              <span class="guide-mono-stat">6.0 小时 · 完成对应动作自动打勾，全勾点亮当天日历</span>
             </div>
-            <div class="guide-timebar" aria-label="每日时间分配">
-              <span class="gt-seg gt-1" style="flex:0.45" title="热身 10m"></span>
-              <span class="gt-seg gt-2" style="flex:1.2" title="串词 50m"></span>
-              <span class="gt-seg gt-3" style="flex:2.6" title="真题 2h"></span>
-              <span class="gt-seg gt-4" style="flex:1.1" title="口语写作 45m"></span>
-              <span class="gt-seg gt-5" style="flex:0.35" title="交接 5m"></span>
+            <div class="guide-timebar" aria-label="每日 6 小时时间分配">
+              <span class="gt-seg gt-1" style="flex:20" title="01 热身 20m"></span>
+              <span class="gt-seg gt-2" style="flex:70" title="02 串词精读 70m"></span>
+              <span class="gt-seg gt-6" style="flex:35" title="03 动态闪卡 35m"></span>
+              <span class="gt-seg gt-3" style="flex:150" title="04 听读真题 150m"></span>
+              <span class="gt-seg gt-4" style="flex:75" title="05 口语写作 75m"></span>
+              <span class="gt-seg gt-5" style="flex:10" title="06 交接 10m"></span>
             </div>
             <div class="guide-timebar-legend">
-              <span><i class="g-dot d1"></i>01 热身 10m</span>
-              <span><i class="g-dot d2"></i>02 串词 50m</span>
-              <span><i class="g-dot d3"></i>03 雅思哥真题 2h</span>
-              <span><i class="g-dot d4"></i>04 口语/写作 45m</span>
-              <span><i class="g-dot d5"></i>05 汇报交接 5m</span>
+              <span><i class="g-dot d1"></i>01 旧词热身 20m</span>
+              <span><i class="g-dot d2"></i>02 50词串文 70m</span>
+              <span><i class="g-dot d6"></i>03 动态闪卡 35m</span>
+              <span><i class="g-dot d3"></i>04 雅思哥听读 150m (2.5h)</span>
+              <span><i class="g-dot d4"></i>05 口语+写作 75m</span>
+              <span><i class="g-dot d5"></i>06 复盘交接 10m</span>
             </div>
           </div>
 
-          <div class="guide-timeline">
-            <div class="gt-step">
-              <div class="gt-num">01</div>
-              <div class="gt-content">
-                <div class="gt-head">
-                  <div>
-                    <h4>开机看日历 + 旧词抽测</h4>
-                    <span class="gt-dur">10 分钟 · 启动</span>
+          <div class="guide-flow-split">
+            <!-- Left: Detailed 6-Step Actionable Timeline -->
+            <div class="guide-timeline">
+              <div class="gt-step">
+                <div class="gt-num">01</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>开机核对日历 + 旧词闪卡唤醒</h4>
+                      <span class="gt-dur">20 分钟 · 08:30–08:50 建议时段</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn" data-guide-jump="dashboard">看日历 →</button>
+                      <button class="guide-jump-btn is-accent" data-guide-action="flashcards-weak">刷不熟词 →</button>
+                    </div>
                   </div>
-                  <button class="guide-jump-btn" data-guide-jump="vocab">去生词本 →</button>
+                  <ul class="gt-ul">
+                    <li>看「冲刺总览」确认今天承接的 <b>Day N</b>（进度不可跳过，昨天没做今天接续）。</li>
+                    <li>第 2 天起，直接点右上「刷不熟词」，把昨天标红/不熟的词过一遍听音四选一。</li>
+                  </ul>
                 </div>
-                <p>在「冲刺总览」确认今天承接的是 <b>Day N</b>；第 2 天起，先进「我的生词本」快速抽测昨天标红和未掌握的词。</p>
-                <div class="gt-chips">
-                  <span class="gt-chip">确认今日 Day N</span>
-                  <span class="gt-chip">抽测旧词</span>
+              </div>
+
+              <div class="gt-step">
+                <div class="gt-num">02</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>吃透今日 50 词情景串文 + 拼写挖空</h4>
+                      <span class="gt-dur">70 分钟 · 对应清单「词汇」</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn is-accent" data-guide-jump="daily">去今日串文 →</button>
+                    </div>
+                  </div>
+                  <ul class="gt-ul">
+                    <li><b>精读查替换（25m）</b>：点每个粗体词看标准释义、同义替换、搭配和例句；记不住的直接点 <b>标为不熟</b>。</li>
+                    <li><b>划词+跟读（20m）</b>：鼠标划词用黄点标同义替换、红点标盲区，点「记生词」1 秒自动补全；点「英音朗读」大声跟读 2 遍。</li>
+                    <li><b>机考拼写挖空（25m）</b>：点「拼写挖空」→ 仅听力拼写词，手打默写 20 词并核对（达标 ≥80% 自动勾选「词汇」）。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="gt-step">
+                <div class="gt-num">03</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>动态闪卡两轮验收（看词 → 听音盲选）</h4>
+                      <span class="gt-dur">35 分钟 · 自动判定背熟 / 不熟</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn is-accent" data-guide-action="flashcards">启动动态闪卡 →</button>
+                      <button class="guide-jump-btn" data-guide-jump="vocab">看生词本 →</button>
+                    </div>
+                  </div>
+                  <ul class="gt-ul">
+                    <li><b>第 1 轮看词四选一（15m）</b>：用键盘 1–4 速选中文，选错或按 W 自动标「不熟」并隔几张重出。</li>
+                    <li><b>第 2 轮盲听四选一（20m）</b>：隐藏拼写只听英音选义，专练听力瞬时反应；完成一轮<b>自动勾选今日「词汇」任务</b>。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="gt-step">
+                <div class="gt-num">04</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>雅思哥真题机考（听力 75m + 阅读 75m）+ 真题雷达</h4>
+                      <span class="gt-dur">150 分钟（2.5 小时）· 对应清单「听力」「阅读」</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn is-accent" data-guide-action="analyzer">打开真题雷达 →</button>
+                      <button class="guide-jump-btn" data-guide-jump="practice">录入听读记录 →</button>
+                    </div>
+                  </div>
+                  <ul class="gt-ul">
+                    <li><b>听力精听（75m）</b>：雅思哥做当日剑桥听力 → 错题不看原文盲听 2 遍抓连读与干扰项 → 在「听读记录」存听力复盘（<b>保存即自动勾选「听力」</b>）。</li>
+                    <li><b>阅读精读（75m）</b>：雅思哥做当日剑桥阅读 → 把原文粘贴到「真题雷达」点 <b>存入精听精读</b>（<b>自动勾选「阅读」</b>），点生词自动查义入库，全站自动建立真题原句溯源。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="gt-step">
+                <div class="gt-num">05</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>口语每日 3 题实战 + 写作定时训练</h4>
+                      <span class="gt-dur">75 分钟 · 对应清单「口语」+ 保底写作 6.0</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn is-accent" data-guide-jump="speaking">去口语话题库 →</button>
+                      <button class="guide-jump-btn" data-guide-jump="writing">去写作批改 →</button>
+                    </div>
+                  </div>
+                  <ul class="gt-ul">
+                    <li><b>口语实战（45m）</b>：先开口计时说，再把回答草稿保存进今日必练 3 题（<b>保存草稿自动勾选「口语」</b>），并复习昨天 AI 升级的 6.5 范例。</li>
+                    <li><b>写作稳手感（30m）</b>：每天审题列提纲或写 1 段，每周固定完成 1 篇完整大作文 + 1 篇小作文发给 AI 精批。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="gt-step">
+                <div class="gt-num">06</div>
+                <div class="gt-content">
+                  <div class="gt-head">
+                    <div>
+                      <h4>晚间 10 分钟复盘交接，解锁 Day N+1</h4>
+                      <span class="gt-dur">10 分钟 · 全勾点亮日历 + 滚动复现</span>
+                    </div>
+                    <div class="gt-btn-group">
+                      <button class="guide-jump-btn is-accent" data-guide-action="report">生成今日汇报 →</button>
+                      <button class="guide-jump-btn" data-guide-action="cloud">云端同步 →</button>
+                    </div>
+                  </div>
+                  <ul class="gt-ul">
+                    <li>点「生成今日汇报」一键复制（已自动汇总听读正确率、口语草稿、不熟词次数和未掌握生词）发给 AI 教练。</li>
+                    <li>AI 批改升级口语并把你的不熟词编进明天串文（显示「复现第 2/3 次」）；<b>每满 7 天额外推送一篇周度长文大串烧</b>。</li>
+                  </ul>
                 </div>
               </div>
             </div>
 
-            <div class="gt-step">
-              <div class="gt-num">02</div>
-              <div class="gt-content">
-                <div class="gt-head">
+            <!-- Right: Synchronized Live Daily Checklist -->
+            <aside class="guide-checklist-aside" id="guideChecklistAside">
+              <div class="guide-checklist-card">
+                <div class="gc-head">
                   <div>
-                    <h4>吃透今日 50 词情景串文</h4>
-                    <span class="gt-dur">45–60 分钟 · 任务 1</span>
+                    <span class="gc-eyebrow" id="gcDayLabel">DAY 1 · 今日进度</span>
+                    <h4>每日完成清单</h4>
                   </div>
-                  <button class="guide-jump-btn" data-guide-jump="daily">去今日串文 →</button>
+                  <span class="gc-ratio" id="gcRatio">0 / 4</span>
                 </div>
-                <p>点粗体词看标准释义、同义替换与真题出处；划词用 <b>黄点</b> 标好表达、<b>红点</b> 标易错词，点「记生词」<b>自动补全音标、中文和同义词</b>；跟读 2 遍后再用「拼写挖空」默写 20 个听力词。</p>
-                <div class="gt-chips">
-                  <span class="gt-chip">点词看标准替换</span>
-                  <span class="gt-chip">划词一键自动记词</span>
-                  <span class="gt-chip">拼写挖空过关</span>
-                  <span class="gt-chip is-check">勾选任务 1</span>
+                <div class="gc-bar-track"><div class="gc-bar-fill" id="gcBarFill" style="width:0%"></div></div>
+                <div class="gc-list" id="guideChecklistItems"></div>
+                <div class="gc-auto-note">
+                  <b>自动打勾已开启：</b>完成闪卡/拼写挖空 → 自动勾「词汇」；保存听/读记录或真题雷达入库 → 自动勾「听力/阅读」；保存口语草稿 → 自动勾「口语」；亦可直接点选。
+                </div>
+                <div class="gc-actions">
+                  <button class="btn btn-primary btn-sm full-width" data-guide-action="report">一键生成今日汇报发 AI</button>
                 </div>
               </div>
-            </div>
-
-            <div class="gt-step">
-              <div class="gt-num">03</div>
-              <div class="gt-content">
-                <div class="gt-head">
-                  <div>
-                    <h4>雅思哥机考刷真题 + 真题雷达自动建库</h4>
-                    <span class="gt-dur">2 – 2.5 小时 · 任务 2 & 3</span>
-                  </div>
-                  <button class="guide-jump-btn" data-guide-jump="practice">去听读记录 →</button>
-                </div>
-                <p>在电脑端 <b>雅思哥 Pro</b> 做剑桥听力 & 阅读；做完顺手把原文贴进顶部「真题雷达」点一次 <b>存入精听精读</b>：点新词自动查释义一键收录，以后全站查到该词都会<b>自动显示在剑雅哪本书哪篇出现过 + 原句</b>。</p>
-                <div class="gt-chips">
-                  <span class="gt-chip">雅思哥 Pro 机考</span>
-                  <span class="gt-chip">真题雷达一键入库</span>
-                  <span class="gt-chip">全站自动溯源原句</span>
-                  <span class="gt-chip is-check">勾选任务 2 & 3</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="gt-step">
-              <div class="gt-num">04</div>
-              <div class="gt-content">
-                <div class="gt-head">
-                  <div>
-                    <h4>口语话题实战 + 每周 1 大 1 小写作</h4>
-                    <span class="gt-dur">40–60 分钟 · 任务 4</span>
-                  </div>
-                  <button class="guide-jump-btn" data-guide-jump="speaking">去口语话题库 →</button>
-                </div>
-                <p>在「口语话题库」完成今日必练 3 题：先开口说，再把回答草稿打进输入框（或语音转文字贴入）。每周穿插在「写作批改」计时写 1 篇大作文 + 1 篇小作文稳住 6.0 底子。</p>
-                <div class="gt-chips">
-                  <span class="gt-chip">开口说 + 写草稿</span>
-                  <span class="gt-chip">每周 1 大 1 小</span>
-                  <span class="gt-chip is-check">勾选任务 4 · 点亮日历</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="gt-step">
-              <div class="gt-num">05</div>
-              <div class="gt-content">
-                <div class="gt-head">
-                  <div>
-                    <h4>睡前 5 分钟交作业，解锁 Day N+1</h4>
-                    <span class="gt-dur">5 分钟 · 闭环</span>
-                  </div>
-                  <button class="guide-jump-btn" data-guide-jump="dashboard">回冲刺总览 →</button>
-                </div>
-                <p>在「冲刺总览」复制今日汇报（自动附带<b>标为不熟的词 + 复现次数 + 生词本</b>）连同口语草稿发给 AI 教练：我会升级成 Band 6.5 口语版，把你的不熟词编进次日串文（显示「复现第 2/3 次」），<b>每满 7 天出一篇长文大串烧</b>随机打乱综合复习。</p>
-                <div class="gt-chips">
-                  <span class="gt-chip">动态闪卡两轮验收</span>
-                  <span class="gt-chip">不熟词次日复现</span>
-                  <span class="gt-chip">每周长文大串烧</span>
-                </div>
-              </div>
-            </div>
+            </aside>
           </div>
         </div>
 
@@ -1161,18 +1216,18 @@
           </div>
 
           <div class="guide-tips-strip">
-            <div class="gts-item">
-              <b>自动查词（零手填）</b>
-              <span>在随手记 / 生词本 / 划词 / 真题雷达只输英文，1 秒自动补全音标、中文与同义词</span>
-            </div>
-            <div class="gts-item">
-              <b>真题自动溯源</b>
-              <span>真题雷达存过剑桥原文后，全站任意位置点词自动列出「Day 几 + 剑雅出处 + 原句」</span>
-            </div>
-            <div class="gts-item">
-              <b>错词滚动复现</b>
-              <span>AI 每天主动推 50 词高频串文；晚间交未掌握生词后，次日自动编进新故事反复强化</span>
-            </div>
+            <button type="button" class="gts-item is-btn" data-guide-action="search">
+              <b>全局查词（按 <kbd>/</kbd>）→</b>
+              <span>秒查站内高频词、生词本与在线词典同义词</span>
+            </button>
+            <button type="button" class="gts-item is-btn" data-guide-action="analyzer">
+              <b>真题雷达（自动溯源）→</b>
+              <span>贴剑桥原文一键入库，全站自动关联剑雅出处与原句</span>
+            </button>
+            <button type="button" class="gts-item is-btn" data-guide-action="flashcards">
+              <b>动态闪卡（两轮验收）→</b>
+              <span>看词四选一 → 盲听四选一，自动标记不熟词明日复现</span>
+            </button>
           </div>
         </div>
 
@@ -1225,9 +1280,9 @@
           </div>
 
           <div class="guide-boundary-box">
-            <div class="gb-b-head">碎片辅助工具边界（避免喧宾夺主）</div>
+            <div class="gb-b-head">碎片辅助工具边界（不占用每天 6 小时闭关主时间）</div>
             <div class="gb-b-row">
-              <div><b>不背单词</b>：仅在通勤、排队或睡前补刷核心词，不占用正式闭关的 4 小时。</div>
+              <div><b>不背单词</b>：仅在通勤、排队或睡前补刷核心词，正式 6 小时用本网站串文与动态闪卡。</div>
               <div><b>每日英语听力 CNN 10</b>：仅作碎片磨耳朵培养语感；核心精听一律只用剑桥雅思真题。</div>
             </div>
           </div>
@@ -1349,8 +1404,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124w"></script>
-  <script src="app.js?v=20261124w"></script>
-  <script src="modules.js?v=20261124w"></script>
+  <script src="data.js?v=20261124x"></script>
+  <script src="app.js?v=20261124x"></script>
+  <script src="modules.js?v=20261124x"></script>
 </body>
 </html>
