@@ -1567,10 +1567,51 @@
     renderCoreWordList();
   }
 
-  // Public API for modules.js (dashboard / writing / global search)
+  function applyCloudState(incoming) {
+    if (!incoming || typeof incoming !== "object") return false;
+    const prevDark = state.dark;
+    const days = Array.isArray(incoming.days) && incoming.days.length
+      ? structuredClone(incoming.days)
+      : structuredClone(window.IELTS_INITIAL_DATA.days);
+    (window.IELTS_INITIAL_DATA.days || []).forEach((initDay) => {
+      if (!days.some((d) => d.id === initDay.id)) {
+        days.unshift(structuredClone(initDay));
+      }
+    });
+    const speakingTopics = Array.isArray(incoming.speakingTopics)
+      ? structuredClone(incoming.speakingTopics)
+      : structuredClone(window.IELTS_INITIAL_DATA.speakingTopics);
+    (window.IELTS_INITIAL_DATA.speakingTopics || []).forEach((initSp) => {
+      if (!speakingTopics.some((s) => s.id === initSp.id)) {
+        speakingTopics.unshift(structuredClone(initSp));
+      }
+    });
+    state = {
+      ...incoming,
+      examDate: incoming.examDate || window.IELTS_INITIAL_DATA.examDate,
+      days,
+      vocabBook: Array.isArray(incoming.vocabBook) ? incoming.vocabBook : [],
+      practiceRecords: Array.isArray(incoming.practiceRecords) ? incoming.practiceRecords : [],
+      speakingTopics,
+      passageHighlights: incoming.passageHighlights || {},
+      wordNotes: incoming.wordNotes || {},
+      dark: prevDark
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* ignore */ }
+    if (!state.days.some((d) => d.id === currentDayId)) {
+      currentDayId = state.days[0]?.id || null;
+    }
+    initRenderAll();
+    return true;
+  }
+
+  // Public API for modules.js (dashboard / writing / global search / cloud sync)
   window.IELTSApp = {
     get state() { return state; },
     save: saveState,
+    applyCloudState,
     toast: showToast,
     speak: speakText,
     escapeHtml,

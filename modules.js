@@ -913,9 +913,393 @@
     });
   }
 
-  // ==================== 4) 私人密码锁 (SHA-256 · 账号严格区分大小写) ====================
-  const AUTH_STORAGE_KEY = "ielts_sprint_auth_token_v2";
-  const EXPECTED_HASH = "0cb00eb7a4d87317af8c5767c10994ae332841a82ca0fe3bfdbafef9490a9ff9";
+  // ==================== 4) 云端同步 + 4 设备在线控制 + 私人密码锁 ====================
+  const SB_URL = "https://istontudjeojsheagpdl.supabase.co";
+  const SB_KEY = "sb_publishable_LImM964KweOMgvVRnepJiw_SJVgc-BP";
+  const LEGACY_AUTH_KEY = "ielts_sprint_auth_token_v2";
+  const CLOUD_SESSION_KEY = "bandup_cloud_session_v1";
+  const DEVICE_ID_KEY = "bandup_device_id_v1";
+  const MAX_ONLINE_DEVICES = 4;
+
+  const cloudState = {
+    status: "idle",
+    devices: [],
+    lastCloudUpdatedAt: null,
+    applyingCloud: false,
+    pushing: false,
+    pushTimer: null,
+    pendingAuth: null
+  };
+
+  let fallbackDeviceId = null;
+  function getDeviceId() {
+    try {
+      let id = localStorage.getItem(DEVICE_ID_KEY);
+      if (id && id.length >= 8) return id;
+      id = "dev_" + (window.crypto && crypto.randomUUID
+        ? crypto.randomUUID()
+        : (Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12)));
+      localStorage.setItem(DEVICE_ID_KEY, id);
+      return id;
+    } catch (e) {
+      if (!fallbackDeviceId) {
+        fallbackDeviceId = "dev_mem_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      }
+      return fallbackDeviceId;
+    }
+  }
+
+  function detectDeviceName() {
+    const ua = navigator.userAgent || "";
+    const plat = navigator.platform || "";
+    const isIpad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    let os = "Desktop";
+    if (/iPhone/i.test(ua)) os = "iPhone";
+    else if (isIpad) os = "iPad";
+    else if (/Android/i.test(ua)) os = "Android";
+    else if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) os = "Mac";
+    else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = "Windows";
+    else if (/Linux/i.test(ua)) os = "Linux";
+
+    let browser = "Browser";
+    if (/MicroMessenger/i.test(ua)) browser = "微信";
+    else if (/Edg\//i.test(ua) || /EdgiOS/i.test(ua)) browser = "Edge";
+    else if (/CriOS/i.test(ua) || (/Chrome\//i.test(ua) && !/Edg\//i.test(ua))) browser = "Chrome";
+    else if (/FxiOS/i.test(ua) || /Firefox\//i.test(ua)) browser = "Firefox";
+    else if (/Safari\//i.test(ua)) browser = "Safari";
+
+    return `${os} · ${browser}`;
+  }
+
+  function deviceIconSvg(name = "") {
+    if (/iPhone|Android/i.test(name)) {
+      return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.8"></rect><line x1="10.5" y1="18.2" x2="13.5" y2="18.2"></line></svg>`;
+    }
+    if (/iPad/i.test(name)) {
+      return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"></rect><line x1="10.5" y1="17.8" x2="13.5" y2="17.8"></line></svg>`;
+    }
+    return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12.5" rx="2"></rect><path d="M2 19.5h20"></path></svg>`;
+  }
+
+  function fmtRelativeTime(iso) {
+    if (!iso) return "刚刚";
+    const ts = new Date(iso).getTime();
+    if (isNaN(ts)) return "刚刚";
+    const sec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (sec < 45) return "刚刚活跃";
+    if (sec < 3600) return `${Math.floor(sec / 60)} 分钟前`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)} 小时前`;
+    const d = new Date(ts);
+    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function fmtClockNow() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+  }
+
+  async function sbRpc(fn, body) {
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      headers: {
+        apikey: SB_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify(body || {})
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { /* ignore */ }
+    if (!res.ok) {
+      throw new Error((data && data.message) || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  function getCloudSession() {
+    try {
+      const sRaw = sessionStorage.getItem(CLOUD_SESSION_KEY);
+      if (sRaw) {
+        const sObj = JSON.parse(sRaw);
+        if (sObj && sObj.token && sObj.deviceId) return sObj;
+      }
+      const lRaw = localStorage.getItem(CLOUD_SESSION_KEY);
+      if (lRaw) {
+        const lObj = JSON.parse(lRaw);
+        if (lObj && lObj.token && lObj.deviceId && (!lObj.expires || lObj.expires > Date.now())) {
+          return lObj;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function saveCloudSession(token, deviceId, remember) {
+    const payload = { token, deviceId, expires: Date.now() + 7 * 86400000 };
+    try {
+      localStorage.removeItem(LEGACY_AUTH_KEY);
+      sessionStorage.removeItem(LEGACY_AUTH_KEY);
+      sessionStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(payload));
+      if (remember) {
+        localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(payload));
+      } else {
+        localStorage.removeItem(CLOUD_SESSION_KEY);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function clearCloudSession() {
+    try {
+      sessionStorage.removeItem(CLOUD_SESSION_KEY);
+      localStorage.removeItem(CLOUD_SESSION_KEY);
+      sessionStorage.removeItem(LEGACY_AUTH_KEY);
+      localStorage.removeItem(LEGACY_AUTH_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function isMeaningfulCloudState(st) {
+    return !!(st && typeof st === "object" && Array.isArray(st.days) && st.days.length > 0);
+  }
+
+  function isUserTypingInApp() {
+    const el = document.activeElement;
+    if (!el || el.closest("#authGate")) return false;
+    const tag = (el.tagName || "").toUpperCase();
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+  }
+
+  function setCloudUiStatus(status, subText) {
+    cloudState.status = status;
+    const dotTop = $("cloudSyncDot");
+    const dotModal = $("cloudModalDot");
+    [dotTop, dotModal].forEach((dot) => {
+      if (!dot) return;
+      dot.classList.remove("is-synced", "is-syncing", "is-offline");
+      if (status === "synced") dot.classList.add("is-synced");
+      else if (status === "syncing") dot.classList.add("is-syncing");
+      else if (status === "offline") dot.classList.add("is-offline");
+    });
+
+    const titleEl = $("cloudStatusTitle");
+    const subEl = $("cloudStatusText");
+    if (titleEl) {
+      titleEl.textContent =
+        status === "syncing"
+          ? "正在与云端同步..."
+          : status === "offline"
+          ? "云端暂未连上（本地仍已保存）"
+          : "云端实时同步中";
+    }
+    if (subEl && subText) subEl.textContent = subText;
+
+    const count = cloudState.devices.length;
+    const badge = $("cloudDeviceBadge");
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = `${count}/${MAX_ONLINE_DEVICES}`;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+    const cntEl = $("cloudDeviceCount");
+    if (cntEl) cntEl.textContent = `${count} / ${MAX_ONLINE_DEVICES}`;
+  }
+
+  function renderOnlineDevices() {
+    const listEl = $("cloudDeviceList");
+    if (!listEl) return;
+    const myId = getDeviceId();
+    const devs = Array.isArray(cloudState.devices) ? [...cloudState.devices] : [];
+    devs.sort((a, b) => {
+      if (a.device_id === myId) return -1;
+      if (b.device_id === myId) return 1;
+      return new Date(b.last_seen || 0) - new Date(a.last_seen || 0);
+    });
+
+    if (!devs.length) {
+      listEl.innerHTML = `<div class="device-empty">暂无在线设备记录，点右上角「刷新」重新获取。</div>`;
+      return;
+    }
+
+    listEl.innerHTML = devs
+      .map((d) => {
+        const isSelf = d.device_id === myId;
+        const name = d.device_name || "未知设备";
+        return `
+          <div class="device-row ${isSelf ? "is-self" : ""}">
+            <div class="device-icon">${deviceIconSvg(name)}</div>
+            <div class="device-meta">
+              <div class="device-name-line">
+                <strong class="device-name">${esc(name)}</strong>
+                ${isSelf ? `<span class="device-self-badge">当前设备</span>` : `<span class="device-online-pill">在线</span>`}
+              </div>
+              <div class="device-time">${esc(fmtRelativeTime(d.last_seen))}</div>
+            </div>
+            <div class="device-act">
+              ${
+                isSelf
+                  ? `<span class="device-self-note">本机</span>`
+                  : `<button class="btn btn-sm btn-danger-ghost" data-kick-device="${esc(d.device_id)}">移除下线</button>`
+              }
+            </div>
+          </div>`;
+      })
+      .join("");
+  }
+
+  function handleSessionKicked(msg) {
+    clearTimeout(cloudState.pushTimer);
+    cloudState.pushTimer = null;
+    cloudState.devices = [];
+    clearCloudSession();
+    setCloudUiStatus("offline", "当前设备登录状态已失效");
+    App.closeAllModals();
+    lockGate();
+    App.toast(msg || "此设备已被移出在线列表，请重新登录");
+  }
+
+  async function cloudPull({ silent = true, forceApply = false } = {}) {
+    const sess = getCloudSession();
+    if (!sess) return false;
+    setCloudUiStatus("syncing");
+    try {
+      const res = await sbRpc("bandup_pull", {
+        p_device_id: sess.deviceId,
+        p_token: sess.token
+      });
+      if (!res || !res.ok) {
+        if (res && res.error === "SESSION_EXPIRED") {
+          handleSessionKicked();
+          return false;
+        }
+        setCloudUiStatus("offline", "云端返回异常，稍后自动重试");
+        return false;
+      }
+      cloudState.devices = Array.isArray(res.devices) ? res.devices : [];
+      renderOnlineDevices();
+
+      const hasCloudData = isMeaningfulCloudState(res.state);
+      const isNewer = res.updated_at && res.updated_at !== cloudState.lastCloudUpdatedAt;
+      const busyEditing = !forceApply && (cloudState.pushing || cloudState.pushTimer || isUserTypingInApp());
+
+      if (hasCloudData && (forceApply || isNewer) && !busyEditing) {
+        cloudState.applyingCloud = true;
+        try {
+          App.applyCloudState(res.state);
+          renderAll();
+        } finally {
+          cloudState.applyingCloud = false;
+        }
+        cloudState.lastCloudUpdatedAt = res.updated_at || null;
+      } else if (!hasCloudData) {
+        // Cloud has not been initialized yet; seed it with local state
+        cloudPush(true);
+        return true;
+      }
+
+      setCloudUiStatus("synced", `已同步 · ${fmtClockNow()}`);
+      if (!silent) App.toast("已从云端拉取最新学习进度");
+      return true;
+    } catch (e) {
+      setCloudUiStatus("offline", "网络波动，待恢复后自动同步");
+      if (!silent) App.toast("拉取失败，请检查网络连接");
+      return false;
+    }
+  }
+
+  async function cloudPush(immediate = false, { notify = false } = {}) {
+    const sess = getCloudSession();
+    if (!sess || cloudState.applyingCloud) return false;
+
+    if (!immediate) {
+      clearTimeout(cloudState.pushTimer);
+      cloudState.pushTimer = setTimeout(() => {
+        cloudState.pushTimer = null;
+        cloudPush(true);
+      }, 1200);
+      return true;
+    }
+
+    clearTimeout(cloudState.pushTimer);
+    cloudState.pushTimer = null;
+    cloudState.pushing = true;
+    setCloudUiStatus("syncing", "正在上传最新改动...");
+    try {
+      const payload = structuredClone(App.state);
+      delete payload.dark; // Keep light/dark theme per device
+      const res = await sbRpc("bandup_push", {
+        p_device_id: sess.deviceId,
+        p_token: sess.token,
+        p_state: payload
+      });
+      if (!res || !res.ok) {
+        if (res && res.error === "SESSION_EXPIRED") {
+          handleSessionKicked();
+          return false;
+        }
+        setCloudUiStatus("offline", "上传未成功，稍后自动重试");
+        return false;
+      }
+      cloudState.lastCloudUpdatedAt = res.updated_at || cloudState.lastCloudUpdatedAt;
+      if (Array.isArray(res.devices)) {
+        cloudState.devices = res.devices;
+        renderOnlineDevices();
+      }
+      setCloudUiStatus("synced", `已同步 · ${fmtClockNow()}`);
+      if (notify) App.toast("已上传当前进度到云端");
+      return true;
+    } catch (e) {
+      setCloudUiStatus("offline", "离线模式：已保存本地，连网后请点上传");
+      if (notify) App.toast("上传失败，请检查网络");
+      return false;
+    } finally {
+      cloudState.pushing = false;
+    }
+  }
+
+  async function cloudKick(targetDeviceId) {
+    const sess = getCloudSession();
+    if (!sess || !targetDeviceId) return;
+    try {
+      const res = await sbRpc("bandup_kick", {
+        p_device_id: sess.deviceId,
+        p_token: sess.token,
+        p_target_device_id: targetDeviceId
+      });
+      if (!res || !res.ok) {
+        if (res && res.error === "SESSION_EXPIRED") {
+          handleSessionKicked();
+          return;
+        }
+        App.toast("移除失败，请重试");
+        return;
+      }
+      cloudState.devices = Array.isArray(res.devices) ? res.devices : [];
+      renderOnlineDevices();
+      setCloudUiStatus("synced", `已同步 · ${fmtClockNow()}`);
+      App.toast("已将该设备移出在线列表");
+    } catch (e) {
+      App.toast("网络异常，移除设备失败");
+    }
+  }
+
+  async function cloudLogout() {
+    const sess = getCloudSession();
+    clearTimeout(cloudState.pushTimer);
+    cloudState.pushTimer = null;
+    clearCloudSession();
+    cloudState.devices = [];
+    setCloudUiStatus("idle");
+    if (!sess) return;
+    try {
+      await sbRpc("bandup_logout", {
+        p_device_id: sess.deviceId,
+        p_token: sess.token
+      });
+    } catch (e) { /* best-effort */ }
+  }
 
   async function sha256Hex(str) {
     if (window.crypto && window.crypto.subtle) {
@@ -991,17 +1375,7 @@
   }
 
   function isUnlocked() {
-    try {
-      const sessionToken = sessionStorage.getItem(AUTH_STORAGE_KEY);
-      if (sessionToken === EXPECTED_HASH) return true;
-      const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.hash === EXPECTED_HASH && parsed.expires > Date.now()) {
-        return true;
-      }
-    } catch (e) { /* ignore */ }
-    return false;
+    return !!getCloudSession();
   }
 
   function unlockGate(instant = false) {
@@ -1028,12 +1402,11 @@
   function lockGate() {
     const gate = $("authGate");
     if (!gate) return;
-    try {
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch (e) { /* ignore */ }
+    clearCloudSession();
+    cloudState.pendingAuth = null;
     if ($("authPass")) $("authPass").value = "";
     if ($("authError")) $("authError").classList.add("hidden");
+    if ($("authMaxDevicesBox")) $("authMaxDevicesBox").classList.add("hidden");
     const submitBtn = gate.querySelector(".auth-submit");
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -1049,29 +1422,51 @@
     setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 120);
   }
 
+  function showMaxDevicesBox(devices) {
+    const box = $("authMaxDevicesBox");
+    const list = $("authMaxDevicesList");
+    if (!box || !list) return;
+    const arr = Array.isArray(devices) ? devices : [];
+    list.innerHTML = arr
+      .map(
+        (d) => `
+        <div class="auth-max-item">
+          <span class="auth-max-name">${esc(d.device_name || "未知设备")}</span>
+          <span class="auth-max-time">${esc(fmtRelativeTime(d.last_seen))}</span>
+        </div>`
+      )
+      .join("");
+    box.classList.remove("hidden");
+  }
+
   function initAuthGate() {
     const gate = $("authGate");
     const form = $("authForm");
     if (!gate || !form) return;
 
+    // Clear legacy local-only token so every device registers with cloud sync cleanly
+    try {
+      localStorage.removeItem(LEGACY_AUTH_KEY);
+      sessionStorage.removeItem(LEGACY_AUTH_KEY);
+    } catch (e) { /* ignore */ }
+
     if (isUnlocked()) {
       unlockGate(true);
+      setTimeout(() => cloudPull({ silent: true }), 120);
     } else {
       document.body.classList.add("auth-locked");
       setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    async function performCloudLogin({ hash, remember, kickOldest = false }) {
       const submitBtn = form.querySelector(".auth-submit");
+      const kickBtn = $("btnKickOldestLogin");
       const card = gate.querySelector(".auth-card");
-      if (submitBtn && submitBtn.disabled) return;
-
-      const user = ($("authUser").value || "").trim();
-      const pass = ($("authPass").value || "").trim();
-      const remember = $("authRemember").checked;
       const errEl = $("authError");
+      const maxBox = $("authMaxDevicesBox");
+
       errEl.classList.add("hidden");
+      if (!kickOldest && maxBox) maxBox.classList.add("hidden");
       if (card) card.classList.remove("shake");
 
       if (submitBtn) {
@@ -1079,59 +1474,173 @@
         submitBtn.classList.add("is-verifying");
         submitBtn.innerHTML = `<span class="auth-spinner"></span>`;
       }
+      if (kickBtn) kickBtn.disabled = true;
 
-      const [hash] = await Promise.all([
-        sha256Hex(`ielts_sprint_v1:${user}:${pass}`),
-        new Promise((r) => setTimeout(r, 460))
-      ]);
+      const deviceId = getDeviceId();
+      const deviceName = detectDeviceName();
 
-      if (hash === EXPECTED_HASH) {
-        try {
-          sessionStorage.setItem(AUTH_STORAGE_KEY, EXPECTED_HASH);
-          if (remember) {
-            localStorage.setItem(
-              AUTH_STORAGE_KEY,
-              JSON.stringify({ hash: EXPECTED_HASH, expires: Date.now() + 7 * 86400000 })
-            );
+      try {
+        const [res] = await Promise.all([
+          sbRpc("bandup_login", {
+            p_pass_hash: hash,
+            p_device_id: deviceId,
+            p_device_name: deviceName,
+            p_kick_oldest: kickOldest
+          }),
+          new Promise((r) => setTimeout(r, 420))
+        ]);
+
+        if (res && res.ok && res.token) {
+          cloudState.pendingAuth = null;
+          if (maxBox) maxBox.classList.add("hidden");
+          saveCloudSession(res.token, deviceId, remember);
+          cloudState.devices = Array.isArray(res.devices) ? res.devices : [];
+          renderOnlineDevices();
+
+          if (isMeaningfulCloudState(res.state)) {
+            cloudState.applyingCloud = true;
+            try {
+              App.applyCloudState(res.state);
+              renderAll();
+            } finally {
+              cloudState.applyingCloud = false;
+            }
+            cloudState.lastCloudUpdatedAt = res.updated_at || null;
+            setCloudUiStatus("synced", `已从云端同步 · ${fmtClockNow()}`);
           } else {
-            localStorage.removeItem(AUTH_STORAGE_KEY);
+            cloudPush(true);
           }
-        } catch (err) { /* ignore */ }
 
-        if (card) card.classList.add("is-verified");
-        if (submitBtn) {
-          submitBtn.classList.remove("is-verifying");
-          submitBtn.classList.add("is-success");
-          submitBtn.innerHTML = APPLE_CHECK_SVG;
+          if (card) card.classList.add("is-verified");
+          if (submitBtn) {
+            submitBtn.classList.remove("is-verifying");
+            submitBtn.classList.add("is-success");
+            submitBtn.innerHTML = APPLE_CHECK_SVG;
+          }
+
+          setTimeout(() => {
+            unlockGate(false);
+            App.toast(
+              kickOldest
+                ? `Welcome back, Kai · 已替换最早设备 (${cloudState.devices.length}/${MAX_ONLINE_DEVICES})`
+                : `Welcome back, Kai · 云端已同步 (${cloudState.devices.length}/${MAX_ONLINE_DEVICES})`
+            );
+          }, 420);
+          return;
         }
 
-        setTimeout(() => {
-          unlockGate(false);
-          App.toast("Welcome back, Kai");
-        }, 420);
-      } else {
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-verifying");
           submitBtn.innerHTML = APPLE_ARROW_SVG;
         }
+        if (kickBtn) kickBtn.disabled = false;
+
+        if (res && res.error === "MAX_DEVICES") {
+          cloudState.pendingAuth = { hash, remember };
+          showMaxDevicesBox(res.devices);
+          if (card) {
+            void card.offsetWidth;
+            card.classList.add("shake");
+          }
+          return;
+        }
+
+        errEl.textContent = "Incorrect account ID or password.";
         errEl.classList.remove("hidden");
         if (card) {
-          void card.offsetWidth; // trigger reflow
+          void card.offsetWidth;
           card.classList.add("shake");
         }
         $("authPass").value = "";
         $("authPass").focus();
+      } catch (err) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove("is-verifying");
+          submitBtn.innerHTML = APPLE_ARROW_SVG;
+        }
+        if (kickBtn) kickBtn.disabled = false;
+        errEl.textContent = "无法连接云端服务器，请检查网络后重试。";
+        errEl.classList.remove("hidden");
       }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const submitBtn = form.querySelector(".auth-submit");
+      if (submitBtn && submitBtn.disabled) return;
+
+      const user = ($("authUser").value || "").trim();
+      const pass = ($("authPass").value || "").trim();
+      const remember = $("authRemember").checked;
+      const hash = await sha256Hex(`ielts_sprint_v1:${user}:${pass}`);
+      performCloudLogin({ hash, remember, kickOldest: false });
     });
+
+    const btnKickOldest = $("btnKickOldestLogin");
+    if (btnKickOldest) {
+      btnKickOldest.addEventListener("click", () => {
+        if (!cloudState.pendingAuth) return;
+        performCloudLogin({
+          hash: cloudState.pendingAuth.hash,
+          remember: cloudState.pendingAuth.remember,
+          kickOldest: true
+        });
+      });
+    }
 
     const btnLock = $("btnLockApp");
     if (btnLock) {
-      btnLock.addEventListener("click", () => {
+      btnLock.addEventListener("click", async () => {
+        await cloudLogout();
         lockGate();
-        App.toast("BandUp Locked");
+        App.toast("BandUp 已锁定并释放设备名额");
       });
     }
+
+    // Bind Cloud Modal Controls
+    const btnBackup = $("btnBackup");
+    if (btnBackup) {
+      btnBackup.addEventListener("click", () => {
+        renderOnlineDevices();
+        setCloudUiStatus(cloudState.status);
+        cloudPull({ silent: true });
+      });
+    }
+    const btnPull = $("btnCloudPull");
+    if (btnPull) {
+      btnPull.addEventListener("click", () => cloudPull({ silent: false, forceApply: true }));
+    }
+    const btnPush = $("btnCloudPush");
+    if (btnPush) {
+      btnPush.addEventListener("click", () => cloudPush(true, { notify: true }));
+    }
+    const btnRefresh = $("btnRefreshDevices");
+    if (btnRefresh) {
+      btnRefresh.addEventListener("click", () => cloudPull({ silent: false }));
+    }
+    const devList = $("cloudDeviceList");
+    if (devList) {
+      devList.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-kick-device]");
+        if (!btn) return;
+        if (!confirm("确定让这台设备立即下线？下线后该设备需要重新输入账号密码登录。")) return;
+        cloudKick(btn.dataset.kickDevice);
+      });
+    }
+
+    // Auto-pull when returning to the tab & periodic background sync (45s)
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && isUnlocked()) {
+        cloudPull({ silent: true });
+      }
+    });
+    setInterval(() => {
+      if (document.visibilityState === "visible" && isUnlocked()) {
+        cloudPull({ silent: true });
+      }
+    }, 45000);
 
     // Interactive Zero-Lag Core + Tapered Comet-Tail Aurora on Lock Screen
     let targetX = -400, targetY = -400;
@@ -1524,6 +2033,9 @@
 
   let pending = false;
   document.addEventListener("ielts:saved", () => {
+    if (!cloudState.applyingCloud) {
+      cloudPush(false);
+    }
     if (pending) return;
     pending = true;
     requestAnimationFrame(() => { pending = false; renderAll(); });

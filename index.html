@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124l" />
-  <link rel="stylesheet" href="modules.css?v=20261124l" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124l" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124l" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124l" />
+  <link rel="stylesheet" href="styles.css?v=20261124n" />
+  <link rel="stylesheet" href="modules.css?v=20261124n" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124n" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124n" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124n" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -72,6 +72,12 @@
         </div>
 
         <div class="auth-error hidden" id="authError">Incorrect account ID or password.</div>
+
+        <div class="auth-max-box hidden" id="authMaxDevicesBox">
+          <div class="auth-max-head">已达 4 台设备同时在线上限</div>
+          <div class="auth-max-list" id="authMaxDevicesList"></div>
+          <button type="button" class="auth-kick-btn" id="btnKickOldestLogin">移除最早设备并继续登录</button>
+        </div>
 
         <div class="auth-options">
           <label class="auth-remember">
@@ -131,9 +137,13 @@
             <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
             <span class="btn-label-desktop">导入</span>
           </button>
-          <button class="btn btn-ghost btn-sm" id="btnBackup" title="导出或恢复全部学习数据">
-            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
-            <span class="btn-label-desktop">备份</span>
+          <button class="btn btn-ghost btn-sm cloud-topbar-btn" id="btnBackup" title="云端同步、在线设备与本地备份">
+            <span class="cloud-icon-wrap">
+              <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+              <span class="cloud-dot" id="cloudSyncDot" aria-hidden="true"></span>
+            </span>
+            <span class="btn-label-desktop">云端</span>
+            <span class="cloud-dev-badge hidden" id="cloudDeviceBadge">1/4</span>
           </button>
           <button class="btn btn-ghost btn-sm icon-btn-circle" id="btnLockApp" title="立即锁定 BandUp" aria-label="Lock">
             <svg class="sf-icon sf-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"></rect><path class="lock-shackle" d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
@@ -635,21 +645,53 @@
     </div>
   </div>
 
-  <!-- Modal 3: Backup & Restore -->
+  <!-- Modal 3: Cloud Sync, Online Devices & Local Backup -->
   <div class="modal-backdrop hidden" id="modalBackup">
-    <div class="modal-dialog">
+    <div class="modal-dialog cloud-dialog">
       <div class="modal-header">
-        <h3>💾 学习数据备份与恢复</h3>
+        <h3>☁️ 云端同步 &amp; 在线设备</h3>
         <button class="btn btn-ghost btn-sm modal-close">✕</button>
       </div>
       <div class="modal-body">
-        <p class="muted">你的所有高亮、生词本、精听精读记录和口语草稿默认自动保存在当前浏览器中。换电脑/清浏览器缓存前，点一下导出备份即可万无一失。</p>
-        <div class="backup-actions">
-          <button class="btn btn-primary" id="btnExportAll">⬇️ 导出全部数据 (.json)</button>
-          <label class="btn btn-outline file-btn">
-            ⬆️ 从备份文件恢复
-            <input type="file" id="inputRestoreFile" accept=".json" hidden />
-          </label>
+        <div class="cloud-section">
+          <div class="cloud-status-bar">
+            <div class="cloud-status-left">
+              <span class="cloud-dot is-lg" id="cloudModalDot"></span>
+              <div>
+                <div class="cloud-status-title" id="cloudStatusTitle">云端同步已连接</div>
+                <div class="cloud-status-sub" id="cloudStatusText">所有改动自动同步至所有在线设备</div>
+              </div>
+            </div>
+            <div class="cloud-sync-btns">
+              <button class="btn btn-outline btn-sm" id="btnCloudPull" title="从云端拉取最新进度">🔄 拉取</button>
+              <button class="btn btn-primary btn-sm" id="btnCloudPush" title="立即上传当前进度">⬆️ 上传</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cloud-section">
+          <div class="cloud-section-head">
+            <h4>在线设备 <span class="cloud-count-pill" id="cloudDeviceCount">0 / 4</span></h4>
+            <button class="btn btn-ghost btn-sm" id="btnRefreshDevices">刷新</button>
+          </div>
+          <p class="muted cloud-hint">同一账号最多允许 4 台设备同时在线。点击「移除下线」可立即远程踢出对应设备。</p>
+          <div class="device-list" id="cloudDeviceList">
+            <div class="device-empty">正在读取在线设备...</div>
+          </div>
+        </div>
+
+        <div class="cloud-section cloud-local-backup">
+          <div class="cloud-section-head">
+            <h4>本地 JSON 备份</h4>
+          </div>
+          <p class="muted cloud-hint">除云端自动同步外，你也可以随时导出或恢复本地 .json 文件留存双保险。</p>
+          <div class="backup-actions">
+            <button class="btn btn-outline btn-sm" id="btnExportAll">⬇️ 导出备份 (.json)</button>
+            <label class="btn btn-outline btn-sm file-btn">
+              ⬆️ 从备份文件恢复
+              <input type="file" id="inputRestoreFile" accept=".json" hidden />
+            </label>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -770,8 +812,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124m"></script>
-  <script src="app.js?v=20261124m"></script>
-  <script src="modules.js?v=20261124m"></script>
+  <script src="data.js?v=20261124n"></script>
+  <script src="app.js?v=20261124n"></script>
+  <script src="modules.js?v=20261124n"></script>
 </body>
 </html>
