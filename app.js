@@ -856,6 +856,16 @@
       renderCoreWordList();
     });
 
+    function syncDayCompletion(day) {
+      if (!day || !Array.isArray(day.tasks)) return;
+      const allDone = day.tasks.length > 0 && day.tasks.every((t) => t.done);
+      if (allDone) {
+        if (!day.completedAt) day.completedAt = todayStr();
+      } else {
+        delete day.completedAt;
+      }
+    }
+
     $("dailyTaskList").addEventListener("change", (e) => {
       const tid = e.target.dataset.toggleTask;
       if (!tid) return;
@@ -863,6 +873,9 @@
       const task = day.tasks.find((t) => t.id === tid);
       if (task) {
         task.done = e.target.checked;
+        if (task.done) task.doneAt = todayStr();
+        else delete task.doneAt;
+        syncDayCompletion(day);
         saveState();
         renderDailyTasks();
       }
@@ -873,6 +886,7 @@
       if (!btn) return;
       const day = getCurrentDay();
       day.tasks = day.tasks.filter((t) => t.id !== btn.dataset.delTask);
+      syncDayCompletion(day);
       saveState();
       renderDailyTasks();
     });
@@ -883,6 +897,7 @@
       const day = getCurrentDay();
       day.tasks.push({ id: "t-" + Date.now(), tag: "自添", text: val, done: false });
       $("newTaskInput").value = "";
+      syncDayCompletion(day);
       saveState();
       renderDailyTasks();
     };
@@ -1628,8 +1643,15 @@
   // Boot
   initTabs();
   bindEvents();
-  // Open the day that matches today's date if present
-  const todays = state.days.find((d) => d.date === todayStr());
-  if (todays) currentDayId = todays.id;
+  // Always open the first unfinished sequential day so progress is never skipped
+  const orderedBootDays = [...state.days].sort((a, b) => {
+    const na = parseInt(String(a.id || "").replace(/\D+/g, ""), 10) || 0;
+    const nb = parseInt(String(b.id || "").replace(/\D+/g, ""), 10) || 0;
+    if (na !== nb) return na - nb;
+    return String(a.date || "").localeCompare(String(b.date || ""));
+  });
+  const firstPending = orderedBootDays.find((d) => !d.tasks || !d.tasks.length || d.tasks.some((t) => !t.done));
+  if (firstPending) currentDayId = firstPending.id;
+  else if (orderedBootDays.length) currentDayId = orderedBootDays[orderedBootDays.length - 1].id;
   initRenderAll();
 })();

@@ -112,16 +112,83 @@
     if (!s.checkins || typeof s.checkins !== "object") s.checkins = {};
   }
 
-  // ==================== 活跃度计算 ====================
-  function activityFor(date) {
+  // ==================== 顺序进度与活跃度计算（进度不可跳过） ====================
+  function getOrderedDays() {
+    return [...(S().days || [])].sort((a, b) => {
+      const na = parseInt(String(a.id || "").replace(/\D+/g, ""), 10) || 0;
+      const nb = parseInt(String(b.id || "").replace(/\D+/g, ""), 10) || 0;
+      if (na !== nb) return na - nb;
+      return String(a.date || "").localeCompare(String(b.date || ""));
+    });
+  }
+
+  function isDayCompleted(day) {
+    return !!(day && Array.isArray(day.tasks) && day.tasks.length > 0 && day.tasks.every((t) => t.done));
+  }
+
+  function getDayCompletedDate(day) {
+    if (!isDayCompleted(day)) return null;
+    if (day.completedAt) return day.completedAt;
+    const dates = day.tasks.map((t) => t.doneAt).filter(Boolean).sort();
+    return dates.length ? dates[dates.length - 1] : day.date || today();
+  }
+
+  function getSprintProgress() {
+    const ordered = getOrderedDays();
+    const completedByDate = {};
+    let completedCount = 0;
+    let activeDay = null;
+    let activeSeq = 1;
+
+    ordered.forEach((d, idx) => {
+      const seq = idx + 1;
+      if (isDayCompleted(d)) {
+        completedCount++;
+        const cd = getDayCompletedDate(d);
+        if (cd) {
+          if (!completedByDate[cd]) completedByDate[cd] = [];
+          completedByDate[cd].push({ seq, day: d });
+        }
+      } else if (!activeDay) {
+        activeDay = d;
+        activeSeq = seq;
+      }
+    });
+
+    const allLoadedDone = !activeDay && ordered.length > 0;
+    if (!activeDay && ordered.length) {
+      activeDay = ordered[ordered.length - 1];
+      activeSeq = ordered.length;
+    }
+
+    return { ordered, completedCount, completedByDate, activeDay, activeSeq, allLoadedDone };
+  }
+
+  function activityFor(date, progCache) {
     const s = S();
+    const prog = progCache || getSprintProgress();
     let score = 0;
     const detail = [];
-    const day = s.days.find((d) => d.date === date);
-    if (day && day.tasks) {
-      const done = day.tasks.filter((t) => t.done).length;
-      if (done) { score += done; detail.push(`任务 ${done}/${day.tasks.length}`); }
+
+    const completedList = prog.completedByDate[date] || [];
+    if (completedList.length) {
+      score += 4;
+      detail.push(`完成 ${completedList.map((x) => `Day ${x.seq}`).join("、")}`);
     }
+
+    let taskDoneOnDate = 0;
+    (s.days || []).forEach((d) => {
+      (d.tasks || []).forEach((t) => {
+        if (!t.done) return;
+        const stamp = t.doneAt || d.date;
+        if (stamp === date) taskDoneOnDate++;
+      });
+    });
+    if (taskDoneOnDate) {
+      score += taskDoneOnDate;
+      detail.push(`完成任务 ${taskDoneOnDate} 项`);
+    }
+
     const pr = s.practiceRecords.filter((r) => r.date === date).length;
     if (pr) { score += pr; detail.push(`精听精读 ${pr}`); }
     const wr = s.writings.filter((w) => w.date === date).length;
@@ -130,14 +197,15 @@
     if (vb) { score += 1; detail.push(`生词 +${vb}`); }
     if (s.checkins[date]) { score += 1; detail.push("已打卡"); }
     const level = score === 0 ? 0 : score <= 1 ? 1 : score <= 3 ? 2 : score <= 5 ? 3 : 4;
-    return { score, level, detail };
+    return { score, level, detail, completedList };
   }
 
   function streak() {
+    const prog = getSprintProgress();
     let n = 0;
     let d = today();
-    if (activityFor(d).score === 0) d = addDays(d, -1); // 今天还没开始不算断
-    while (diffDays(START, d) >= 0 && activityFor(d).score > 0) { n++; d = addDays(d, -1); }
+    if (activityFor(d, prog).score === 0) d = addDays(d, -1); // 今天还没开始不算断
+    while (diffDays(START, d) >= 0 && activityFor(d, prog).score > 0) { n++; d = addDays(d, -1); }
     return n;
   }
 
@@ -168,12 +236,13 @@
   function buildReport() {
     const s = S();
     const t = today();
-    const n = dayIndex(t);
-    const day = s.days.find((d) => d.date === t) || s.days.find((d) => d.id === App.getCurrentDayId());
+    const prog = getSprintProgress();
+    const day = prog.activeDay || s.days.find((d) => d.id === App.getCurrentDayId());
+    const n = prog.activeSeq;
     const lines = [`【Day ${n} 学习汇报 · ${t}】`, ""];
     if (day) {
       const tasks = day.tasks || [];
-      lines.push(`✅ 今日任务 ${tasks.filter((x) => x.done).length}/${tasks.length}`);
+      lines.push(`✅ 当前进度 Day ${n} 任务 ${tasks.filter((x) => x.done).length}/${tasks.length}`);
       tasks.forEach((x) => lines.push(`  ${x.done ? "☑" : "☐"} [${x.tag}] ${x.text}`));
       lines.push("");
     }
@@ -221,13 +290,14 @@
     if (!root) return;
     const s = S();
     const t = today();
-    const n = Math.min(Math.max(dayIndex(t), 0), TOTAL_DAYS + 1);
-    const daysLeft = Math.max(0, diffDays(t, s.examDate || "2027-01-20"));
+    const examDate = s.examDate || "2027-01-20";
+    const prog = getSprintProgress();
+    const daysLeft = Math.max(0, diffDays(t, examDate));
     const phaseIdx = PHASES.findIndex((p) => t >= p.from && t <= p.to);
     const phase = PHASES[phaseIdx >= 0 ? phaseIdx : t < START ? 0 : 2];
 
-    // 今日任务（若当天尚未生成新计划，自动承接最近一天）
-    const dayObj = s.days.find((d) => d.date === t) || s.days[0];
+    // 当前顺序进度（严格按 Day 1 → Day 2 → ... 推进，未完成不跳过）
+    const dayObj = prog.activeDay;
     const tasks = dayObj ? dayObj.tasks || [] : [];
     const doneCount = tasks.filter((x) => x.done).length;
     const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -252,7 +322,7 @@
     const sinceCheck = et.lastCheck ? diffDays(et.lastCheck, t) : null;
     const examWarn = !et.booked && (sinceCheck === null || sinceCheck >= 2);
 
-    const tip = COACH_TIPS[(Math.max(n, 1) - 1) % COACH_TIPS.length];
+    const tip = COACH_TIPS[(Math.max(prog.activeSeq, 1) - 1) % COACH_TIPS.length];
 
     const skill = (key, label, est, extra) => {
       const base = BASE[key], target = TARGET[key];
@@ -274,41 +344,103 @@
         </div>`;
     };
 
-    // 热力图
-    let heat = "";
-    for (let i = 0; i < TOTAL_DAYS; i++) {
-      const d = addDays(START, i);
-      const a = activityFor(d);
-      const ph = PHASES.findIndex((p) => d >= p.from && d <= p.to);
-      const cls = [`lv${a.level}`, d === t ? "is-today" : "", d > t ? "future" : "", `ph${ph}`].join(" ");
-      heat += `<div class="heat-cell ${cls}" title="Day ${i + 1} · ${d}${a.detail.length ? "\n" + a.detail.join(" · ") : ""}"><span>${i + 1}</span></div>`;
+    // 真实 7 列周历（周一至周日 · 进度按天顺延、不可跳过）
+    const calStartD = parseDate(START);
+    const startOffset = (calStartD.getDay() + 6) % 7; // Mon=0..Sun=6
+    const gridStart = addDays(START, -startOffset);
+    const calEndD = parseDate(examDate);
+    const endOffset = 6 - ((calEndD.getDay() + 6) % 7);
+    const gridEnd = addDays(examDate, endOffset);
+    const totalGridDays = diffDays(gridStart, gridEnd) + 1;
+
+    let calCells = "";
+    for (let i = 0; i < totalGridDays; i++) {
+      const d = addDays(gridStart, i);
+      const inRange = d >= START && d <= examDate;
+      if (!inRange) {
+        calCells += `<div class="cal-cell is-pad" aria-hidden="true"></div>`;
+        continue;
+      }
+      const isExam = d === examDate;
+      const isToday = d === t;
+      const isPast = d < t;
+      const isFuture = d > t;
+      const a = activityFor(d, prog);
+      const dayNum = parseInt(d.slice(8), 10);
+      const monthNum = parseInt(d.slice(5, 7), 10);
+      const showMonth = dayNum === 1 || d === START;
+
+      const comp = a.completedList || [];
+      let badgeHtml = "";
+      let linkDayId = "";
+      let tipLines = [`${monthNum}月${dayNum}日 (${d})`];
+
+      if (isExam) {
+        badgeHtml = `<span class="cal-tag is-exam">考</span>`;
+        tipLines.push("目标机考日 · Band 6.0");
+      } else if (comp.length) {
+        const tagTxt = comp.length === 1 ? `D${comp[0].seq}` : `D${comp[0].seq}-${comp[comp.length - 1].seq}`;
+        badgeHtml = `<span class="cal-tag is-done">${tagTxt}</span>`;
+        linkDayId = comp[comp.length - 1].day.id;
+      } else if (isToday && !prog.allLoadedDone && prog.activeDay) {
+        badgeHtml = `<span class="cal-tag is-active">D${prog.activeSeq}</span>`;
+        linkDayId = prog.activeDay.id;
+        tipLines.push(`今日接续进度：Day ${prog.activeSeq}（不可跳过）`);
+      } else if (isPast && a.score === 0) {
+        tipLines.push("未打卡（进度不跳过，自动顺延）");
+      }
+
+      if (a.detail.length) tipLines.push(a.detail.join(" · "));
+
+      const cls = [
+        "cal-cell",
+        `lv${a.level}`,
+        isToday ? "is-today" : "",
+        isExam ? "is-exam-day" : "",
+        isPast && a.score === 0 ? "is-missed" : "",
+        isFuture && !isExam ? "is-future" : "",
+        comp.length ? "is-completed" : "",
+        linkDayId ? "is-clickable" : ""
+      ].filter(Boolean).join(" ");
+
+      calCells += `
+        <div class="${cls}" ${linkDayId ? `data-cal-day="${esc(linkDayId)}"` : ""} title="${esc(tipLines.join("\n"))}">
+          ${showMonth ? `<span class="cal-month">${monthNum}月</span>` : ""}
+          <span class="cal-num">${dayNum}</span>
+          ${badgeHtml}
+        </div>`;
     }
-    heat += `<div class="heat-cell exam-cell" title="2027-01-20 考试日">★</div>`;
+
+    const heroKicker = t < START
+      ? `闭关即将开始 · ${t}`
+      : prog.allLoadedDone
+      ? `已完成 ${prog.completedCount} / ${TOTAL_DAYS} 天 · ${t}`
+      : `当前进度 Day ${prog.activeSeq} / ${TOTAL_DAYS} · 已完成 ${prog.completedCount} 天 · ${t}`;
 
     root.innerHTML = `
       <div class="dash-grid">
         <div class="card dash-hero">
           <div class="hero-left">
-            <div class="hero-kicker">${t < START ? "闭关即将开始" : n > TOTAL_DAYS ? "考试日" : `Day ${n} / ${TOTAL_DAYS}`} · ${t}</div>
+            <div class="hero-kicker">${heroKicker}</div>
             <h2 class="hero-title">${phase.name} <span class="hero-range">${phase.range}</span></h2>
             <ul class="hero-focus">${phase.focus.map((f) => `<li><span class="focus-dot"></span>${esc(f)}</li>`).join("")}</ul>
             <div class="hero-actions">
-              <button class="btn btn-primary" data-dash="go-daily">开始今日计划 →</button>
+              <button class="btn btn-primary" data-dash="go-daily">${prog.allLoadedDone ? `回顾 Day ${prog.activeSeq} →` : `继续 Day ${prog.activeSeq} 计划 →`}</button>
               <button class="btn btn-outline" data-dash="report">生成今日汇报</button>
               <button class="btn btn-outline ${s.checkins[t] ? "active-toggle" : ""}" data-dash="checkin">${s.checkins[t] ? "✓ 今日已打卡" : "今日打卡"}</button>
             </div>
           </div>
           <div class="hero-right">
-            <div class="ring-wrap" title="今日任务完成度">
+            <div class="ring-wrap" title="当前顺延计划完成度">
               <svg viewBox="0 0 120 120" class="ring">
                 <circle cx="60" cy="60" r="52" class="ring-bg"></circle>
                 <circle cx="60" cy="60" r="52" class="ring-fg" style="stroke-dasharray:${C};stroke-dashoffset:${C * (1 - pct / 100)}"></circle>
               </svg>
-              <div class="ring-text"><strong>${pct}%</strong><span>今日 ${doneCount}/${tasks.length}</span></div>
+              <div class="ring-text"><strong>${pct}%</strong><span>Day ${prog.activeSeq} · ${doneCount}/${tasks.length}</span></div>
             </div>
             <div class="hero-mini">
               <div><strong>${daysLeft}</strong><span>天后考试</span></div>
-              <div><strong>${streak()}</strong><span>连续打卡</span></div>
+              <div><strong>${prog.completedCount}</strong><span>已完成天</span></div>
             </div>
           </div>
         </div>
@@ -332,15 +464,19 @@
 
       <div class="dash-grid two">
         <div class="card">
-          <div class="card-head-row">
-            <h3 class="card-section-title">58 天闭关矩阵</h3>
+          <div class="card-head-row cal-card-head">
+            <div class="cal-title-group">
+              <h3 class="card-section-title">备考日历</h3>
+              <span class="cal-prog-pill">已完成 ${prog.completedCount} / ${TOTAL_DAYS}</span>
+            </div>
             <div class="heat-legend">少 <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> 多</div>
           </div>
           <div class="phase-strip">
             ${PHASES.map((p, i) => `<div class="phase-seg ph${i} ${i === phaseIdx ? "current" : ""}" style="flex:${diffDays(p.from, p.to) + 1}"><b>${p.name.split(" · ")[0]}</b><span>${mmdd(p.from)}–${mmdd(p.to)}</span></div>`).join("")}
           </div>
-          <div class="heatmap">${heat}</div>
-          <p class="muted heat-note">完成任务、录精听精读、写作文、加生词、点打卡都会点亮格子。鼠标悬停可看当天明细。</p>
+          <div class="cal-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          <div class="cal-grid">${calCells}</div>
+          <p class="muted heat-note">进度按天顺延、不可跳过：若前一天未完成，今天仍从 <b>Day ${prog.activeSeq}</b> 接续；全部勾选后将在当天日历点亮 <b>D${prog.activeSeq}</b> 完成徽章。</p>
         </div>
 
         <div class="card">
@@ -447,13 +583,19 @@
 
   function bindDashboard() {
     $("dashboardRoot").addEventListener("click", (e) => {
+      const calCell = e.target.closest("[data-cal-day]");
+      if (calCell) {
+        App.selectDay(calCell.dataset.calDay);
+        App.goTab("daily");
+        return;
+      }
       const b = e.target.closest("[data-dash]");
       if (!b) return;
       const s = S();
       const act = b.dataset.dash;
       if (act === "go-daily") {
-        const d = s.days.find((x) => x.date === today());
-        if (d) App.selectDay(d.id);
+        const prog = getSprintProgress();
+        if (prog.activeDay) App.selectDay(prog.activeDay.id);
         App.goTab("daily");
       } else if (act === "go-vocab") App.goTab("vocab");
       else if (act === "go-writing") App.goTab("writing");
