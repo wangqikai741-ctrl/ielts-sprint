@@ -2592,21 +2592,19 @@
     const sTask = findTask("口语");
 
     const wordCnt = Array.isArray(day.words) ? day.words.length : 50;
-    const listenCnt = Array.isArray(day.words) ? day.words.filter((w) => w.category === "听力拼写").length : 20;
     if ($("gtTargetVocab")) {
-      $("gtTargetVocab").textContent = `今日内容：${day.label || `Day ${prog.activeSeq}`}（共 ${wordCnt} 个高频词 · 其中 ${listenCnt} 个听力必拼词）`;
+      $("gtTargetVocab").textContent = `今日文章：${day.label || `Day ${prog.activeSeq}`}（共 ${wordCnt} 个高频词）`;
     }
     if ($("gtTargetListening") && lTask) {
-      $("gtTargetListening").textContent = `今日听力任务：${lTask.text}`;
+      $("gtTargetListening").textContent = `今日真题：${lTask.text}`;
     }
     if ($("gtTargetReading") && rTask) {
-      $("gtTargetReading").textContent = `今日阅读任务：${rTask.text}`;
+      $("gtTargetReading").textContent = `今日真题：${rTask.text}`;
     }
     if ($("gtTargetSpeaking") && sTask) {
-      $("gtTargetSpeaking").textContent = `今日口语任务：${sTask.text}`;
+      $("gtTargetSpeaking").textContent = `今日必练：${sTask.text}`;
     }
 
-    // Sync green "✓ 今日已完成" pills on steps 1/2/3/5
     const tagDoneMap = {
       "词汇": !!(vTask && vTask.done),
       "听力": !!(lTask && lTask.done),
@@ -2617,8 +2615,28 @@
       const tag = el.dataset.stepDone;
       const done = !!tagDoneMap[tag];
       el.classList.toggle("hidden", !done);
-      const stepCard = el.closest(".gt-step");
-      if (stepCard) stepCard.classList.toggle("is-step-done", done);
+    });
+
+    // Highlight the exact first incomplete step so the user immediately sees "start here!"
+    let markedNext = false;
+    document.querySelectorAll("#guideFlowTimeline .lf-row").forEach((row) => {
+      const tag = row.dataset.stepTag;
+      const isDone = tag ? !!tagDoneMap[tag] : false;
+      row.classList.toggle("is-step-done", isDone);
+      row.querySelectorAll(".lf-next-tag").forEach((n) => n.remove());
+      if (!isDone && !markedNext) {
+        markedNext = true;
+        row.classList.add("is-next-up");
+        const headLine = row.querySelector(".lf-head-line");
+        if (headLine) {
+          const badge = document.createElement("span");
+          badge.className = "lf-next-tag";
+          badge.textContent = "现在做这一步";
+          headLine.appendChild(badge);
+        }
+      } else {
+        row.classList.remove("is-next-up");
+      }
     });
   }
 
@@ -2844,7 +2862,15 @@
       if (actionBtn) {
         const act = actionBtn.dataset.guideAction;
         modal.classList.add("hidden");
-        if (act === "cloze") {
+        if (act === "read-passage") {
+          navigateWithSpotlight("daily", "passage");
+          setTimeout(() => {
+            const btn = $("btnToggleCloze");
+            const bar = $("clozeBar");
+            // Ensure normal reading mode is shown first (not cloze)
+            if (btn && bar && !bar.classList.contains("hidden")) btn.click();
+          }, 80);
+        } else if (act === "cloze") {
           navigateWithSpotlight("daily", "passage");
           setTimeout(() => {
             const btn = $("btnToggleCloze");
