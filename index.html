@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124ad" />
-  <link rel="stylesheet" href="modules.css?v=20261124ad" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ad" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124ad" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ad" />
+  <link rel="stylesheet" href="styles.css?v=20261124ae" />
+  <link rel="stylesheet" href="modules.css?v=20261124ae" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ae" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124ae" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ae" />
   <script>
     (function () {
       try {
@@ -45,39 +45,38 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #f8f7f4;
+      background: #faf9f6;
     }
-    html.has-saved-session.pre-dark #launchSplash { background: #111216; }
+    html.has-saved-session.pre-dark #launchSplash { background: #0c0d10; }
   </style>
 </head>
 <body>
-  <!-- Claude-Style Interactive Welcome Screen for Remembered Devices -->
+  <!-- Ultra-Minimal Claude / Apple Welcome Screen for Remembered Devices -->
   <div class="launch-splash" id="launchSplash" role="button" tabindex="0" aria-label="点击进入 BandUp">
     <div class="launch-ambient" aria-hidden="true"></div>
     <div class="launch-inner">
-      <div class="launch-mark-wrap">
-        <div class="launch-halo"></div>
-        <div class="launch-squircle">
-          <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="currentColor" fill-opacity="0.1"/>
-            <g stroke="currentColor" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
-              <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
-              <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
-              <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
-            </g>
-          </svg>
-        </div>
+      <div class="launch-squircle">
+        <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="currentColor" fill-opacity="0.09"/>
+          <g stroke="currentColor" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
+            <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
+            <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
+          </g>
+        </svg>
       </div>
-      <div class="launch-eyebrow">BANDUP · IELTS ACADEMIC 6.0</div>
       <h1 class="launch-greeting">Welcome, Kai</h1>
-      <p class="launch-subline" id="launchSplashMeta">已记住此设备 · 正在同步云端备考进度…</p>
+      <div class="launch-meta-pill" id="launchSplashMeta">Day 1 · 距考 57 天 · 0/4</div>
       <button type="button" class="launch-enter-btn" id="btnLaunchEnter">
-        <span>进入今日学习</span>
-        <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        <span>进入学习</span>
+        <svg class="launch-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="13 6 19 12 13 18"></polyline></svg>
       </button>
-      <div class="launch-tap-hint">轻点屏幕任意处或按 <kbd>Enter</kbd> 进入</div>
     </div>
-    <button type="button" class="launch-lock-link" id="btnLaunchLock">切换账号 / 锁定</button>
+    <div class="launch-foot-bar">
+      <span class="launch-device-sig" id="launchDeviceSig">已验证此设备</span>
+      <span class="launch-foot-dot" aria-hidden="true">·</span>
+      <button type="button" class="launch-lock-link" id="btnLaunchLock">锁定</button>
+    </div>
   </div>
 
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -849,12 +848,15 @@
               <h4>在线设备</h4>
               <span class="cloud-count-pill" id="cloudDeviceCount">0 / 4</span>
             </div>
-            <button class="cloud-text-btn" id="btnRefreshDevices">
-              <svg class="sf-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
-              <span>刷新</span>
-            </button>
+            <div class="cloud-head-actions">
+              <button class="cloud-text-btn is-danger hidden" id="btnKickAllOthers" title="由电脑主控端一键强制下线所有其他设备">一键下线其他端</button>
+              <button class="cloud-text-btn" id="btnRefreshDevices">
+                <svg class="sf-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
+                <span>刷新</span>
+              </button>
+            </div>
           </div>
-          <p class="cloud-hint">同一账号最多允许 4 台设备同时在线，可随时将其他设备移出。</p>
+          <p class="cloud-hint" id="cloudDeviceRoleHint">默认电脑端为主控端，可强制下线其他设备并自定义设备名称；最多 4 台设备同时在线。</p>
           <div class="device-list" id="cloudDeviceList">
             <div class="device-empty">正在读取在线设备…</div>
           </div>
@@ -1481,8 +1483,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124ad"></script>
-  <script src="app.js?v=20261124ad"></script>
-  <script src="modules.js?v=20261124ad"></script>
+  <script src="data.js?v=20261124ae"></script>
+  <script src="app.js?v=20261124ae"></script>
+  <script src="modules.js?v=20261124ae"></script>
 </body>
 </html>

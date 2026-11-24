@@ -1170,7 +1170,95 @@
     }
   }
 
-  function detectDeviceName() {
+  const DEVICE_LABEL_KEY = "bandup_device_label_v1";
+  const DEVICE_REGION_CACHE_KEY = "bandup_device_region_v1";
+
+  function isCurrentDeviceDesktop() {
+    const ua = navigator.userAgent || "";
+    const isIpad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    if (/iPhone|Android|Mobile/i.test(ua) || isIpad) return false;
+    return true;
+  }
+
+  function isDesktopDeviceName(name = "") {
+    if (/iPhone|iPad|Android|手机|平板/i.test(name)) return false;
+    if (/Mac|Windows|Linux|Desktop|电脑|PC/i.test(name)) return true;
+    return false;
+  }
+
+  function inferRegionFromTimezone() {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      const MAP = {
+        "Europe/Minsk": "明斯克 · BY",
+        "Asia/Shanghai": "中国 · CN",
+        "Asia/Chongqing": "中国 · CN",
+        "Asia/Hong_Kong": "香港 · HK",
+        "Asia/Taipei": "台北 · TW",
+        "Asia/Singapore": "新加坡 · SG",
+        "Asia/Tokyo": "东京 · JP",
+        "Europe/London": "伦敦 · GB",
+        "Europe/Moscow": "莫斯科 · RU",
+        "America/New_York": "纽约 · US",
+        "America/Los_Angeles": "洛杉矶 · US"
+      };
+      if (MAP[tz]) return MAP[tz];
+      if (tz.includes("/")) return tz.split("/").pop().replace(/_/g, " ");
+    } catch (e) { /* ignore */ }
+    return "";
+  }
+
+  let cachedDeviceRegion = null;
+  function getDeviceRegionSync() {
+    if (cachedDeviceRegion) return cachedDeviceRegion;
+    try {
+      const s = sessionStorage.getItem(DEVICE_REGION_CACHE_KEY);
+      if (s) { cachedDeviceRegion = s; return s; }
+    } catch (e) { /* ignore */ }
+    cachedDeviceRegion = inferRegionFromTimezone() || "未知地区";
+    return cachedDeviceRegion;
+  }
+
+  async function detectDeviceRegionAsync() {
+    try {
+      const existing = sessionStorage.getItem(DEVICE_REGION_CACHE_KEY);
+      if (existing) { cachedDeviceRegion = existing; return existing; }
+    } catch (e) { /* ignore */ }
+
+    const tryFetch = (url) => {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 3800);
+      return fetch(url, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .finally(() => clearTimeout(t));
+    };
+
+    let region = "";
+    const g1 = await tryFetch("https://get.geojs.io/v1/ip/geo.json");
+    if (g1 && (g1.city || g1.country)) {
+      const city = g1.city || g1.region || "";
+      const cc = g1.country_code || g1.country || "";
+      region = [city, cc].filter(Boolean).join(" · ");
+    } else {
+      const g2 = await tryFetch("https://ipwho.is/");
+      if (g2 && g2.success !== false && (g2.city || g2.country)) {
+        region = [g2.city || g2.region || "", g2.country_code || g2.country || ""].filter(Boolean).join(" · ");
+      }
+    }
+    if (!region) region = inferRegionFromTimezone() || "未知地区";
+    cachedDeviceRegion = region;
+    try { sessionStorage.setItem(DEVICE_REGION_CACHE_KEY, region); } catch (e) { /* ignore */ }
+    return region;
+  }
+
+  function getCustomDeviceLabel() {
+    try { return (localStorage.getItem(DEVICE_LABEL_KEY) || "").trim(); } catch (e) { return ""; }
+  }
+
+  function detectBaseDeviceLabel() {
+    const custom = getCustomDeviceLabel();
+    if (custom) return custom;
     const ua = navigator.userAgent || "";
     const plat = navigator.platform || "";
     const isIpad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
@@ -1178,9 +1266,9 @@
     if (/iPhone/i.test(ua)) os = "iPhone";
     else if (isIpad) os = "iPad";
     else if (/Android/i.test(ua)) os = "Android";
-    else if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) os = "Mac";
-    else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = "Windows";
-    else if (/Linux/i.test(ua)) os = "Linux";
+    else if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) os = "MacBook";
+    else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = "Windows PC";
+    else if (/Linux/i.test(ua)) os = "Linux PC";
 
     let browser = "Browser";
     if (/MicroMessenger/i.test(ua)) browser = "微信";
@@ -1190,6 +1278,34 @@
     else if (/Safari\//i.test(ua)) browser = "Safari";
 
     return `${os} · ${browser}`;
+  }
+
+  function detectDeviceName() {
+    const base = detectBaseDeviceLabel();
+    const reg = getDeviceRegionSync();
+    return reg && reg !== "未知地区" ? `${base} (${reg})` : base;
+  }
+
+  function syncMyDeviceProfile(forcePush = false) {
+    const st = S();
+    if (!st.deviceProfiles || typeof st.deviceProfiles !== "object") st.deviceProfiles = {};
+    const myId = getDeviceId();
+    const next = {
+      label: detectBaseDeviceLabel(),
+      region: getDeviceRegionSync(),
+      isDesktop: isCurrentDeviceDesktop(),
+      updatedAt: new Date().toISOString()
+    };
+    const prev = st.deviceProfiles[myId];
+    const changed = !prev || prev.label !== next.label || prev.region !== next.region || prev.isDesktop !== next.isDesktop;
+    if (changed || forcePush) {
+      st.deviceProfiles[myId] = next;
+      if (isUnlocked()) {
+        App.save();
+        renderOnlineDevices();
+        updateLaunchSplashMeta();
+      }
+    }
   }
 
   function deviceIconSvg(name = "") {
@@ -1332,12 +1448,32 @@
     const listEl = $("cloudDeviceList");
     if (!listEl) return;
     const myId = getDeviceId();
+    const myIsMaster = isCurrentDeviceDesktop();
+    const profiles = (S().deviceProfiles && typeof S().deviceProfiles === "object") ? S().deviceProfiles : {};
     const devs = Array.isArray(cloudState.devices) ? [...cloudState.devices] : [];
+
     devs.sort((a, b) => {
+      const aProf = profiles[a.device_id];
+      const bProf = profiles[b.device_id];
+      const aMaster = aProf ? !!aProf.isDesktop : isDesktopDeviceName(a.device_name || "");
+      const bMaster = bProf ? !!bProf.isDesktop : isDesktopDeviceName(b.device_name || "");
+      if (aMaster !== bMaster) return aMaster ? -1 : 1;
       if (a.device_id === myId) return -1;
       if (b.device_id === myId) return 1;
       return new Date(b.last_seen || 0) - new Date(a.last_seen || 0);
     });
+
+    const otherDevs = devs.filter((d) => d.device_id !== myId);
+    const kickAllBtn = $("btnKickAllOthers");
+    if (kickAllBtn) {
+      kickAllBtn.classList.toggle("hidden", !(myIsMaster && otherDevs.length > 0));
+    }
+    const roleHint = $("cloudDeviceRoleHint");
+    if (roleHint) {
+      roleHint.textContent = myIsMaster
+        ? "当前为电脑主控端：可强制下线任意其他设备，亦可自定义本机名称（最多 4 台在线）。"
+        : "当前为移动端视图：默认电脑端为主控端，如需强制下线其他设备请在电脑端操作。";
+    }
 
     if (!devs.length) {
       listEl.innerHTML = `<div class="device-empty">暂无在线设备记录，点右上角「刷新」重新获取。</div>`;
@@ -1347,22 +1483,33 @@
     listEl.innerHTML = devs
       .map((d) => {
         const isSelf = d.device_id === myId;
-        const name = d.device_name || "未知设备";
+        const prof = profiles[d.device_id] || null;
+        const rawName = d.device_name || "未知设备";
+        const parenRegionMatch = rawName.match(/\(([^)]+)\)\s*$/);
+        const displayName = (prof && prof.label) || rawName.replace(/\s*\([^)]+\)\s*$/, "") || rawName;
+        const region = (prof && prof.region) || (parenRegionMatch ? parenRegionMatch[1] : (isSelf ? getDeviceRegionSync() : ""));
+        const isMaster = prof ? !!prof.isDesktop : isDesktopDeviceName(rawName);
         return `
           <div class="device-row ${isSelf ? "is-self" : ""}">
-            <div class="device-icon">${deviceIconSvg(name)}</div>
+            <div class="device-icon">${deviceIconSvg(displayName + " " + rawName)}</div>
             <div class="device-meta">
               <div class="device-name-line">
-                <strong class="device-name">${esc(name)}</strong>
-                ${isSelf ? `<span class="device-self-badge">当前设备</span>` : `<span class="device-online-pill">在线</span>`}
+                <strong class="device-name">${esc(displayName)}</strong>
+                ${isMaster ? `<span class="device-master-badge">主控端</span>` : ""}
+                ${isSelf ? `<span class="device-self-badge">本机</span>` : `<span class="device-online-pill">在线</span>`}
               </div>
-              <div class="device-time">${esc(fmtRelativeTime(d.last_seen))}</div>
+              <div class="device-sub-row">
+                ${region && region !== "未知地区" ? `<span class="device-region-tag">${esc(region)}</span><span>·</span>` : ""}
+                <span>${esc(fmtRelativeTime(d.last_seen))}</span>
+              </div>
             </div>
             <div class="device-act">
               ${
                 isSelf
-                  ? `<span class="device-self-note">本机</span>`
-                  : `<button class="btn btn-sm btn-danger-ghost" data-kick-device="${esc(d.device_id)}">移除下线</button>`
+                  ? `<button type="button" class="device-rename-btn" data-rename-self="1" title="修改此设备显示名称">重命名</button>`
+                  : myIsMaster
+                    ? `<button class="btn btn-sm btn-danger-ghost" data-kick-device="${esc(d.device_id)}">强制下线</button>`
+                    : `<span class="device-readonly-note">${isMaster ? "主控端" : "仅电脑端管理"}</span>`
               }
             </div>
           </div>`;
@@ -1622,7 +1769,7 @@
 
   function updateLaunchSplashMeta() {
     const metaEl = $("launchSplashMeta");
-    if (!metaEl) return;
+    const sigEl = $("launchDeviceSig");
     try {
       const prog = getSprintProgress();
       const day = prog.activeDay || S().days[0];
@@ -1630,9 +1777,15 @@
       const done = tasks.filter((t) => t.done).length;
       const examDate = S().examDate || "2027-01-20";
       const daysLeft = Math.max(0, Math.ceil((new Date(examDate + "T00:00:00") - new Date(today() + "T00:00:00")) / 86400000));
-      metaEl.textContent = `Day ${prog.activeSeq || 1} · 距机考 ${daysLeft} 天 · 今日完成 ${done}/${tasks.length} · 已记住此设备`;
+      if (metaEl) metaEl.textContent = `Day ${prog.activeSeq || 1} · 距考 ${daysLeft} 天 · ${done}/${tasks.length}`;
+      if (sigEl) {
+        const label = detectBaseDeviceLabel();
+        const reg = getDeviceRegionSync();
+        const role = isCurrentDeviceDesktop() ? "主控端" : "";
+        sigEl.textContent = [label, reg !== "未知地区" ? reg : "", role].filter(Boolean).join(" · ");
+      }
     } catch (e) {
-      metaEl.textContent = "已记住此设备 · 轻点进入学习";
+      if (metaEl) metaEl.textContent = "准备就绪";
     }
   }
 
@@ -1733,11 +1886,19 @@
     if (isUnlocked()) {
       unlockGate(true);
       updateLaunchSplashMeta();
+      detectDeviceRegionAsync().then(() => {
+        syncMyDeviceProfile();
+        updateLaunchSplashMeta();
+      });
       cloudPull({ silent: true }).then(() => {
-        if (isUnlocked()) updateLaunchSplashMeta();
+        if (isUnlocked()) {
+          syncMyDeviceProfile();
+          updateLaunchSplashMeta();
+        }
       }).catch(() => {});
     } else {
       dismissLaunchSplash(true);
+      detectDeviceRegionAsync();
       document.body.classList.add("auth-locked");
       setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
     }
@@ -1904,12 +2065,42 @@
     if (btnRefresh) {
       btnRefresh.addEventListener("click", () => cloudPull({ silent: false }));
     }
+    const btnKickAll = $("btnKickAllOthers");
+    if (btnKickAll) {
+      btnKickAll.addEventListener("click", async () => {
+        if (!isCurrentDeviceDesktop()) return App.toast("仅电脑主控端可强制下线其他设备");
+        const myId = getDeviceId();
+        const others = (cloudState.devices || []).filter((d) => d.device_id !== myId);
+        if (!others.length) return App.toast("目前没有其他在线设备");
+        if (!confirm(`确定强制下线其余 ${others.length} 台设备吗？下线后它们需要重新输入密码登录。`)) return;
+        for (const d of others) {
+          await cloudKick(d.device_id);
+        }
+        App.toast(`已强制下线其余 ${others.length} 台设备`);
+      });
+    }
+
     const devList = $("cloudDeviceList");
     if (devList) {
       devList.addEventListener("click", (e) => {
+        const ren = e.target.closest("[data-rename-self]");
+        if (ren) {
+          const cur = detectBaseDeviceLabel();
+          const next = prompt("给这台设备起个名字（如：Kai 的 MacBook / 随身 iPhone）：", cur);
+          if (next === null) return;
+          const clean = next.trim();
+          try {
+            if (clean) localStorage.setItem(DEVICE_LABEL_KEY, clean);
+            else localStorage.removeItem(DEVICE_LABEL_KEY);
+          } catch (err) { /* ignore */ }
+          syncMyDeviceProfile(true);
+          App.toast("设备名称已更新并同步至云端");
+          return;
+        }
         const btn = e.target.closest("[data-kick-device]");
         if (!btn) return;
-        if (!confirm("确定让这台设备立即下线？下线后该设备需要重新输入账号密码登录。")) return;
+        if (!isCurrentDeviceDesktop()) return App.toast("仅电脑主控端可强制下线其他设备");
+        if (!confirm("确定强制这台设备立即下线？下线后该设备需要重新输入账号密码登录。")) return;
         cloudKick(btn.dataset.kickDevice);
       });
     }
