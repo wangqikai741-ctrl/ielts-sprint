@@ -1650,16 +1650,12 @@
     if (splash.classList.contains("is-leaving") || splash.classList.contains("hidden")) return;
     requestAnimationFrame(() => {
       splash.classList.add("is-leaving");
-      document.body.classList.add("splash-revealing");
     });
     setTimeout(() => {
       splash.classList.add("hidden");
       splash.classList.remove("is-leaving");
       document.documentElement.classList.remove("has-saved-session", "pre-dark");
     }, 450);
-    setTimeout(() => {
-      document.body.classList.remove("splash-revealing");
-    }, 520);
   }
 
   function lockGate() {

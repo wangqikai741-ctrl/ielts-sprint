@@ -1688,33 +1688,16 @@ body.dark .dash-tip:hover {
   background: var(--surface) !important;
 }
 
-/* ---------- Tab Switching & Staggered Card Spring Entrance ---------- */
+/* ---------- Clean Tab Switching (Zero Dashboard Re-Wash on Cloud Sync) ---------- */
 .tab-panel.active {
-  animation: applePanelEnter 0.44s var(--ease-spring) both;
+  animation: applePanelFade 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes applePanelEnter {
+@keyframes applePanelFade {
   from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.994);
+    opacity: 0.45;
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.tab-panel.active .dash-grid:nth-of-type(1) { animation: appleCardRise 0.46s var(--ease-spring) 0.02s both; }
-.tab-panel.active .skill-grid             { animation: appleCardRise 0.48s var(--ease-spring) 0.07s both; }
-.tab-panel.active .dash-grid:nth-of-type(3) { animation: appleCardRise 0.5s var(--ease-spring) 0.12s both; }
-.tab-panel.active .dash-grid:nth-of-type(4) { animation: appleCardRise 0.52s var(--ease-spring) 0.17s both; }
-@keyframes appleCardRise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -4105,30 +4088,14 @@ body.dark .launch-splash {
 }
 .launch-splash.is-leaving {
   opacity: 0;
-  transform: translate3d(0, 0, 0) scale(1.015);
   pointer-events: none;
 }
 .launch-splash.is-leaving .launch-inner {
   opacity: 0;
-  transform: translate3d(0, -14px, 0) scale(0.985);
+  transform: translate3d(0, -10px, 0) scale(0.985);
 }
 .launch-splash.is-leaving .launch-lock-link {
   opacity: 0;
-}
-body.splash-revealing .topbar,
-body.splash-revealing .nav-tabs,
-body.splash-revealing .main-container {
-  animation: splashWorkbenchGlide 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes splashWorkbenchGlide {
-  from {
-    opacity: 0.55;
-    transform: translate3d(0, 10px, 0) scale(0.992);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
 }
 .launch-ambient {
   position: absolute;
