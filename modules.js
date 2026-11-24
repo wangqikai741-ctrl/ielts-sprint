@@ -277,8 +277,21 @@
       lines.push("");
     }
     const un = s.vocabBook.filter((v) => !v.mastered);
-    lines.push(`🗂️ 生词本未掌握 ${un.length} 词（请编进明天的串文并抽测）`);
-    if (un.length) lines.push("  " + un.slice(0, 80).map((v) => v.word).join(", "));
+    const stats = s.wordStats || {};
+    const weakEntries = Object.entries(stats)
+      .filter(([, st]) => st && (st.status === "weak" || (st.weakMarks || 0) > 0))
+      .sort((a, b) => (b[1].weakMarks || 0) - (a[1].weakMarks || 0));
+    lines.push(`生词本未掌握 ${un.length} 词（请编进明天的串文并抽测）`);
+    if (un.length) {
+      lines.push("  " + un.slice(0, 80).map((v) => {
+        const st = stats[v.word.toLowerCase()];
+        return st && st.weakMarks ? `${v.word}(不熟×${st.weakMarks})` : v.word;
+      }).join(", "));
+    }
+    if (weakEntries.length) {
+      lines.push(`重点标注不熟词 ${weakEntries.length} 个（优先次日复现 & 周度长文大串烧）：`);
+      lines.push("  " + weakEntries.slice(0, 40).map(([w, st]) => `${w}×${st.weakMarks || 1}`).join(", "));
+    }
     const et = s.examTracker;
     lines.push("");
     lines.push(`🎫 考位：${et.booked ? "已报名 " + (et.bookedInfo || "") : et.lastCheck ? "最近刷官网 " + et.lastCheck : "还没刷过官网"}`);
@@ -2297,6 +2310,439 @@
     });
   }
 
+  // ==================== DYNAMIC FLASHCARDS (不背单词 2-ROUND ENGINE) ====================
+  function bindFlashcards() {
+    const modal = $("modalFlashcard");
+    const stage = $("fcStage");
+    if (!modal || !stage) return;
+
+    const FALLBACK_DISTRACTORS = [
+      "adj. 强制性的，必修的",
+      "n. 押金，保证金，订金",
+      "v. 集中注意力；聚集分布",
+      "adj. 临时的，暂时的，短期的",
+      "n. 宣传册，小册子",
+      "adj. 负担得起的，实惠的",
+      "v. 适应，习惯；调整校准",
+      "n. 居民，住户",
+      "adj. 不堪重负的，不知所措的",
+      "n. 截止日期，最后期限",
+      "v. 确认，核实；证实",
+      "n. 设施，配套设备"
+    ];
+
+    const fc = {
+      scope: "today", // today | weak | all
+      mode: "visual", // visual | audio
+      pool: [],
+      queue: [],
+      cursor: 0,
+      answered: false,
+      rightCount: 0,
+      weakWords: new Map(), // lower -> item
+      currentChoices: [],
+      correctIdx: -1,
+      requeuedOnce: new Set()
+    };
+
+    function shortMeaning(item) {
+      const raw = String(item.meaning || item.cn || "").trim();
+      const cleaned = raw.replace(/^([a-z]+\.\s*(\[[^\]]+\]\s*)?)+/i, "").trim();
+      const pos = item.pos ? `${item.pos.split("/")[0].trim()} ` : "";
+      const out = (pos + (cleaned || raw)).trim();
+      return out.length > 34 ? out.slice(0, 33) + "…" : out;
+    }
+
+    function collectPool(scope) {
+      const s = S();
+      const curDayId = App.getCurrentDayId ? App.getCurrentDayId() : (s.days[0] && s.days[0].id);
+      const curDay = s.days.find((d) => d.id === curDayId) || s.days[0];
+      const map = new Map();
+
+      const addCore = (w) => {
+        if (!w || !w.word) return;
+        const k = w.word.toLowerCase();
+        if (map.has(k)) return;
+        const syns = Array.isArray(w.synonyms)
+          ? w.synonyms.map((x) => (typeof x === "string" ? x : `${x.en}${x.cn ? "(" + x.cn + ")" : ""}`))
+          : [];
+        map.set(k, {
+          word: w.word,
+          forms: w.forms || [],
+          phonetic: w.phonetic || "",
+          pos: w.pos || "",
+          cn: w.cn || "",
+          meaning: `${w.pos ? w.pos + " " : ""}${w.cn || ""}`.trim(),
+          category: w.category || "核心词",
+          synonyms: syns,
+          example: w.example || "",
+          exampleCn: w.exampleCn || "",
+          tip: w.tip || ""
+        });
+      };
+
+      const addVocab = (v) => {
+        if (!v || !v.word || !v.meaning || v.meaning === "（待补充翻译）" || v.meaning === "正在自动查词…") return;
+        const k = v.word.toLowerCase();
+        if (map.has(k)) return;
+        map.set(k, {
+          word: v.word,
+          forms: [],
+          phonetic: v.phonetic || "",
+          pos: "",
+          cn: v.meaning,
+          meaning: v.meaning,
+          category: v.category || "生词本",
+          synonyms: Array.isArray(v.synonyms) ? v.synonyms : [],
+          example: v.example || "",
+          exampleCn: "",
+          tip: v.note || ""
+        });
+      };
+
+      if (scope === "today") {
+        if (curDay && Array.isArray(curDay.words)) curDay.words.forEach(addCore);
+      } else if (scope === "weak") {
+        const stats = s.wordStats || {};
+        (s.vocabBook || []).filter((v) => !v.mastered).forEach(addVocab);
+        (s.days || []).forEach((d) => (d.words || []).forEach((w) => {
+          const st = stats[w.word.toLowerCase()];
+          if (st && st.status === "weak") addCore(w);
+        }));
+      } else {
+        (s.days || []).forEach((d) => (d.words || []).forEach(addCore));
+        (s.vocabBook || []).forEach(addVocab);
+      }
+
+      return Array.from(map.values());
+    }
+
+    function collectDistractorBank() {
+      const s = S();
+      const bank = [];
+      (s.days || []).forEach((d) => (d.words || []).forEach((w) => {
+        if (w.cn) bank.push(shortMeaning(w));
+      }));
+      (s.vocabBook || []).forEach((v) => {
+        if (v.meaning && v.meaning !== "（待补充翻译）") bank.push(shortMeaning(v));
+      });
+      FALLBACK_DISTRACTORS.forEach((x) => bank.push(x));
+      return Array.from(new Set(bank.filter(Boolean)));
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function syncTopControls() {
+      modal.querySelectorAll("[data-fc-scope]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.fcScope === fc.scope);
+      });
+      modal.querySelectorAll("[data-fc-mode]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.fcMode === fc.mode);
+      });
+    }
+
+    function updateProgressBar() {
+      const total = fc.queue.length || 1;
+      const done = Math.min(fc.cursor, total);
+      const pct = Math.round((done / total) * 100);
+      $("fcProgressFill").style.width = `${pct}%`;
+      $("fcProgressText").textContent = `${Math.min(fc.cursor + (fc.cursor < fc.queue.length ? 1 : 0), fc.queue.length)} / ${fc.queue.length}`;
+      $("fcStatPill").textContent = `正确 ${fc.rightCount} · 不熟 ${fc.weakWords.size}`;
+    }
+
+    function startSession(scope, mode, customItems) {
+      fc.scope = scope || fc.scope;
+      fc.mode = mode || fc.mode;
+      fc.pool = Array.isArray(customItems) ? customItems : collectPool(fc.scope);
+      fc.queue = shuffle(fc.pool);
+      fc.cursor = 0;
+      fc.answered = false;
+      fc.rightCount = 0;
+      fc.weakWords = new Map();
+      fc.requeuedOnce = new Set();
+      syncTopControls();
+      renderCurrentCard();
+    }
+
+    function renderSummary() {
+      $("fcProgressFill").style.width = "100%";
+      $("fcProgressText").textContent = `${fc.queue.length} / ${fc.queue.length}`;
+      $("fcStatPill").textContent = `正确 ${fc.rightCount} · 不熟 ${fc.weakWords.size}`;
+
+      const totalAttempts = fc.rightCount + fc.weakWords.size;
+      const acc = totalAttempts ? Math.round((fc.rightCount / Math.max(fc.pool.length, 1)) * 100) : 100;
+      const weakArr = Array.from(fc.weakWords.values());
+      const isRound1 = fc.mode === "visual";
+
+      stage.innerHTML = `
+        <div class="fc-summary-card">
+          <span class="guide-eyebrow">${isRound1 ? "ROUND 1 COMPLETE · 看词选义完成" : "ROUND 2 COMPLETE · 听音盲选完成"}</span>
+          <div class="fc-summary-score">${Math.min(100, acc)}%</div>
+          <p class="muted" style="margin:0;font-size:13px;">
+            本轮共验收 <b>${fc.pool.length}</b> 词 · 一次过关 <b>${Math.max(0, fc.pool.length - weakArr.length)}</b> 词 · 标为不熟 <b>${weakArr.length}</b> 词
+          </p>
+          ${weakArr.length ? `
+            <div style="font-size:12px;color:var(--text-muted);">以下不熟词已自动同步到生词本，将在明日串文中复现：</div>
+            <div class="fc-weak-chips">${weakArr.map((w) => `<span class="fc-weak-chip">${esc(w.word)}</span>`).join("")}</div>
+          ` : `<div style="font-size:13px;color:#0d9488;font-weight:600;">本轮全部掌握，记忆非常扎实！</div>`}
+          <div class="fc-summary-btns">
+            ${isRound1 ? `<button class="btn btn-primary" id="btnFcNextRound">进入第 2 轮 · 听音盲选 →</button>` : `<button class="btn btn-primary" id="btnFcRestartAll">再来一轮综合巩固</button>`}
+            ${weakArr.length ? `<button class="btn btn-outline" id="btnFcDrillWeak">仅重刷这 ${weakArr.length} 个不熟词</button>` : ""}
+            ${weakArr.length ? `<button class="btn btn-outline" id="btnFcCopyWeak">复制不熟词发 AI</button>` : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCurrentCard() {
+      if (!fc.queue.length) {
+        $("fcProgressFill").style.width = "0%";
+        $("fcProgressText").textContent = "0 / 0";
+        stage.innerHTML = `<div class="fc-summary-card">
+          <p class="muted" style="margin:0;">当前范围下还没有可刷的词（切换上方「今日核心词」即可立即开始）。</p>
+          <button class="btn btn-primary btn-sm" id="btnFcFallbackToday">刷今日核心词</button>
+        </div>`;
+        return;
+      }
+      if (fc.cursor >= fc.queue.length) {
+        renderSummary();
+        return;
+      }
+
+      fc.answered = false;
+      updateProgressBar();
+      const item = fc.queue[fc.cursor];
+      const info = App.getWordEncounterStats ? App.getWordEncounterStats(item.word, item.forms || []) : { totalSeen: 1, weakMarks: 0, status: "learning" };
+      const encText = (info.totalSeen > 1 ? `复现第 ${info.totalSeen} 次` : "第 1 次见") + (info.weakMarks > 0 ? ` · 不熟 ×${info.weakMarks}` : "");
+
+      const correctText = shortMeaning(item);
+      const bank = collectDistractorBank().filter((t) => t !== correctText && !t.includes(item.cn));
+      const distractors = shuffle(bank).slice(0, 3);
+      while (distractors.length < 3) distractors.push(FALLBACK_DISTRACTORS[distractors.length % FALLBACK_DISTRACTORS.length]);
+      const options = shuffle([correctText, ...distractors]);
+      fc.currentChoices = options;
+      fc.correctIdx = options.indexOf(correctText);
+
+      const isAudio = fc.mode === "audio";
+      stage.innerHTML = `
+        <div class="fc-card-shell">
+          <div class="fc-prompt-box">
+            <div class="fc-prompt-meta">
+              <span class="cat-badge ${esc(item.category)}">${esc(item.category)}</span>
+              <span class="encounter-pill ${info.status === "weak" ? "is-weak" : info.totalSeen > 1 ? "is-repeat" : ""}">${esc(encText)}</span>
+            </div>
+            ${isAudio ? `
+              <button type="button" class="fc-audio-orb" id="btnFcPlayAudio" title="重听英音 (Space)" aria-label="播放英音">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+              </button>
+              <div class="fc-audio-caption" id="fcAudioReveal">盲听英音，选出最准确的中文意思（按 Space 重播）</div>
+            ` : `
+              <div class="fc-word-big">${esc(item.word)}</div>
+              ${item.phonetic ? `<div class="fc-phonetic-big">${esc(item.phonetic)}</div>` : ""}
+              <button type="button" class="fc-replay-btn" id="btnFcPlayAudio">
+                ${SF_SPEAK} <span>英音朗读</span>
+              </button>
+            `}
+          </div>
+
+          <div class="fc-choices" id="fcChoices">
+            ${options.map((opt, idx) => `
+              <button type="button" class="fc-choice" data-fc-idx="${idx}">
+                <span class="fc-choice-key">${idx + 1}</span>
+                <span>${esc(opt)}</span>
+              </button>
+            `).join("")}
+          </div>
+
+          <div class="fc-action-strip" id="fcPreActions">
+            <button type="button" class="btn btn-outline btn-sm" id="btnFcMarkWeak">不熟 · 直接看答案并安排复现 (W)</button>
+            <span class="muted" style="font-size:12px;">${isAudio ? "第 2 轮：纯听音辨义" : "第 1 轮：看词辨义"}</span>
+          </div>
+
+          <div id="fcFeedbackSlot"></div>
+        </div>
+      `;
+
+      // Auto-play British pronunciation on every new card
+      setTimeout(() => App.speak(item.word, isAudio ? 0.88 : 0.94), 80);
+    }
+
+    function handleAnswer(chosenIdx, forcedWeak = false) {
+      if (fc.answered || fc.cursor >= fc.queue.length) return;
+      fc.answered = true;
+      const item = fc.queue[fc.cursor];
+      const isRight = !forcedWeak && chosenIdx === fc.correctIdx;
+
+      const btns = Array.from(stage.querySelectorAll(".fc-choice"));
+      btns.forEach((b, i) => {
+        b.disabled = true;
+        if (i === fc.correctIdx) b.classList.add("is-correct");
+        else if (i === chosenIdx && !isRight) b.classList.add("is-wrong");
+      });
+
+      const pre = $("fcPreActions");
+      if (pre) pre.classList.add("hidden");
+
+      // Reveal word spelling in audio mode
+      const audioReveal = $("fcAudioReveal");
+      if (audioReveal) {
+        audioReveal.innerHTML = `<b style="font-size:20px;color:var(--text);font-family:Arial,sans-serif;">${esc(item.word)}</b> ${item.phonetic ? `<span class="phonetic">${esc(item.phonetic)}</span>` : ""}`;
+      }
+
+      if (isRight) {
+        fc.rightCount++;
+        if (fc.mode === "audio" && !fc.weakWords.has(item.word.toLowerCase()) && App.markWordMastered) {
+          App.markWordMastered(item, { fromQuiz: true, silent: true });
+        }
+      } else {
+        const key = item.word.toLowerCase();
+        fc.weakWords.set(key, item);
+        if (App.markWordWeak) App.markWordWeak(item, { fromQuiz: true, silent: true });
+        // Re-queue 3–4 cards later in this session once for active reinforcement
+        if (!fc.requeuedOnce.has(key)) {
+          fc.requeuedOnce.add(key);
+          const insertAt = Math.min(fc.queue.length, fc.cursor + 4);
+          fc.queue.splice(insertAt, 0, item);
+        }
+      }
+
+      updateProgressBar();
+
+      const occHtml = renderOccPillsHtml(item.word, item.forms);
+      const synLine = Array.isArray(item.synonyms) && item.synonyms.length
+        ? `<div class="fc-fb-syn"><b>高频同义替换：</b>${esc(item.synonyms.slice(0, 4).join(" · "))}</div>`
+        : "";
+      const exLine = item.example
+        ? `<div class="fc-fb-syn"><b>语境例句：</b>${esc(item.example)}${item.exampleCn ? `（${esc(item.exampleCn)}）` : ""}</div>`
+        : "";
+
+      const fb = $("fcFeedbackSlot");
+      if (fb) {
+        fb.innerHTML = `
+          <div class="fc-feedback-box ${isRight ? "is-ok" : "is-bad"}">
+            <div class="fc-fb-head">
+              <strong style="color:${isRight ? "#0d9488" : "#c93b2e"}">${isRight ? "答对了" : forcedWeak ? "已标为不熟 · 稍后重测 & 明日复现" : "记混了 · 已自动标为不熟并安排重测"}</strong>
+              <div style="display:flex;gap:6px;">
+                ${isRight ? `<button type="button" class="btn btn-ghost btn-sm" id="btnFcLateWeak">其实不熟</button>` : ""}
+                <button type="button" class="btn btn-primary btn-sm" id="btnFcNextCard">下一张 (Enter) →</button>
+              </div>
+            </div>
+            <div><b>${esc(item.word)}</b>：${esc(item.meaning || item.cn)}</div>
+            ${synLine}
+            ${exLine}
+            ${occHtml}
+          </div>
+        `;
+      }
+    }
+
+    function openFlashcards(defaultScope) {
+      modal.classList.remove("hidden");
+      const weakCount = collectPool("weak").length;
+      const scope = defaultScope === "weak" && weakCount === 0 ? "today" : (defaultScope || "today");
+      startSession(scope, "visual");
+    }
+
+    const btnDaily = $("btnOpenFlashcards");
+    if (btnDaily) btnDaily.addEventListener("click", () => openFlashcards("today"));
+    const btnVocab = $("btnOpenFlashcardsVocab");
+    if (btnVocab) btnVocab.addEventListener("click", () => openFlashcards("weak"));
+
+    $("fcScopePills").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-fc-scope]");
+      if (!b) return;
+      startSession(b.dataset.fcScope, fc.mode);
+    });
+
+    $("fcModePills").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-fc-mode]");
+      if (!b) return;
+      startSession(fc.scope, b.dataset.fcMode);
+    });
+
+    stage.addEventListener("click", (e) => {
+      const playBtn = e.target.closest("#btnFcPlayAudio");
+      if (playBtn && fc.queue[fc.cursor]) {
+        App.speak(fc.queue[fc.cursor].word, fc.mode === "audio" ? 0.88 : 0.94);
+        return;
+      }
+      const choiceBtn = e.target.closest("[data-fc-idx]");
+      if (choiceBtn) {
+        handleAnswer(Number(choiceBtn.dataset.fcIdx), false);
+        return;
+      }
+      if (e.target.closest("#btnFcMarkWeak")) {
+        handleAnswer(-1, true);
+        return;
+      }
+      if (e.target.closest("#btnFcLateWeak") && fc.queue[fc.cursor]) {
+        const it = fc.queue[fc.cursor];
+        fc.weakWords.set(it.word.toLowerCase(), it);
+        if (App.markWordWeak) App.markWordWeak(it, { fromQuiz: true, silent: false });
+        updateProgressBar();
+        return;
+      }
+      if (e.target.closest("#btnFcNextCard")) {
+        fc.cursor++;
+        renderCurrentCard();
+        return;
+      }
+      if (e.target.closest("#btnFcNextRound")) {
+        startSession(fc.scope, "audio", fc.pool);
+        return;
+      }
+      if (e.target.closest("#btnFcRestartAll")) {
+        startSession(fc.scope, "visual", fc.pool);
+        return;
+      }
+      if (e.target.closest("#btnFcDrillWeak")) {
+        const weakArr = Array.from(fc.weakWords.values());
+        startSession("weak", fc.mode, weakArr);
+        return;
+      }
+      if (e.target.closest("#btnFcCopyWeak")) {
+        const weakArr = Array.from(fc.weakWords.values());
+        const txt = "这是我动态闪卡中标记为「不熟」的词，请编进明天的情景串文里复现：\n" +
+          weakArr.map((w) => `- ${w.word}: ${w.meaning || w.cn}`).join("\n");
+        navigator.clipboard.writeText(txt).then(
+          () => App.toast(`已复制 ${weakArr.length} 个不熟词，直接发给 AI 即可！`),
+          () => App.toast("复制失败，请手动查看生词本")
+        );
+        return;
+      }
+      if (e.target.closest("#btnFcFallbackToday")) {
+        startSession("today", "visual");
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (modal.classList.contains("hidden")) return;
+      const tag = (e.target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea") return;
+      if (["1", "2", "3", "4"].includes(e.key) && !fc.answered) {
+        e.preventDefault();
+        handleAnswer(Number(e.key) - 1, false);
+      } else if (e.key === " " && fc.queue[fc.cursor]) {
+        e.preventDefault();
+        App.speak(fc.queue[fc.cursor].word, fc.mode === "audio" ? 0.88 : 0.94);
+      } else if ((e.key === "w" || e.key === "W") && !fc.answered) {
+        e.preventDefault();
+        handleAnswer(-1, true);
+      } else if (e.key === "Enter" && fc.answered) {
+        e.preventDefault();
+        fc.cursor++;
+        renderCurrentCard();
+      }
+    });
+  }
+
   // ==================== 启动 ====================
   function syncEmptyTabBadges() {
     document.querySelectorAll(".nav-tab .tab-count").forEach((el) => {
@@ -2320,6 +2766,7 @@
   bindSearch();
   bindAnalyzer();
   bindGuide();
+  bindFlashcards();
   renderAll();
 
   let pending = false;

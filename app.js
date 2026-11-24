@@ -77,6 +77,7 @@
           speakingTopics,
           passageHighlights: parsed.passageHighlights || {},
           wordNotes: parsed.wordNotes || {},
+          wordStats: parsed.wordStats && typeof parsed.wordStats === "object" ? parsed.wordStats : {},
           dark: Boolean(parsed.dark)
         };
       }
@@ -91,6 +92,7 @@
       speakingTopics: structuredClone(window.IELTS_INITIAL_DATA.speakingTopics),
       passageHighlights: {},
       wordNotes: {},
+      wordStats: {},
       dark: false
     };
   }
@@ -482,6 +484,140 @@
     };
   }
 
+  function getWordEncounterStats(rawWord, extraForms = []) {
+    const key = String(rawWord || "").trim().toLowerCase();
+    const occ = findWordOccurrences(rawWord, extraForms);
+    const stat = (state.wordStats && state.wordStats[key]) || { status: "learning", weakMarks: 0, quizRight: 0, quizWrong: 0, lastReviewed: "" };
+    const totalSeen = Math.max(1, occ.days.length + occ.practices.length);
+    return {
+      ...stat,
+      dayCount: occ.days.length,
+      practiceCount: occ.practices.length,
+      totalSeen,
+      occ
+    };
+  }
+
+  function ensureWordStat(rawWord) {
+    if (!state.wordStats || typeof state.wordStats !== "object") state.wordStats = {};
+    const key = String(rawWord || "").trim().toLowerCase();
+    if (!state.wordStats[key]) {
+      state.wordStats[key] = { status: "learning", weakMarks: 0, quizRight: 0, quizWrong: 0, lastReviewed: "" };
+    }
+    return state.wordStats[key];
+  }
+
+  function markWordWeak(wordInput, opts = {}) {
+    const isObj = wordInput && typeof wordInput === "object";
+    const word = String(isObj ? wordInput.word : wordInput || "").trim();
+    if (!word) return;
+    const st = ensureWordStat(word);
+    st.status = "weak";
+    st.weakMarks = (st.weakMarks || 0) + 1;
+    if (opts.fromQuiz) st.quizWrong = (st.quizWrong || 0) + 1;
+    st.lastReviewed = todayStr();
+
+    // Auto-sync into vocabBook as unmastered so it flows into tomorrow's AI review story
+    const core = isObj && wordInput.cn ? wordInput : findCoreWordAcrossDays(word);
+    const existingVb = state.vocabBook.find((v) => v.word.toLowerCase() === word.toLowerCase());
+    if (existingVb) {
+      existingVb.mastered = false;
+    } else if (core) {
+      const synList = Array.isArray(core.synonyms)
+        ? core.synonyms.map((s) => (typeof s === "string" ? s : s.en)).filter(Boolean)
+        : [];
+      const synNote = Array.isArray(core.synonyms) && core.synonyms.length
+        ? "同义替换：" + core.synonyms.map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "(" + s.cn + ")" : ""}`)).join(" / ")
+        : "";
+      state.vocabBook.unshift({
+        id: "v-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        word: core.word,
+        phonetic: core.phonetic || "",
+        meaning: `${core.pos ? core.pos + " " : ""}${core.cn}`,
+        category: core.category || "听力拼写",
+        synonyms: synList,
+        enDef: core.enDef || "",
+        example: core.example || "",
+        note: [synNote, core.tip || ""].filter(Boolean).join(" · "),
+        mastered: false,
+        createdAt: todayStr()
+      });
+    } else if (isObj) {
+      state.vocabBook.unshift({
+        id: "v-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        word,
+        phonetic: wordInput.phonetic || "",
+        meaning: wordInput.meaning || wordInput.cn || "（待补充翻译）",
+        category: wordInput.category || "雅思哥生词",
+        synonyms: Array.isArray(wordInput.synonyms) ? wordInput.synonyms : [],
+        enDef: wordInput.enDef || "",
+        example: wordInput.example || "",
+        note: wordInput.note || "",
+        mastered: false,
+        createdAt: todayStr()
+      });
+    }
+
+    saveState();
+    renderVocabBook();
+    renderCoreWordList();
+    refreshSavedWordHighlights();
+    updateBadges();
+    if (currentInspectedWord && currentInspectedWord.word.toLowerCase() === word.toLowerCase()) {
+      updateInspectorMasteryUI(currentInspectedWord);
+    }
+    if (!opts.silent) showToast(`已标为不熟（累计 ${st.weakMarks} 次）· 将自动加入明日串文复现队列`);
+  }
+
+  function markWordMastered(wordInput, opts = {}) {
+    const isObj = wordInput && typeof wordInput === "object";
+    const word = String(isObj ? wordInput.word : wordInput || "").trim();
+    if (!word) return;
+    const st = ensureWordStat(word);
+    st.status = "mastered";
+    if (opts.fromQuiz) st.quizRight = (st.quizRight || 0) + 1;
+    st.lastReviewed = todayStr();
+
+    const existingVb = state.vocabBook.find((v) => v.word.toLowerCase() === word.toLowerCase());
+    if (existingVb) existingVb.mastered = true;
+
+    saveState();
+    renderVocabBook();
+    renderCoreWordList();
+    refreshSavedWordHighlights();
+    updateBadges();
+    if (currentInspectedWord && currentInspectedWord.word.toLowerCase() === word.toLowerCase()) {
+      updateInspectorMasteryUI(currentInspectedWord);
+    }
+    if (!opts.silent) showToast(`已标为「已背熟」：${word}`);
+  }
+
+  function updateInspectorMasteryUI(wObj) {
+    if (!wObj) return;
+    const info = getWordEncounterStats(wObj.word, wObj.forms || []);
+    const encEl = $("inspEncBadge");
+    if (encEl) {
+      const parts = [];
+      parts.push(info.totalSeen > 1 ? `复现第 ${info.totalSeen} 次` : "第 1 次见");
+      if (info.weakMarks > 0) parts.push(`不熟 ×${info.weakMarks}`);
+      encEl.textContent = parts.join(" · ");
+      encEl.className = "encounter-pill" + (info.status === "weak" ? " is-weak" : info.totalSeen > 1 ? " is-repeat" : "");
+      encEl.classList.remove("hidden");
+    }
+    const bar = $("inspMasteryBar");
+    if (bar) bar.classList.remove("hidden");
+    const weakBtn = $("btnInspWeak");
+    const masterBtn = $("btnInspMaster");
+    if (weakBtn) {
+      weakBtn.classList.toggle("active", info.status === "weak");
+      $("inspWeakLabel").textContent = info.weakMarks > 0 ? `不熟 ×${info.weakMarks} · 明日复现` : "标为不熟 · 明日复现";
+    }
+    if (masterBtn) {
+      masterBtn.classList.toggle("active", info.status === "mastered");
+      $("inspMasterLabel").textContent = info.status === "mastered" ? "✓ 已背熟" : "标为已背熟";
+    }
+  }
+
   async function enrichVocabById(vocabId, silent = false) {
     const item = state.vocabBook.find((v) => v.id === vocabId);
     if (!item) return null;
@@ -649,10 +785,16 @@
     list.innerHTML = filtered
       .map((w) => {
         const saved = isWordInVocabBook(w.word);
+        const st = (state.wordStats && state.wordStats[w.word.toLowerCase()]) || null;
+        const dot = st && st.status === "weak"
+          ? `<span class="cw-status-dot is-weak" title="已标不熟 ×${st.weakMarks || 1}"></span>`
+          : st && st.status === "mastered"
+            ? `<span class="cw-status-dot is-master" title="已背熟"></span>`
+            : "";
         return `
           <div class="core-word-row" data-inspect-word="${escapeHtml(w.word)}">
             <div>
-              <strong>${escapeHtml(w.word)}</strong>
+              <strong>${escapeHtml(w.word)}</strong>${dot}
               <span class="cat-badge ${escapeHtml(w.category)}">${escapeHtml(w.category.slice(0, 2))}</span>
               <div class="cw-cn">${escapeHtml(w.pos || "")} ${escapeHtml(w.cn)}</div>
             </div>
@@ -682,6 +824,7 @@
     catEl.textContent = wObj.category || "核心词";
     catEl.className = `cat-badge ${wObj.category || ""}`;
     catEl.classList.remove("hidden");
+    updateInspectorMasteryUI(wObj);
 
     $("inspMeaning").textContent = `${wObj.pos ? wObj.pos + " " : ""}${wObj.cn}`;
 
@@ -1539,6 +1682,17 @@
       if (currentInspectedWord) speakText(currentInspectedWord.word);
     });
 
+    if ($("btnInspWeak")) {
+      $("btnInspWeak").addEventListener("click", () => {
+        if (currentInspectedWord) markWordWeak(currentInspectedWord);
+      });
+    }
+    if ($("btnInspMaster")) {
+      $("btnInspMaster").addEventListener("click", () => {
+        if (currentInspectedWord) markWordMastered(currentInspectedWord);
+      });
+    }
+
     $("btnInspSave").addEventListener("click", () => {
       if (!currentInspectedWord) return;
       const customNote = $("inspNoteInput").value.trim();
@@ -2249,6 +2403,7 @@
       speakingTopics,
       passageHighlights: incoming.passageHighlights || {},
       wordNotes: incoming.wordNotes || {},
+      wordStats: incoming.wordStats && typeof incoming.wordStats === "object" ? incoming.wordStats : {},
       dark: prevDark
     };
     try {
@@ -2274,6 +2429,9 @@
     lookupWordOnline,
     findWordOccurrences,
     enrichVocabById,
+    getWordEncounterStats,
+    markWordWeak,
+    markWordMastered,
     refresh: initRenderAll,
     goTab,
     selectDay,

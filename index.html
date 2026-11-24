@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124v" />
-  <link rel="stylesheet" href="modules.css?v=20261124v" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124v" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124v" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124v" />
+  <link rel="stylesheet" href="styles.css?v=20261124w" />
+  <link rel="stylesheet" href="modules.css?v=20261124w" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124w" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124w" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124w" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -264,6 +264,10 @@
               <h2 class="passage-title" id="passageTitle">加载中...</h2>
             </div>
             <div class="toolbar-actions">
+              <button class="btn btn-sm fc-launch-btn" id="btnOpenFlashcards" title="动态闪卡自测：第 1 轮看词四选一 → 第 2 轮盲听四选一">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="15" height="12" rx="2.5"></rect><path d="M7 19h11a2.5 2.5 0 0 0 2.5-2.5V8"></path></svg>
+                <span>动态闪卡</span>
+              </button>
               <button class="btn btn-sm btn-outline" id="btnToggleCloze" title="挖空听力高频词，练机考打字拼写">
                 <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                 <span>拼写挖空</span>
@@ -320,7 +324,10 @@
                   <h3 id="inspWord">点击左侧任意粗体词</h3>
                   <span class="phonetic" id="inspPhonetic"></span>
                 </div>
-                <span class="cat-badge hidden" id="inspCat"></span>
+                <div class="inspector-meta-row">
+                  <span class="cat-badge hidden" id="inspCat"></span>
+                  <span class="encounter-pill hidden" id="inspEncBadge"></span>
+                </div>
               </div>
               <div class="inspector-btns">
                 <button class="btn btn-sm btn-outline" id="btnInspSpeak" disabled>
@@ -329,6 +336,16 @@
                 </button>
                 <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>存进生词本</button>
               </div>
+            </div>
+            <div class="insp-mastery-bar hidden" id="inspMasteryBar">
+              <button type="button" class="insp-m-btn is-weak" id="btnInspWeak">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                <span id="inspWeakLabel">标为不熟 · 明日复现</span>
+              </button>
+              <button type="button" class="insp-m-btn is-master" id="btnInspMaster">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span id="inspMasterLabel">已背熟</span>
+              </button>
             </div>
             <p class="insp-meaning" id="inspMeaning">选中左侧串文中的高频词，这里会立即显示标准词性释义、高频同义替换、地道搭配与雅思语境例句。</p>
             <p class="insp-endef hidden" id="inspEnDef"></p>
@@ -424,6 +441,7 @@
             <p class="muted">收录来自每日串文、雅思哥真题中所有不会的词；复习完把未掌握词一键复制给我，明天自动编进新串文帮你复现！</p>
           </div>
           <div class="header-actions">
+            <button class="btn btn-sm fc-launch-btn" id="btnOpenFlashcardsVocab">动态闪卡刷词</button>
             <button class="btn btn-outline btn-sm" id="btnToggleHideCn">遮挡中文自测</button>
             <button class="btn btn-outline btn-sm" id="btnStartVocabQuiz">听音拼写抽测</button>
             <button class="btn btn-outline btn-sm" id="btnCopyUnmastered">复制未掌握词发 AI</button>
@@ -1048,11 +1066,11 @@
                   </div>
                   <button class="guide-jump-btn" data-guide-jump="dashboard">回冲刺总览 →</button>
                 </div>
-                <p>在「冲刺总览」复制今日汇报，连同 <b>口语 3 题草稿 + 生词本未掌握词</b> 发给 AI 教练：我会逐句升级成 Band 6.5 口语版，并把你的错词编进次日新串文自动推送上线。</p>
+                <p>在「冲刺总览」复制今日汇报（自动附带<b>标为不熟的词 + 复现次数 + 生词本</b>）连同口语草稿发给 AI 教练：我会升级成 Band 6.5 口语版，把你的不熟词编进次日串文（显示「复现第 2/3 次」），<b>每满 7 天出一篇长文大串烧</b>随机打乱综合复习。</p>
                 <div class="gt-chips">
-                  <span class="gt-chip">发汇报 & 口语草稿</span>
-                  <span class="gt-chip">获取 6.5 升级版</span>
-                  <span class="gt-chip">自动上线下一天</span>
+                  <span class="gt-chip">动态闪卡两轮验收</span>
+                  <span class="gt-chip">不熟词次日复现</span>
+                  <span class="gt-chip">每周长文大串烧</span>
                 </div>
               </div>
             </div>
@@ -1287,11 +1305,52 @@
     </div>
   </div>
 
+  <!-- Modal 6: Dynamic Flashcards (不背单词-style 2-Round Visual + Audio Quiz) -->
+  <div class="modal-backdrop hidden" id="modalFlashcard">
+    <div class="modal-dialog fc-dialog">
+      <div class="fc-header">
+        <div>
+          <span class="guide-eyebrow">DYNAMIC FLASHCARDS · 闪卡验收</span>
+          <h3 class="fc-title">动态闪卡 · 看词与听音两轮验收</h3>
+        </div>
+        <button class="cloud-close-btn modal-close" id="btnCloseFlashcard" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="fc-toolbar">
+        <div class="fc-scope-pills" id="fcScopePills">
+          <button class="fc-pill active" data-fc-scope="today">今日核心词</button>
+          <button class="fc-pill" data-fc-scope="weak">不熟 / 未掌握词</button>
+          <button class="fc-pill" data-fc-scope="all">全部已学词</button>
+        </div>
+        <div class="fc-mode-pills" id="fcModePills">
+          <button class="fc-mode-btn active" data-fc-mode="visual">第 1 轮 · 看词选义</button>
+          <button class="fc-mode-btn" data-fc-mode="audio">第 2 轮 · 听音盲选</button>
+        </div>
+      </div>
+
+      <div class="fc-progress-row">
+        <div class="fc-progress-track"><div class="fc-progress-fill" id="fcProgressFill" style="width:0%"></div></div>
+        <span class="fc-progress-meta" id="fcProgressText">0 / 0</span>
+      </div>
+
+      <div class="fc-stage" id="fcStage"></div>
+
+      <div class="fc-foot">
+        <span class="fc-kbd-hint">快捷键：<kbd>1</kbd>-<kbd>4</kbd> 选择 · <kbd>Space</kbd> 重听英音 · <kbd>W</kbd> 标为不熟 · <kbd>Enter</kbd> 下一张</span>
+        <div class="fc-foot-right">
+          <span class="fc-stat-pill" id="fcStatPill">正确 0 · 不熟 0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124v"></script>
-  <script src="app.js?v=20261124v"></script>
-  <script src="modules.js?v=20261124v"></script>
+  <script src="data.js?v=20261124w"></script>
+  <script src="app.js?v=20261124w"></script>
+  <script src="modules.js?v=20261124w"></script>
 </body>
 </html>
