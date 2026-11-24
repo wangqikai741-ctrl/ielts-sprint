@@ -1620,6 +1620,22 @@
   const APPLE_ARROW_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
   const APPLE_CHECK_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
+  function updateLaunchSplashMeta() {
+    const metaEl = $("launchSplashMeta");
+    if (!metaEl) return;
+    try {
+      const prog = getSprintProgress();
+      const day = prog.activeDay || S().days[0];
+      const tasks = (day && Array.isArray(day.tasks)) ? day.tasks : [];
+      const done = tasks.filter((t) => t.done).length;
+      const examDate = S().examDate || "2027-01-20";
+      const daysLeft = Math.max(0, Math.ceil((new Date(examDate + "T00:00:00") - new Date(today() + "T00:00:00")) / 86400000));
+      metaEl.textContent = `Day ${prog.activeSeq || 1} · 距机考 ${daysLeft} 天 · 今日完成 ${done}/${tasks.length} · 已记住此设备`;
+    } catch (e) {
+      metaEl.textContent = "已记住此设备 · 轻点进入学习";
+    }
+  }
+
   function dismissLaunchSplash(instant = false) {
     const splash = $("launchSplash");
     if (!splash) {
@@ -1631,14 +1647,13 @@
       document.documentElement.classList.remove("has-saved-session", "pre-dark");
       return;
     }
-    const statusEl = $("launchSplashStatus");
-    if (statusEl) statusEl.textContent = "已就绪 · 欢迎回来";
+    if (splash.classList.contains("is-leaving") || splash.classList.contains("hidden")) return;
     splash.classList.add("is-leaving");
     setTimeout(() => {
       splash.classList.add("hidden");
       splash.classList.remove("is-leaving");
       document.documentElement.classList.remove("has-saved-session", "pre-dark");
-    }, 340);
+    }, 360);
   }
 
   function lockGate() {
@@ -1693,15 +1708,32 @@
       sessionStorage.removeItem(LEGACY_AUTH_KEY);
     } catch (e) { /* ignore */ }
 
+    const splash = $("launchSplash");
+    if (splash) {
+      splash.addEventListener("click", async (e) => {
+        if (e.target.closest("#btnLaunchLock")) {
+          e.stopPropagation();
+          await cloudLogout();
+          lockGate();
+          return;
+        }
+        dismissLaunchSplash(false);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (splash.classList.contains("hidden") || !document.documentElement.classList.contains("has-saved-session")) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          dismissLaunchSplash(false);
+        }
+      });
+    }
+
     if (isUnlocked()) {
       unlockGate(true);
-      const minHold = new Promise((r) => setTimeout(r, 460));
-      const maxWait = new Promise((r) => setTimeout(r, 950));
-      const pullPromise = cloudPull({ silent: true }).catch(() => {});
-      Promise.all([minHold, Promise.race([pullPromise, maxWait])]).then(() => {
-        if (isUnlocked()) dismissLaunchSplash(false);
-        else dismissLaunchSplash(true);
-      });
+      updateLaunchSplashMeta();
+      cloudPull({ silent: true }).then(() => {
+        if (isUnlocked()) updateLaunchSplashMeta();
+      }).catch(() => {});
     } else {
       dismissLaunchSplash(true);
       document.body.classList.add("auth-locked");

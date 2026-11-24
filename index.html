@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124aa" />
-  <link rel="stylesheet" href="modules.css?v=20261124aa" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124aa" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124aa" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124aa" />
+  <link rel="stylesheet" href="styles.css?v=20261124ab" />
+  <link rel="stylesheet" href="modules.css?v=20261124ab" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ab" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124ab" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ab" />
   <script>
     (function () {
       try {
@@ -45,14 +45,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #f5f5f7;
+      background: #f8f7f4;
     }
-    html.has-saved-session.pre-dark #launchSplash { background: #000000; }
+    html.has-saved-session.pre-dark #launchSplash { background: #111216; }
   </style>
 </head>
 <body>
-  <!-- Remembered-Device Welcome Launch Screen (Zero password-gate flash) -->
-  <div class="launch-splash" id="launchSplash" aria-live="polite">
+  <!-- Claude-Style Interactive Welcome Screen for Remembered Devices -->
+  <div class="launch-splash" id="launchSplash" role="button" tabindex="0" aria-label="点击进入 BandUp">
     <div class="launch-ambient" aria-hidden="true"></div>
     <div class="launch-inner">
       <div class="launch-mark-wrap">
@@ -68,11 +68,16 @@
           </svg>
         </div>
       </div>
-      <div class="launch-brand">BandUp</div>
-      <div class="launch-welcome">Welcome back, Kai</div>
-      <div class="launch-bar"><span class="launch-bar-runner"></span></div>
-      <div class="launch-status" id="launchSplashStatus">已记住此设备 · 正在同步云端进度…</div>
+      <div class="launch-eyebrow">BANDUP · IELTS ACADEMIC 6.0</div>
+      <h1 class="launch-greeting">Welcome, Kai</h1>
+      <p class="launch-subline" id="launchSplashMeta">已记住此设备 · 正在同步云端备考进度…</p>
+      <button type="button" class="launch-enter-btn" id="btnLaunchEnter">
+        <span>进入今日学习</span>
+        <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </button>
+      <div class="launch-tap-hint">轻点屏幕任意处或按 <kbd>Enter</kbd> 进入</div>
     </div>
+    <button type="button" class="launch-lock-link" id="btnLaunchLock">切换账号 / 锁定</button>
   </div>
 
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -1476,8 +1481,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124aa"></script>
-  <script src="app.js?v=20261124aa"></script>
-  <script src="modules.js?v=20261124aa"></script>
+  <script src="data.js?v=20261124ab"></script>
+  <script src="app.js?v=20261124ab"></script>
+  <script src="modules.js?v=20261124ab"></script>
 </body>
 </html>
