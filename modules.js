@@ -2370,6 +2370,62 @@
       });
     }
 
+    function navigateWithSpotlight(tabName, targetKey) {
+      if (tabName && App && typeof App.goTab === "function") {
+        App.goTab(tabName);
+      }
+      const key = targetKey || tabName;
+      const META = {
+        calendar: {
+          find: () => {
+            const h = document.querySelector(".cal-card-head");
+            return (h && h.closest(".card")) || document.querySelector(".cal-grid");
+          },
+          toast: "已定位到 58 天备考日历（点日期格可跳转对应学习日）"
+        },
+        passage: {
+          find: () => document.querySelector("#tab-daily .pane-left") || $("passageTitle"),
+          toast: "已定位到今日 50 词串文（点击粗体词看标准释义与同义替换）"
+        },
+        daily: {
+          find: () => document.querySelector("#tab-daily .pane-left") || document.querySelector("#tab-daily .day-header-card"),
+          toast: "已进入每日计划 & 串词精读"
+        },
+        vocab: {
+          find: () => document.querySelector("#tab-vocab .card"),
+          toast: "已定位到我的生词本（只输英文按回车自动补全音标与同义词）"
+        },
+        practice: {
+          find: () => document.querySelector("#tab-practice .card"),
+          toast: "已定位到精听 & 精读记录（保存记录后自动勾选今日听力/阅读）"
+        },
+        speaking: {
+          find: () => $("speakingList") || document.querySelector("#tab-speaking .card"),
+          toast: "已定位到口语话题库（保存回答草稿后自动勾选今日口语任务）"
+        },
+        writing: {
+          find: () => document.querySelector("#tab-writing .card"),
+          toast: "已定位到写作批改工作台（含实时字数统计与机考倒计时）"
+        },
+        dashboard: {
+          find: () => document.querySelector("#dashboardRoot .dash-hero") || $("dashboardRoot"),
+          toast: "已回到冲刺总览"
+        }
+      };
+      const cfg = META[key] || META[tabName];
+      setTimeout(() => {
+        const el = cfg && typeof cfg.find === "function" ? cfg.find() : null;
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.remove("jump-spotlight-pulse");
+          void el.offsetWidth;
+          el.classList.add("jump-spotlight-pulse");
+          setTimeout(() => el.classList.remove("jump-spotlight-pulse"), 1850);
+        }
+        if (cfg && cfg.toast && App.toast) App.toast(cfg.toast);
+      }, 70);
+    }
+
     if (modalCl) {
       const gcList = $("guideChecklistItems");
       if (gcList) {
@@ -2408,13 +2464,17 @@
         const jmp = e.target.closest("[data-cl-jump]");
         if (jmp) {
           modalCl.classList.add("hidden");
-          if (App && typeof App.goTab === "function") App.goTab(jmp.dataset.clJump);
+          const tab = jmp.dataset.clJump;
+          navigateWithSpotlight(tab, tab === "daily" ? "passage" : tab);
           return;
         }
         const act = e.target.closest("[data-cl-action]");
         if (act) {
           modalCl.classList.add("hidden");
-          if (act.dataset.clAction === "analyzer") openPassageAnalyzer("", "");
+          if (act.dataset.clAction === "analyzer") {
+            openPassageAnalyzer("", "");
+            if (App.toast) App.toast("粘贴剑桥原文点击「开始扫描匹配」，再点「存入精听精读」自动打勾并溯源");
+          }
           return;
         }
         if (e.target.closest("#btnClSwitchGuide")) {
@@ -2434,21 +2494,30 @@
       if (actionBtn) {
         const act = actionBtn.dataset.guideAction;
         modal.classList.add("hidden");
-        if (act === "flashcards" && openFlashcardsFn) openFlashcardsFn("today");
-        else if (act === "flashcards-weak" && openFlashcardsFn) openFlashcardsFn("weak");
-        else if (act === "analyzer") openPassageAnalyzer("", "");
-        else if (act === "search") openSearch();
-        else if (act === "report") openReport();
-        else if (act === "cloud" && $("btnBackup")) $("btnBackup").click();
+        if (act === "flashcards" && openFlashcardsFn) {
+          openFlashcardsFn("today");
+          if (App.toast) App.toast("已启动动态闪卡（键盘 1–4 速选 · Space 重听英音）");
+        } else if (act === "flashcards-weak" && openFlashcardsFn) {
+          openFlashcardsFn("weak");
+          if (App.toast) App.toast("已启动不熟词专项闪卡（若暂无不熟词将自动刷今日词）");
+        } else if (act === "analyzer") {
+          openPassageAnalyzer("", "");
+          if (App.toast) App.toast("粘贴剑桥原文扫描生词，点「存入精听精读」自动打勾并建立真题溯源");
+        } else if (act === "search") {
+          openSearch();
+        } else if (act === "report") {
+          openReport();
+        } else if (act === "cloud" && $("btnBackup")) {
+          $("btnBackup").click();
+        }
         return;
       }
       const jump = e.target.closest("[data-guide-jump]");
       if (!jump) return;
       const targetTab = jump.dataset.guideJump;
+      const targetKey = jump.dataset.guideTarget || targetTab;
       modal.classList.add("hidden");
-      if (targetTab && App && typeof App.goTab === "function") {
-        App.goTab(targetTab);
-      }
+      navigateWithSpotlight(targetTab, targetKey);
     });
   }
 
