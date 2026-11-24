@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124ae" />
-  <link rel="stylesheet" href="modules.css?v=20261124ae" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ae" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124ae" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ae" />
+  <link rel="stylesheet" href="styles.css?v=20261124af" />
+  <link rel="stylesheet" href="modules.css?v=20261124af" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124af" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124af" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124af" />
   <script>
     (function () {
       try {
@@ -51,31 +51,85 @@
   </style>
 </head>
 <body>
-  <!-- Ultra-Minimal Claude / Apple Welcome Screen for Remembered Devices -->
-  <div class="launch-splash" id="launchSplash" role="button" tabindex="0" aria-label="点击进入 BandUp">
-    <div class="launch-ambient" aria-hidden="true"></div>
-    <div class="launch-inner">
-      <div class="launch-squircle">
-        <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="currentColor" fill-opacity="0.09"/>
-          <g stroke="currentColor" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
-            <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
-            <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
-            <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
-          </g>
-        </svg>
+  <!-- Gemini / Claude Luxury Welcome Screen for Remembered Devices -->
+  <div class="launch-splash" id="launchSplash" aria-label="BandUp 欢迎界面">
+    <div class="launch-grid-bg" aria-hidden="true"></div>
+    <div class="launch-ambient" id="launchAmbient" aria-hidden="true"></div>
+
+    <!-- Minimal Top Chrome -->
+    <div class="launch-top-chrome">
+      <div class="launch-top-brand">
+        <span class="launch-top-mark" aria-hidden="true">
+          <svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="currentColor" fill-opacity="0.1"/>
+            <g stroke="currentColor" stroke-width="8.5" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
+              <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
+              <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
+            </g>
+          </svg>
+        </span>
+        <span class="launch-top-name">BandUp</span>
       </div>
-      <h1 class="launch-greeting">Welcome, Kai</h1>
-      <div class="launch-meta-pill" id="launchSplashMeta">Day 1 · 距考 57 天 · 0/4</div>
-      <button type="button" class="launch-enter-btn" id="btnLaunchEnter">
-        <span>进入学习</span>
-        <svg class="launch-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="13 6 19 12 13 18"></polyline></svg>
-      </button>
+      <div class="launch-top-right">
+        <span class="launch-live-chip">
+          <i class="launch-live-dot" aria-hidden="true"></i>
+          <span id="launchDeviceSig">已验证设备</span>
+        </span>
+        <button type="button" class="launch-lock-icon-btn" id="btnLaunchLock" title="锁定并退出此设备" aria-label="锁定">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        </button>
+      </div>
     </div>
-    <div class="launch-foot-bar">
-      <span class="launch-device-sig" id="launchDeviceSig">已验证此设备</span>
-      <span class="launch-foot-dot" aria-hidden="true">·</span>
-      <button type="button" class="launch-lock-link" id="btnLaunchLock">锁定</button>
+
+    <!-- Center Editorial Stage -->
+    <div class="launch-inner">
+      <div class="launch-greeting-wrap">
+        <span class="launch-spark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.5 4.8 3.2 7.5 8 8-4.8.5-7.5 3.2-8 8-.5-4.8-3.2-7.5-8-8 4.8-.5 7.5-3.2 8-8z"/></svg>
+        </span>
+        <h1 class="launch-greeting"><span id="launchGreetingWord">Welcome</span>, <span class="launch-name-accent">Kai</span></h1>
+      </div>
+      <p class="launch-theme-line" id="launchThemeLine">Day 1 · 校园报到与租房生活 · 距机考 57 天</p>
+
+      <!-- Signature Glass Launch Pod (Claude / Gemini Command Surface) -->
+      <div class="launch-pod" id="launchPod">
+        <div class="launch-pod-top">
+          <div class="launch-pod-info">
+            <div class="launch-pod-kicker" id="launchPodKicker">TODAY'S SPRINT · 6 HOURS</div>
+            <div class="launch-pod-meta" id="launchSplashMeta">今日任务 0 / 4 · 点击直接进入工作台</div>
+            <div class="launch-pod-bar"><span id="launchPodFill" style="width:0%"></span></div>
+          </div>
+          <button type="button" class="launch-enter-btn" id="btnLaunchEnter">
+            <span>进入学习</span>
+            <svg class="launch-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="13 6 19 12 13 18"></polyline></svg>
+          </button>
+        </div>
+
+        <div class="launch-pod-divider"></div>
+
+        <!-- 4 Quick-Launch Pills -->
+        <div class="launch-quick-grid">
+          <button type="button" class="launch-q-pill" data-launch-go="passage">
+            <span class="lq-ic is-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2H12v18H4.5A2.5 2.5 0 0 0 2 22.5v-18z"/><path d="M22 4.5A2.5 2.5 0 0 0 19.5 2H12v18h7.5a2.5 2.5 0 0 1 2.5 2.5v-18z"/></svg></span>
+            <span class="lq-tx">今日 50 词串文</span>
+          </button>
+          <button type="button" class="launch-q-pill" data-launch-go="flashcards">
+            <span class="lq-ic is-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="15" height="12" rx="2.5"/><path d="M7 19h11a2.5 2.5 0 0 0 2.5-2.5V8"/></svg></span>
+            <span class="lq-tx">动态闪卡验收</span>
+          </button>
+          <button type="button" class="launch-q-pill" data-launch-go="analyzer">
+            <span class="lq-ic is-violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/></svg></span>
+            <span class="lq-tx">真题雷达扫描</span>
+          </button>
+          <button type="button" class="launch-q-pill" data-launch-go="checklist">
+            <span class="lq-ic is-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+            <span class="lq-tx">今日完成清单</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="launch-sub-hint">点击空白处或按 <kbd>Enter</kbd> 进入总览</div>
     </div>
   </div>
 
@@ -1483,8 +1537,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124ae"></script>
-  <script src="app.js?v=20261124ae"></script>
-  <script src="modules.js?v=20261124ae"></script>
+  <script src="data.js?v=20261124af"></script>
+  <script src="app.js?v=20261124af"></script>
+  <script src="modules.js?v=20261124af"></script>
 </body>
 </html>

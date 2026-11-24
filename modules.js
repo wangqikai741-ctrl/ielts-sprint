@@ -1768,16 +1768,35 @@
   const APPLE_CHECK_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
   function updateLaunchSplashMeta() {
+    const greetEl = $("launchGreetingWord");
+    const themeEl = $("launchThemeLine");
+    const kickerEl = $("launchPodKicker");
     const metaEl = $("launchSplashMeta");
+    const fillEl = $("launchPodFill");
     const sigEl = $("launchDeviceSig");
     try {
+      const hr = new Date().getHours();
+      if (greetEl) {
+        greetEl.textContent = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+      }
       const prog = getSprintProgress();
       const day = prog.activeDay || S().days[0];
       const tasks = (day && Array.isArray(day.tasks)) ? day.tasks : [];
       const done = tasks.filter((t) => t.done).length;
+      const total = tasks.length || 4;
+      const pct = Math.round((done / total) * 100);
       const examDate = S().examDate || "2027-01-20";
       const daysLeft = Math.max(0, Math.ceil((new Date(examDate + "T00:00:00") - new Date(today() + "T00:00:00")) / 86400000));
-      if (metaEl) metaEl.textContent = `Day ${prog.activeSeq || 1} · 距考 ${daysLeft} 天 · ${done}/${tasks.length}`;
+      const dayTopic = (day && day.label && day.label.includes("·")) ? day.label.split("·").slice(1).join("·").trim() : "雅思机考闭关";
+
+      if (themeEl) themeEl.textContent = `Day ${prog.activeSeq || 1} · ${dayTopic} · 距机考 ${daysLeft} 天`;
+      if (kickerEl) kickerEl.textContent = `DAY ${prog.activeSeq || 1} · 6H SPRINT · ${pct}%`;
+      if (metaEl) {
+        metaEl.textContent = done >= total
+          ? `今日 ${total} 项任务已全部完成 · 可复盘或刷闪卡`
+          : `今日已完成 ${done} / ${total} 项 · 准备就绪，随时开始`;
+      }
+      if (fillEl) fillEl.style.width = `${pct}%`;
       if (sigEl) {
         const label = detectBaseDeviceLabel();
         const reg = getDeviceRegionSync();
@@ -1785,7 +1804,7 @@
         sigEl.textContent = [label, reg !== "未知地区" ? reg : "", role].filter(Boolean).join(" · ");
       }
     } catch (e) {
-      if (metaEl) metaEl.textContent = "准备就绪";
+      if (metaEl) metaEl.textContent = "准备就绪，随时开始";
     }
   }
 
@@ -1865,6 +1884,17 @@
 
     const splash = $("launchSplash");
     if (splash) {
+      const amb = $("launchAmbient");
+      if (amb && window.matchMedia && window.matchMedia("(hover: hover)").matches) {
+        splash.addEventListener("pointermove", (e) => {
+          if (splash.classList.contains("hidden") || splash.classList.contains("is-leaving")) return;
+          const x = Math.round((e.clientX / window.innerWidth) * 100);
+          const y = Math.round((e.clientY / window.innerHeight) * 100);
+          amb.style.setProperty("--lx", `${x}%`);
+          amb.style.setProperty("--ly", `${y}%`);
+        }, { passive: true });
+      }
+
       splash.addEventListener("click", async (e) => {
         if (e.target.closest("#btnLaunchLock")) {
           e.stopPropagation();
@@ -1872,7 +1902,32 @@
           lockGate();
           return;
         }
-        dismissLaunchSplash(false);
+        const quickBtn = e.target.closest("[data-launch-go]");
+        if (quickBtn) {
+          e.stopPropagation();
+          const dest = quickBtn.dataset.launchGo;
+          dismissLaunchSplash(false);
+          setTimeout(() => {
+            if (dest === "passage") {
+              App.goTab("daily");
+              setTimeout(() => {
+                const p = document.querySelector("#tab-daily .pane-left");
+                if (p) p.scrollIntoView({ behavior: "smooth", block: "center" });
+              }, 80);
+            } else if (dest === "flashcards" && openFlashcardsFn) {
+              openFlashcardsFn("today");
+            } else if (dest === "analyzer") {
+              openPassageAnalyzer("", "");
+            } else if (dest === "checklist" && $("btnOpenChecklist")) {
+              $("btnOpenChecklist").click();
+            }
+          }, 260);
+          return;
+        }
+        // Clicking enter button or empty backdrop enters workspace
+        if (e.target.closest("#btnLaunchEnter") || !e.target.closest("#launchPod")) {
+          dismissLaunchSplash(false);
+        }
       });
       document.addEventListener("keydown", (e) => {
         if (splash.classList.contains("hidden") || !document.documentElement.classList.contains("has-saved-session")) return;
