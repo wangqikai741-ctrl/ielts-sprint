@@ -1718,12 +1718,13 @@ body.dark .dash-tip:hover {
   }
 }
 
-/* ---------- Apple Modal & Dynamic Island Toast Physics ---------- */
+/* ---------- Apple Modal & Dynamic Island Toast Physics (GPU-Composited 120fps) ---------- */
 .modal-backdrop {
-  background: rgba(0, 0, 0, 0.38) !important;
-  backdrop-filter: saturate(160%) blur(14px);
-  -webkit-backdrop-filter: saturate(160%) blur(14px);
-  animation: appleBackdropFade 0.24s ease both;
+  background: rgba(12, 13, 18, 0.34) !important;
+  backdrop-filter: blur(8px) saturate(135%);
+  -webkit-backdrop-filter: blur(8px) saturate(135%);
+  will-change: opacity;
+  animation: appleBackdropFade 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes appleBackdropFade {
   from { opacity: 0; }
@@ -1731,20 +1732,37 @@ body.dark .dash-tip:hover {
 }
 .modal-dialog {
   border-radius: 22px !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
   box-shadow:
-    0 24px 68px rgba(0, 0, 0, 0.28),
+    0 24px 68px rgba(0, 0, 0, 0.24),
     0 4px 16px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
-  animation: appleModalSpring 0.38s var(--ease-spring) both;
+    inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  animation: appleModalGlide 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes appleModalSpring {
+@keyframes appleModalGlide {
   from {
     opacity: 0;
-    transform: scale(0.93) translateY(12px);
+    transform: translate3d(0, 12px, 0) scale(0.972);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@media (max-width: 720px) {
+  .modal-dialog {
+    animation: iosSheetRise 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes iosSheetRise {
+    from {
+      opacity: 0.4;
+      transform: translate3d(0, 28px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
   }
 }
 
@@ -4062,7 +4080,7 @@ body.dark .gs-base {
   animation: jumpSpotlightPulse 1.75s cubic-bezier(0.22, 1, 0.36, 1) 1;
 }
 
-/* ==================== CLAUDE-STYLE WELCOME LAUNCH SCREEN ==================== */
+/* ==================== CLAUDE-STYLE WELCOME LAUNCH SCREEN (GPU 120FPS) ==================== */
 .launch-splash {
   position: fixed;
   inset: 0;
@@ -4075,7 +4093,10 @@ body.dark .gs-base {
   overflow: hidden;
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.36s cubic-bezier(0.22, 1, 0.36, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: opacity 0.44s cubic-bezier(0.16, 1, 0.3, 1), transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
 }
 html.pre-dark .launch-splash,
 body.dark .launch-splash {
@@ -4084,21 +4105,55 @@ body.dark .launch-splash {
 }
 .launch-splash.is-leaving {
   opacity: 0;
-  transform: scale(1.02);
+  transform: translate3d(0, 0, 0) scale(1.015);
   pointer-events: none;
+}
+.launch-splash.is-leaving .launch-inner {
+  opacity: 0;
+  transform: translate3d(0, -14px, 0) scale(0.985);
+}
+.launch-splash.is-leaving .launch-lock-link {
+  opacity: 0;
+}
+body.splash-revealing .topbar,
+body.splash-revealing .nav-tabs,
+body.splash-revealing .main-container {
+  animation: splashWorkbenchGlide 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes splashWorkbenchGlide {
+  from {
+    opacity: 0.55;
+    transform: translate3d(0, 10px, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 .launch-ambient {
   position: absolute;
-  width: 620px;
-  height: 620px;
+  width: 720px;
+  height: 720px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(217, 119, 87, 0.11) 0%, rgba(0, 113, 227, 0.06) 44%, transparent 72%);
-  filter: blur(36px);
+  background: radial-gradient(
+    circle,
+    rgba(217, 119, 87, 0.11) 0%,
+    rgba(0, 113, 227, 0.055) 36%,
+    rgba(88, 86, 214, 0.025) 58%,
+    transparent 74%
+  );
   pointer-events: none;
+  transform: translate3d(0, 0, 0);
 }
 html.pre-dark .launch-ambient,
 body.dark .launch-ambient {
-  background: radial-gradient(circle, rgba(217, 119, 87, 0.13) 0%, rgba(88, 86, 214, 0.08) 45%, transparent 72%);
+  background: radial-gradient(
+    circle,
+    rgba(217, 119, 87, 0.13) 0%,
+    rgba(88, 86, 214, 0.07) 38%,
+    rgba(0, 113, 227, 0.03) 60%,
+    transparent 74%
+  );
 }
 .launch-inner {
   position: relative;
@@ -4109,11 +4164,13 @@ body.dark .launch-ambient {
   text-align: center;
   padding: 28px 24px;
   max-width: 480px;
-  animation: launchFadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+  transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: launchFadeUp 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes launchFadeUp {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 .launch-mark-wrap {
   position: relative;
