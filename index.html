@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124p" />
-  <link rel="stylesheet" href="modules.css?v=20261124p" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124p" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124p" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124p" />
+  <link rel="stylesheet" href="styles.css?v=20261124q" />
+  <link rel="stylesheet" href="modules.css?v=20261124q" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124q" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124q" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124q" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -189,16 +189,25 @@
     </div>
   </nav>
 
-  <!-- Floating IELTS-style Highlight Toolbar -->
+  <!-- Floating Apple / Claude Minimalist Highlight Toolbar -->
   <div class="hl-toolbar hidden" id="hlToolbar" role="toolbar">
-    <button class="hl-btn hl-yellow" data-hl="yellow" title="黄色高亮（仿机考）">黄</button>
-    <button class="hl-btn hl-green" data-hl="green" title="绿色高亮">绿</button>
-    <button class="hl-btn hl-pink" data-hl="pink" title="粉色高亮">粉</button>
-    <button class="hl-btn hl-clear" data-hl="clear" title="清除高亮">✕</button>
+    <button class="hl-swatch hl-swatch-yellow" data-hl="yellow" title="黄色高亮" aria-label="黄色高亮"></button>
+    <button class="hl-swatch hl-swatch-red" data-hl="red" title="红色高亮" aria-label="红色高亮"></button>
+    <button class="hl-icon-btn" data-hl="clear" title="清除高亮" aria-label="清除高亮">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
     <span class="hl-divider"></span>
-    <button class="hl-action" id="hlSpeakBtn" title="英音朗读选中词">🔊</button>
-    <button class="hl-action" id="hlSearchBtn" title="全局查词 / 剑桥词典">🔍 查词</button>
-    <button class="hl-action" id="hlAddWordBtn" title="加入生词本并记录翻译">➕ 记生词</button>
+    <button class="hl-icon-btn" id="hlSpeakBtn" title="英音朗读" aria-label="英音朗读">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+    </button>
+    <button class="hl-action" id="hlSearchBtn" title="全局查词 / 剑桥词典">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line></svg>
+      <span>查词</span>
+    </button>
+    <button class="hl-action" id="hlAddWordBtn" title="加入生词本并记录翻译">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <span>记生词</span>
+    </button>
   </div>
 
   <!-- Main Workspace -->
@@ -244,15 +253,28 @@
               <h2 class="passage-title" id="passageTitle">加载中...</h2>
             </div>
             <div class="toolbar-actions">
-              <button class="btn btn-sm btn-outline" id="btnToggleCloze" title="挖空听力高频词，练机考打字拼写">✍️ 拼写挖空模式</button>
-              <button class="btn btn-sm btn-outline" id="btnToggleTrans">🀄 中文译文</button>
-              <button class="btn btn-sm btn-outline" id="btnReadPassage">🔊 英音朗读</button>
-              <button class="btn btn-sm btn-ghost" id="btnClearPassageHl" title="清除本篇所有手动高亮">🧹 清高亮</button>
+              <button class="btn btn-sm btn-outline" id="btnToggleCloze" title="挖空听力高频词，练机考打字拼写">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                <span>拼写挖空</span>
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnToggleTrans">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>
+                <span>中文译文</span>
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnReadPassage">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <span>英音朗读</span>
+              </button>
+              <button class="btn btn-sm btn-ghost" id="btnClearPassageHl" title="清除本篇所有手动高亮">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+                <span>清高亮</span>
+              </button>
             </div>
           </div>
 
           <div class="ielts-hint-bar">
-            <span>💡 <b>机考仿真操作</b>：点击粗体高频词立即查释义与发音；<b>鼠标选中任意英文</b>可黄/绿/粉高亮或一键收录进右侧生词本。</span>
+            <svg class="sf-icon-sm hint-sf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span><b>机考仿真操作</b>：点击粗体高频词立即查释义与发音；<b>选中任意英文</b>可黄 / 红高亮、朗读或一键收入生词本。</span>
           </div>
 
           <!-- Cloze Score Bar (visible only in cloze mode) -->
@@ -272,7 +294,7 @@
           <article class="passage-content" id="passageContent"></article>
 
           <div class="translation-box hidden" id="translationBox">
-            <h4>📖 参考译文</h4>
+            <h4>参考译文</h4>
             <div id="translationContent"></div>
           </div>
         </div>
@@ -290,8 +312,11 @@
                 <span class="cat-badge hidden" id="inspCat"></span>
               </div>
               <div class="inspector-btns">
-                <button class="btn btn-sm btn-outline" id="btnInspSpeak" disabled>🔊 英音</button>
-                <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>⭐ 存进生词本</button>
+                <button class="btn btn-sm btn-outline" id="btnInspSpeak" disabled>
+                  <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  <span>英音</span>
+                </button>
+                <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>存进生词本</button>
               </div>
             </div>
             <p class="insp-meaning" id="inspMeaning">选中左侧串文中的高频词，这里会立即显示词性、中文释义、同义替换和听力拼写避坑提示。</p>
@@ -308,7 +333,7 @@
           <!-- Quick Add Unknown Word to Vocab Book (Collapsible to keep sidebar clean) -->
           <details class="card quick-add-card" id="quickAddDetails">
             <summary class="quick-add-summary">
-              <span>➕ 随手记不会的词（支持雅思哥生词）</span>
+              <span>+ 随手记不会的词（支持雅思哥生词）</span>
               <span class="quick-add-chevron">▾</span>
             </summary>
             <div class="quick-add-body">
@@ -330,7 +355,7 @@
           <!-- Day's Core Word List -->
           <div class="card core-list-card">
             <div class="core-list-header">
-              <h4 class="card-section-title">📋 本日核心词表 (<span id="coreWordCount">0</span>)</h4>
+              <h4 class="card-section-title">本日核心词表 (<span id="coreWordCount">0</span>)</h4>
               <div class="filter-pills" id="coreFilterPills">
                 <button class="pill active" data-cat="all">全部</button>
                 <button class="pill" data-cat="听力拼写">听力</button>
@@ -338,7 +363,7 @@
                 <button class="pill" data-cat="口语活词">口语</button>
               </div>
             </div>
-            <input type="text" id="coreWordSearch" class="text-input input-sm search-mb" placeholder="🔍 搜索本日词汇或中文翻译..." />
+            <input type="text" id="coreWordSearch" class="text-input input-sm search-mb" placeholder="搜索本日词汇或中文翻译…" />
             <div class="core-word-list" id="coreWordList"></div>
           </div>
         </aside>
@@ -350,13 +375,13 @@
       <div class="card">
         <div class="panel-header">
           <div>
-            <h2>🗂️ 我的生词本 & 错词本</h2>
+            <h2>我的生词本与错词本</h2>
             <p class="muted">收录来自每日串文、雅思哥真题中所有不会的词；复习完把未掌握词一键复制给我，明天自动编进新串文帮你复现！</p>
           </div>
           <div class="header-actions">
-            <button class="btn btn-outline btn-sm" id="btnToggleHideCn">🙈 遮挡中文自测</button>
-            <button class="btn btn-outline btn-sm" id="btnStartVocabQuiz">🎯 听音拼写抽测</button>
-            <button class="btn btn-outline btn-sm" id="btnCopyUnmastered">📋 复制未掌握词发AI</button>
+            <button class="btn btn-outline btn-sm" id="btnToggleHideCn">遮挡中文自测</button>
+            <button class="btn btn-outline btn-sm" id="btnStartVocabQuiz">听音拼写抽测</button>
+            <button class="btn btn-outline btn-sm" id="btnCopyUnmastered">复制未掌握词发 AI</button>
             <button class="btn btn-primary btn-sm" id="btnOpenBatchVocab">+ 批量导入生词</button>
           </div>
         </div>
@@ -377,7 +402,7 @@
 
         <!-- Filter & Search -->
         <div class="vocab-filter-bar">
-          <input type="text" id="vbSearch" class="text-input input-sm" placeholder="🔍 搜索单词、翻译或备注..." />
+          <input type="text" id="vbSearch" class="text-input input-sm" placeholder="搜索单词、翻译或备注…" />
           <select id="vbFilterCat" class="select-input select-sm">
             <option value="all">全部分类</option>
             <option value="听力拼写">听力拼写</option>
@@ -396,7 +421,7 @@
         <!-- Dictation Quiz Drawer -->
         <div class="quiz-box hidden" id="vocabQuizBox">
           <div class="quiz-header">
-            <h4>🎯 听音/看义拼写抽测（仅抽未掌握词汇）</h4>
+            <h4>听音 / 看义拼写抽测（仅抽未掌握词汇）</h4>
             <button class="btn btn-ghost btn-sm" id="btnCloseQuiz">关闭</button>
           </div>
           <div class="quiz-body" id="vocabQuizBody"></div>
@@ -412,7 +437,7 @@
       <div class="practice-layout">
         <!-- Left: Add / Edit Practice Record -->
         <div class="card practice-form-card">
-          <h2 id="practiceFormTitle">🎧 新增精听 / 精读记录</h2>
+          <h2 id="practiceFormTitle">新增精听 / 精读记录</h2>
           <p class="muted">把每天在雅思哥刷完的剑雅真题记在这里：对题数、同义替换、错因和原文高亮全留档。</p>
 
           <input type="hidden" id="prEditId" value="" />
@@ -420,8 +445,8 @@
             <div>
               <label class="field-label">科目类型</label>
               <select id="prType" class="select-input full-width">
-                <option value="listening">🎧 听力精听</option>
-                <option value="reading">📖 阅读精读</option>
+                <option value="listening">听力精听</option>
+                <option value="reading">阅读精读</option>
               </select>
             </div>
             <div>
@@ -494,9 +519,12 @@
             </div>
             <div class="filter-pills" id="practiceFilterPills">
               <button class="pill active" data-type="all">全部记录</button>
-              <button class="pill" data-type="listening">🎧 仅听力</button>
-              <button class="pill" data-type="reading">📖 仅阅读</button>
-              <button class="btn btn-sm btn-primary" id="btnOpenAnalyzer" style="margin-left:auto;">🔬 真题原文词频雷达</button>
+              <button class="pill" data-type="listening">仅听力</button>
+              <button class="pill" data-type="reading">仅阅读</button>
+              <button class="btn btn-sm btn-primary" id="btnOpenAnalyzer" style="margin-left:auto;">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>
+                <span>真题原文词频雷达</span>
+              </button>
             </div>
           </div>
 
@@ -512,7 +540,7 @@
         <div class="speaking-side">
           <!-- IELTS Speaking Timer -->
           <div class="card timer-card">
-            <h3 class="card-section-title">⏱️ 雅思口语模拟计时器</h3>
+            <h3 class="card-section-title">雅思口语模拟计时器</h3>
             <div class="timer-display" id="timerDisplay">01:00</div>
             <div class="timer-presets">
               <button class="btn btn-sm btn-outline" data-sec="60">Part 2 准备 (1分)</button>
@@ -528,7 +556,7 @@
 
           <!-- Add Speaking Question from IELTS Bro -->
           <div class="card">
-            <h3 class="card-section-title" id="spFormTitle">➕ 从雅思哥添加今日口语题</h3>
+            <h3 class="card-section-title" id="spFormTitle">从雅思哥添加今日口语题</h3>
             <input type="hidden" id="spEditId" value="" />
             <div class="form-row-2">
               <div>
@@ -584,9 +612,9 @@
               <button class="pill" data-part="Part 1">Part 1</button>
               <button class="pill" data-part="Part 2">Part 2</button>
               <button class="pill" data-part="Part 3">Part 3</button>
-              <button class="pill" data-part="万能串题素材">⭐ 万能素材</button>
+              <button class="pill" data-part="万能串题素材">万能素材</button>
             </div>
-            <input type="text" id="spSearch" class="text-input input-sm" placeholder="🔍 搜索口语话题或题目..." />
+            <input type="text" id="spSearch" class="text-input input-sm" placeholder="搜索口语话题或题目…" />
           </div>
           <div id="speakingList" class="records-stack"></div>
         </div>
@@ -604,8 +632,8 @@
   <div class="modal-backdrop hidden" id="modalImportDaily">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>📥 导入 AI 每日词文与计划包</h3>
-        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+        <h3>导入 AI 每日词文与计划包</h3>
+        <button class="cloud-close-btn modal-close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <div class="modal-body">
         <p class="muted">把每天我发给你的 <code>JSON 每日包</code> 直接粘贴在下面，点导入即可自动新增一天（含任务清单、高频词串文、词义库和今日口语题）。</p>
@@ -622,8 +650,8 @@
   <div class="modal-backdrop hidden" id="modalBatchVocab">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>➕ 批量导入不会的生词（雅思哥 / 错题生词）</h3>
-        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+        <h3>批量导入生词（雅思哥 / 错题生词）</h3>
+        <button class="cloud-close-btn modal-close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <div class="modal-body">
         <p class="muted">每行一个词，支持用 <code>-</code>、<code>:</code>、<code>Tab</code> 或空格分隔英文与中文（也支持带备注：<code>单词 - 中文 - 备注</code>）：</p>
@@ -730,8 +758,8 @@
   <div class="modal-backdrop hidden" id="modalNewDay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>+ 手动新建一天学习计划</h3>
-        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+        <h3>手动新建一天学习计划</h3>
+        <button class="cloud-close-btn modal-close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -758,8 +786,10 @@
   <div class="modal-backdrop hidden" id="modalSearch">
     <div class="modal-dialog search-dialog">
       <div class="search-head">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="globalSearchInput" class="search-input" placeholder="输入英文或中文：查所有串文高频词、生词本、同义替换..." autocomplete="off" />
+        <span class="search-icon" aria-hidden="true">
+          <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line></svg>
+        </span>
+        <input type="text" id="globalSearchInput" class="search-input" placeholder="输入英文或中文：查所有串文高频词、生词本、同义替换…" autocomplete="off" />
         <button class="btn btn-ghost btn-sm modal-close">Esc</button>
       </div>
       <div class="search-body" id="globalSearchResults"></div>
@@ -770,30 +800,30 @@
   <div class="modal-backdrop hidden" id="modalAnalyzer">
     <div class="modal-dialog analyzer-dialog">
       <div class="modal-header">
-        <h3>🔬 剑桥真题原文 · 熟词/生词智能雷达</h3>
-        <button class="btn btn-ghost btn-sm modal-close">✕</button>
+        <h3>剑桥真题原文 · 熟词与生词雷达</h3>
+        <button class="cloud-close-btn modal-close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
       <div class="modal-body analyzer-body">
         <div class="analyzer-input-wrap" id="analyzerInputWrap">
           <div class="analyzer-top-row">
             <input type="text" id="azTitleInput" class="text-input input-sm" placeholder="文章来源（如：剑10 Test 1 Passage 1 Stepwells）" style="flex:1;" />
-            <button class="btn btn-primary btn-sm" id="btnRunAnalyzer">🚀 开始扫描匹配</button>
-            <button class="btn btn-outline btn-sm" id="btnSaveAzToPractice" title="把这篇原文存入精听精读记录">💾 存入精听精读记录</button>
+            <button class="btn btn-primary btn-sm" id="btnRunAnalyzer">开始扫描匹配</button>
+            <button class="btn btn-outline btn-sm" id="btnSaveAzToPractice" title="把这篇原文存入精听精读记录">存入精听精读</button>
           </div>
-          <textarea id="azRawText" class="textarea-input full-width" rows="5" placeholder="把精读完的剑桥雅思阅读 Passage 原文、或者听力 Audio Script 对话全文粘贴到这里，点击「开始扫描匹配」..."></textarea>
+          <textarea id="azRawText" class="textarea-input full-width" rows="5" placeholder="把精读完的剑桥雅思阅读 Passage 原文、或者听力 Audio Script 对话全文粘贴到这里，点击「开始扫描匹配」…"></textarea>
         </div>
 
         <div class="analyzer-summary-bar" id="azSummaryBar">
-          <span class="az-badge az-b-core">🟢 已背串文高频词：<b id="azCountCore">0</b></span>
-          <span class="az-badge az-b-vocab">🟠 生词本记录词：<b id="azCountVocab">0</b></span>
-          <span class="az-badge az-b-new">🔵 未记录中高级新词：<b id="azCountNew">0</b></span>
-          <span class="muted" style="margin-left:auto;font-size:12px;">💡 点击文中任意单词即可右侧查词 &amp; 一键加入生词本</span>
+          <span class="az-badge az-b-core"><i class="az-dot is-core"></i> 已背串文高频词：<b id="azCountCore">0</b></span>
+          <span class="az-badge az-b-vocab"><i class="az-dot is-vocab"></i> 生词本记录词：<b id="azCountVocab">0</b></span>
+          <span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录中高级新词：<b id="azCountNew">0</b></span>
+          <span class="muted" style="margin-left:auto;font-size:12px;">点击文中任意单词即可右侧查词并加入生词本</span>
         </div>
 
         <div class="analyzer-split">
           <!-- Left: Annotated Article -->
           <div class="analyzer-article" id="azArticleView">
-            <div class="empty-state">在上方粘贴剑桥真题原文并点击「🚀 开始扫描匹配」，这里会自动用颜色标出你背过的串文词、生词本里的词，并筛出未记录的新词。</div>
+            <div class="empty-state">在上方粘贴剑桥真题原文并点击「开始扫描匹配」，这里会自动标出你背过的串文词、生词本词汇，并筛出未记录的新词。</div>
           </div>
 
           <!-- Right: Word Inspector + Unrecorded Words List -->
@@ -804,12 +834,15 @@
                   <strong class="az-insp-word" id="azInspWord">点击左侧任意单词</strong>
                   <span class="phonetic" id="azInspPhonetic"></span>
                 </div>
-                <button class="btn btn-sm btn-ghost" id="btnAzSpeak" disabled>🔊 发音</button>
+                <button class="btn btn-sm btn-ghost" id="btnAzSpeak" disabled>
+                  <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  <span>发音</span>
+                </button>
               </div>
-              <div class="az-insp-status" id="azInspStatus">点击文中绿色/橙色词看已有释义，点击普通词可立即查词并加入生词本</div>
+              <div class="az-insp-status" id="azInspStatus">点击文中高亮词查看已有释义，点击普通词可立即查词并加入生词本</div>
               <div class="az-insp-dict" id="azInspDict"></div>
               <div class="az-quick-add" id="azQuickAddForm">
-                <input type="text" id="azAddMeaning" class="text-input input-sm full-width" placeholder="输入中文释义（可点上方剑桥/有道速查）..." />
+                <input type="text" id="azAddMeaning" class="text-input input-sm full-width" placeholder="输入中文释义（可点上方剑桥 / 有道速查）…" />
                 <div style="display:flex;gap:6px;margin-top:6px;">
                   <select id="azAddCat" class="select-input select-sm">
                     <option value="阅读同义">阅读同义</option>
@@ -817,15 +850,15 @@
                     <option value="雅思哥生词">雅思哥生词</option>
                     <option value="口语活词">口语活词</option>
                   </select>
-                  <button class="btn btn-primary btn-sm" id="btnAzAddVocab" style="flex:1;" disabled>➕ 加入我的生词本</button>
+                  <button class="btn btn-primary btn-sm" id="btnAzAddVocab" style="flex:1;" disabled>加入我的生词本</button>
                 </div>
               </div>
             </div>
 
             <div class="az-lists-card">
               <div class="filter-pills" id="azListTabs">
-                <button class="pill active" data-az-tab="new">🔵 未记录新词 (<span id="azTabNewCnt">0</span>)</button>
-                <button class="pill" data-az-tab="matched">🟢🟠 已匹配熟词 (<span id="azTabMatchCnt">0</span>)</button>
+                <button class="pill active" data-az-tab="new"><i class="az-dot is-new"></i> 未记录新词 (<span id="azTabNewCnt">0</span>)</button>
+                <button class="pill" data-az-tab="matched"><i class="az-dot is-core"></i> 已匹配熟词 (<span id="azTabMatchCnt">0</span>)</button>
               </div>
               <div class="az-word-chips" id="azWordList"></div>
             </div>
@@ -838,8 +871,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124p"></script>
-  <script src="app.js?v=20261124p"></script>
-  <script src="modules.js?v=20261124p"></script>
+  <script src="data.js?v=20261124q"></script>
+  <script src="app.js?v=20261124q"></script>
+  <script src="modules.js?v=20261124q"></script>
 </body>
 </html>

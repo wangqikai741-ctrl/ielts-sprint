@@ -12,6 +12,7 @@
   --danger: #dc2626;
   --success: #16a34a;
   --hl-yellow: #fef08a;
+  --hl-red: #fecaca;
   --hl-green: #bbf7d0;
   --hl-pink: #fbcfe8;
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04);
@@ -28,7 +29,8 @@ body.dark {
   --primary: #3b82f6;
   --primary-hover: #60a5fa;
   --primary-soft: rgba(59, 130, 246, 0.16);
-  --hl-yellow: #854d0e;
+  --hl-yellow: rgba(234, 179, 8, 0.34);
+  --hl-red: rgba(239, 68, 68, 0.36);
   --hl-green: #166534;
   --hl-pink: #9d174d;
   --shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
@@ -573,7 +575,14 @@ mark.user-hl-yellow {
   background: var(--hl-yellow);
   color: inherit;
   padding: 1px 0;
-  border-radius: 2px;
+  border-radius: 3px;
+}
+
+mark.user-hl-red {
+  background: var(--hl-red);
+  color: inherit;
+  padding: 1px 0;
+  border-radius: 3px;
 }
 
 mark.user-hl-green {
@@ -831,56 +840,133 @@ mark.user-hl-pink {
   font-size: 12px;
 }
 
-/* Floating Highlight Toolbar */
+/* Floating Highlight Toolbar (Apple Books / Claude Frosted Glass Pill) */
 .hl-toolbar {
   position: absolute;
   z-index: 200;
-  background: #0f172a;
-  color: #fff;
-  padding: 5px 7px;
-  border-radius: 9px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  background: rgba(20, 22, 28, 0.9);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  color: #f5f5f7;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.hl-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  border: none;
-  font-size: 11px;
-  font-weight: 700;
+.hl-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  padding: 0;
+  margin: 0 2px;
   cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.hl-swatch:hover {
+  transform: scale(1.14);
+  border-color: rgba(255, 255, 255, 0.72);
+}
+.hl-swatch:active {
+  transform: scale(0.95);
+}
+.hl-swatch-yellow {
+  background: #facc15;
+  box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);
+}
+.hl-swatch-yellow:hover {
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+.hl-swatch-red {
+  background: #f87171;
+  box-shadow: 0 0 0 0 rgba(248, 113, 113, 0);
+}
+.hl-swatch-red:hover {
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
 }
 
-.hl-yellow { background: #fde047; color: #422006; }
-.hl-green { background: #86efac; color: #052e16; }
-.hl-pink { background: #f9a8d4; color: #500724; }
-.hl-clear { background: #334155; color: #f8fafc; }
+.hl-icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(245, 245, 247, 0.84);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.hl-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.hl-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
 
 .hl-divider {
   width: 1px;
-  height: 16px;
-  background: #475569;
+  height: 15px;
+  background: rgba(255, 255, 255, 0.16);
   margin: 0 2px;
 }
 
 .hl-action {
-  background: #1e293b;
-  color: #f8fafc;
-  border: 1px solid #475569;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  color: rgba(245, 245, 247, 0.92);
+  border: none;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.hl-action svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.hl-action:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
-.hl-action:hover {
-  background: var(--primary);
-  border-color: var(--primary);
+.ielts-hint-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
+.hint-sf {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.az-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.az-dot.is-core { background: #16a34a; }
+.az-dot.is-vocab { background: #ea580c; }
+.az-dot.is-new { background: #2563eb; }
+.is-starred { color: #d97706 !important; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 
 /* Tab 2: Vocab Book */
 .panel-header {

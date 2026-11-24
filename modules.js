@@ -10,6 +10,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = App.escapeHtml;
   const S = () => App.state;
+  const SF_SPEAK = `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+  const SF_COPY = `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
 
   // ==================== 常量 ====================
   const START = "2026-11-23";
@@ -604,7 +606,7 @@
         const t = today();
         if (s.checkins[t]) delete s.checkins[t]; else s.checkins[t] = true;
         App.save();
-        if (s.checkins[t]) App.toast("打卡成功！今天也是认真备考的一天 💪");
+        if (s.checkins[t]) App.toast("打卡成功，继续稳步推进");
       } else if (act === "checked") {
         s.examTracker.lastCheck = today();
         s.examTracker.log.unshift(today());
@@ -619,7 +621,7 @@
         if (m) s.examDate = m[0];
         App.save();
         App.refresh();
-        App.toast("考位已锁定 🎉 倒计时已同步");
+        App.toast("考位已锁定，倒计时已同步");
       } else if (act === "unbook") {
         const info = prompt("修改报名信息（清空则恢复为“未报名”）", s.examTracker.bookedInfo || "");
         if (info === null) return;
@@ -642,12 +644,12 @@
       modal.id = "modalReport";
       modal.innerHTML = `
         <div class="modal-dialog">
-          <div class="modal-header"><h3>📋 今日学习汇报</h3><button class="btn btn-ghost btn-sm" data-close>✕</button></div>
+          <div class="modal-header"><h3>今日学习汇报</h3><button class="cloud-close-btn" data-close aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
           <div class="modal-body">
             <p class="muted">自动汇总了今天的任务、精听精读、口语草稿、写作和未掌握生词。复制后直接发给 AI 教练即可批改 + 生成明天的计划。</p>
             <textarea id="reportText" class="textarea-input full-width code-area" rows="16"></textarea>
           </div>
-          <div class="modal-footer"><button class="btn btn-ghost" data-close>关闭</button><button class="btn btn-primary" id="btnCopyReport">📋 复制汇报</button></div>
+          <div class="modal-footer"><button class="btn btn-ghost" data-close>关闭</button><button class="btn btn-primary" id="btnCopyReport">${SF_COPY} <span>复制汇报</span></button></div>
         </div>`;
       document.body.appendChild(modal);
       modal.addEventListener("click", (e) => {
@@ -683,7 +685,7 @@
       <div class="writing-layout">
         <div class="card writing-editor">
           <div class="card-head-row">
-            <h2 class="card-section-title" id="wrFormTitle">✍️ 新写一篇（仿机考打字）</h2>
+            <h2 class="card-section-title" id="wrFormTitle">新写一篇（仿机考打字）</h2>
             <div class="wr-timer">
               <span id="wrTimerDisplay">--:--</span>
               <button class="btn btn-sm btn-outline" data-wr-timer="1200">20 分</button>
@@ -717,7 +719,7 @@
           </div>
           <textarea id="wrEssay" class="textarea-input full-width essay-area" rows="14" spellcheck="false" placeholder="在这里打字（机考没有拼写检查，这里也关掉了）..."></textarea>
           <details class="score-details" id="wrScoreBox">
-            <summary>📝 批改结果（AI 批改后填这里）</summary>
+            <summary>批改结果（AI 批改后填这里）</summary>
             <div class="criteria-grid">
               ${CRITERIA.map(([k, a, b]) => `
                 <div><label class="field-label">${a} <small>${b}</small></label>
@@ -729,7 +731,7 @@
           </details>
           <div class="form-actions">
             <button class="btn btn-primary" id="btnSaveWriting">保存作文</button>
-            <button class="btn btn-outline" id="btnCopyWriting">📋 复制给 AI 批改</button>
+            <button class="btn btn-outline" id="btnCopyWriting">${SF_COPY} <span>复制给 AI 批改</span></button>
             <button class="btn btn-ghost hidden" id="btnCancelWriting">取消编辑</button>
           </div>
         </div>
@@ -762,7 +764,7 @@
     ["wrSource", "wrPrompt", "wrEssay", "wrFeedback"].forEach((id) => ($(id).value = ""));
     CRITERIA.forEach(([k]) => ($("wr_" + k).value = ""));
     $("wrOverall").textContent = "—";
-    $("wrFormTitle").textContent = "✍️ 新写一篇（仿机考打字）";
+    $("wrFormTitle").textContent = "新写一篇（仿机考打字）";
     $("btnCancelWriting").classList.add("hidden");
     $("wrScoreBox").open = false;
     updateWordCount();
@@ -791,7 +793,7 @@
     const badge = $("writingCountBadge");
     if (badge) badge.textContent = s.writings.length;
     if (!list.length) {
-      $("wrList").innerHTML = `<div class="card empty-state">还没有作文。每周至少 1 大 1 小，写完点「📋 复制给 AI 批改」发给教练。</div>`;
+      $("wrList").innerHTML = `<div class="card empty-state">还没有作文。每周至少 1 大 1 小，写完点「复制给 AI 批改」发给教练。</div>`;
       return;
     }
     $("wrList").innerHTML = list.map((w) => `
@@ -808,8 +810,8 @@
           ${w.feedback ? `<div class="wr-feedback"><b>批改意见：</b><br>${esc(w.feedback).replace(/\n/g, "<br>")}</div>` : ""}
         </details>
         <div class="record-actions">
-          <button class="btn btn-sm btn-ghost" data-wr-edit="${w.id}">✏️ 编辑 / 填分</button>
-          <button class="btn btn-sm btn-ghost" data-wr-copy="${w.id}">📋 复制给 AI</button>
+          <button class="btn btn-sm btn-ghost" data-wr-edit="${w.id}">编辑 / 填分</button>
+          <button class="btn btn-sm btn-ghost" data-wr-copy="${w.id}">${SF_COPY} <span>复制给 AI</span></button>
           <button class="btn btn-sm btn-danger-ghost" data-wr-del="${w.id}">删除</button>
         </div>
       </div>`).join("");
@@ -896,7 +898,7 @@
         $("wrFeedback").value = w.feedback || "";
         CRITERIA.forEach(([k]) => ($("wr_" + k).value = w[k] || ""));
         $("wrOverall").textContent = calcOverall() || "—";
-        $("wrFormTitle").textContent = "✏️ 编辑作文 / 填写批改分数";
+        $("wrFormTitle").textContent = "编辑作文 / 填写批改分数";
         $("btnCancelWriting").classList.remove("hidden");
         $("wrScoreBox").open = true;
         updateWordCount();
@@ -969,11 +971,11 @@
         <span class="muted">在线词典：</span>
         <a href="https://dictionary.cambridge.org/zhs/词典/英语-汉语-简体/${encodeURIComponent(q)}" target="_blank" rel="noopener">剑桥词典 ↗</a>
         <a href="https://www.youdao.com/result?word=${encodeURIComponent(q)}&lang=en" target="_blank" rel="noopener">有道 ↗</a>
-        ${isEn ? `<button class="btn btn-sm btn-ghost" data-s-speak="${esc(q)}">🔊 读一下</button>` : ""}
-        ${isEn && !s_inVocab(q) ? `<button class="btn btn-sm btn-outline" data-s-add="${esc(q)}">➕ 加入生词本</button>` : ""}
+        ${isEn ? `<button class="btn btn-sm btn-ghost" data-s-speak="${esc(q)}">${SF_SPEAK} <span>朗读</span></button>` : ""}
+        ${isEn && !s_inVocab(q) ? `<button class="btn btn-sm btn-outline" data-s-add="${esc(q)}">+ 加入生词本</button>` : ""}
       </div>`;
     }
-    html += `<div class="search-group"><div class="sg-title">📖 串文高频词 <span>${core.length}</span></div>`;
+    html += `<div class="search-group"><div class="sg-title">串文高频词 <span>${core.length}</span></div>`;
     html += core.length ? core.slice(0, lim).map((w) => `
       <div class="sr-item">
         <div class="sr-main">
@@ -981,26 +983,26 @@
           <span class="cat-chip">${esc(w.category || "")}</span>
         </div>
         <div class="sr-cn">${hl(w.cn, q)}</div>
-        ${w.tip ? `<div class="sr-tip">💡 ${hl(w.tip, q)}</div>` : ""}
+        ${w.tip ? `<div class="sr-tip">${hl(w.tip, q)}</div>` : ""}
         <div class="sr-actions">
-          <button class="btn btn-sm btn-ghost" data-s-speak="${esc(w.word)}">🔊</button>
-          <button class="btn btn-sm btn-ghost" data-s-goday="${esc(w.day.id)}">📍 ${esc((w.day.label || "").split(" · ")[0])}</button>
-          ${s_inVocab(w.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-ghost" data-s-addcore="${esc(w.word)}" data-cn="${esc(w.cn)}" data-cat="${esc(w.category || "")}">⭐ 存生词本</button>`}
+          <button class="btn btn-sm btn-ghost" data-s-speak="${esc(w.word)}" title="朗读">${SF_SPEAK}</button>
+          <button class="btn btn-sm btn-ghost" data-s-goday="${esc(w.day.id)}">${esc((w.day.label || "").split(" · ")[0])} →</button>
+          ${s_inVocab(w.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-ghost" data-s-addcore="${esc(w.word)}" data-cn="${esc(w.cn)}" data-cat="${esc(w.category || "")}">存生词本</button>`}
         </div>
       </div>`).join("") : `<div class="sr-empty">没有匹配</div>`;
     html += `</div>`;
 
-    html += `<div class="search-group"><div class="sg-title">🗂️ 我的生词本 <span>${vocab.length}</span></div>`;
+    html += `<div class="search-group"><div class="sg-title">我的生词本 <span>${vocab.length}</span></div>`;
     html += vocab.length ? vocab.slice(0, lim).map((v) => `
       <div class="sr-item">
         <div class="sr-main"><b class="sr-word">${hl(v.word, q)}</b><span class="cat-chip">${esc(v.category)}</span>${v.mastered ? `<span class="ok-chip">已掌握</span>` : ""}</div>
         <div class="sr-cn">${hl(v.meaning, q)}</div>
-        ${v.note ? `<div class="sr-tip">📝 ${hl(v.note, q)}</div>` : ""}
-        <div class="sr-actions"><button class="btn btn-sm btn-ghost" data-s-speak="${esc(v.word)}">🔊</button></div>
+        ${v.note ? `<div class="sr-tip">${hl(v.note, q)}</div>` : ""}
+        <div class="sr-actions"><button class="btn btn-sm btn-ghost" data-s-speak="${esc(v.word)}" title="朗读">${SF_SPEAK}</button></div>
       </div>`).join("") : `<div class="sr-empty">${q ? "生词本里没有" : "生词本还是空的"}</div>`;
     html += `</div>`;
 
-    html += `<div class="search-group"><div class="sg-title">🔁 同义替换库（来自精听精读记录） <span>${syn.length}</span></div>`;
+    html += `<div class="search-group"><div class="sg-title">同义替换库（来自精听精读记录） <span>${syn.length}</span></div>`;
     html += syn.length ? syn.slice(0, lim * 2).map((x) => `
       <div class="sr-item syn"><span>${hl(x.line, q)}</span><span class="muted">${esc(x.rec.source)}</span></div>`).join("") : `<div class="sr-empty">在精听精读记录里填“同义替换”，这里会自动汇总成你的专属替换库</div>`;
     html += `</div>`;
@@ -1972,7 +1974,7 @@
     if (!box) return;
     if (azCurrentListTab === "new") {
       if (!azLastResult.newList.length) {
-        box.innerHTML = `<div class="sr-empty">太强了！文中没有筛出未记录的陌生难词，或请先点击上方「🚀 开始扫描匹配」。</div>`;
+        box.innerHTML = `<div class="sr-empty">文中没有筛出未记录的新词，或请先点击上方「开始扫描匹配」。</div>`;
         return;
       }
       box.innerHTML = azLastResult.newList
@@ -2027,23 +2029,23 @@
     if (match && match.type === "vocab") {
       const v = match.data;
       $("azInspPhonetic").textContent = "";
-      $("azInspStatus").innerHTML = `<span class="az-badge az-b-vocab">🟠 已在我的生词本 (${esc(v.category)})</span>`;
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-vocab"><i class="az-dot is-vocab"></i> 已在我的生词本 (${esc(v.category)})</span>`;
       $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>释义：</b>${esc(v.meaning)}${v.note ? `<br><small class="muted">备注：${esc(v.note)}</small>` : ""}</div>${dictLinks}`;
       $("azAddMeaning").value = v.meaning === "（待补充翻译）" ? "" : v.meaning;
-      $("btnAzAddVocab").textContent = "🔄 更新生词本释义";
+      $("btnAzAddVocab").textContent = "更新生词本释义";
     } else if (match && match.type === "core") {
       const c = match.data;
       $("azInspPhonetic").textContent = c.phonetic || "";
-      $("azInspStatus").innerHTML = `<span class="az-badge az-b-core">🟢 已背串文词 (${esc(c.dayLabel)} · ${esc(c.category)})</span>`;
-      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${c.tip ? `<br><small class="muted">💡 ${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-core"><i class="az-dot is-core"></i> 已背串文词 (${esc(c.dayLabel)} · ${esc(c.category)})</span>`;
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${c.tip ? `<br><small class="muted">${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
       $("azAddMeaning").value = `${c.pos ? c.pos + " " : ""}${c.cn}`;
-      $("btnAzAddVocab").textContent = "⭐ 同时存入我的生词本";
+      $("btnAzAddVocab").textContent = "同时存入我的生词本";
     } else {
       $("azInspPhonetic").textContent = "";
-      $("azInspStatus").innerHTML = `<span class="az-badge az-b-new">🔵 未记录新词（生词本中尚未收录）</span>`;
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录新词（生词本中尚未收录）</span>`;
       $("azInspDict").innerHTML = dictLinks;
       $("azAddMeaning").value = "";
-      $("btnAzAddVocab").textContent = "➕ 加入我的生词本";
+      $("btnAzAddVocab").textContent = "加入我的生词本";
       $("azAddMeaning").focus();
     }
   }
@@ -2092,7 +2094,7 @@
       });
       App.save();
       App.refresh();
-      App.toast("已存入「🎧 精听 & 精读记录」！");
+      App.toast("已存入「精听 & 精读记录」");
     });
 
     $("azArticleView").addEventListener("click", (e) => {

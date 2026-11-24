@@ -3,6 +3,14 @@
 
   const STORAGE_KEY = "ielts_sprint_workbench_v1";
 
+  const SF = {
+    speaker: `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`,
+    star: `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+    starFill: `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+    copy: `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+    spark: `<svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>`
+  };
+
   // ==================== STATE ====================
   let state = loadState();
   let currentDayId = state.days[0]?.id || null;
@@ -298,9 +306,9 @@
               <span class="cat-badge ${escapeHtml(w.category)}">${escapeHtml(w.category.slice(0, 2))}</span>
               <div class="cw-cn">${escapeHtml(w.pos || "")} ${escapeHtml(w.cn)}</div>
             </div>
-            <div>
-              <button class="btn btn-ghost btn-sm" data-quick-speak="${escapeHtml(w.word)}" title="朗读">🔊</button>
-              <button class="btn btn-ghost btn-sm" data-quick-star="${escapeHtml(w.word)}" title="${saved ? "已在生词本" : "收录生词本"}">${saved ? "⭐" : "☆"}</button>
+            <div style="display:inline-flex;align-items:center;gap:2px;">
+              <button class="btn btn-ghost btn-sm" data-quick-speak="${escapeHtml(w.word)}" title="朗读">${SF.speaker}</button>
+              <button class="btn btn-ghost btn-sm ${saved ? "is-starred" : ""}" data-quick-star="${escapeHtml(w.word)}" title="${saved ? "已在生词本" : "收录生词本"}">${saved ? SF.starFill : SF.star}</button>
             </div>
           </div>
         `;
@@ -336,7 +344,7 @@
     $("btnInspSpeak").disabled = false;
     $("btnInspSave").disabled = false;
     const saved = isWordInVocabBook(wObj.word);
-    $("btnInspSave").textContent = saved ? "✅ 已在生词本" : "⭐ 存进生词本";
+    $("btnInspSave").textContent = saved ? "✓ 已在生词本" : "存进生词本";
 
     $("inspNoteWrap").classList.remove("hidden");
     $("inspNoteInput").value = state.wordNotes[wObj.word.toLowerCase()] || "";
@@ -412,8 +420,9 @@
     const rect = range.getBoundingClientRect();
     const toolbar = $("hlToolbar");
     toolbar.classList.remove("hidden");
-    const left = Math.max(12, Math.min(window.innerWidth - 260, rect.left + rect.width / 2 - 115 + window.scrollX));
-    const top = Math.max(8, rect.top + window.scrollY - 44);
+    const tw = toolbar.offsetWidth || 240;
+    const left = Math.max(12, Math.min(window.innerWidth - tw - 12, rect.left + rect.width / 2 - tw / 2 + window.scrollX));
+    const top = Math.max(8, rect.top + window.scrollY - 46);
     toolbar.style.left = `${left}px`;
     toolbar.style.top = `${top}px`;
   }
@@ -517,12 +526,12 @@
               <span class="vocab-word-title">${escapeHtml(v.word)}</span>
               <span class="cat-badge ${escapeHtml(v.category)}">${escapeHtml(v.category)}</span>
             </div>
-            <button class="btn btn-ghost btn-sm" data-vb-speak="${escapeHtml(v.word)}" title="英音朗读">🔊</button>
+            <button class="btn btn-ghost btn-sm" data-vb-speak="${escapeHtml(v.word)}" title="英音朗读">${SF.speaker}</button>
           </div>
           <div class="${hideVocabCn ? "vocab-meaning-blur" : ""}" onclick="this.classList.toggle('revealed')">
             ${escapeHtml(v.meaning)}
           </div>
-          ${v.note ? `<div class="vocab-note-text">📝 ${escapeHtml(v.note)}</div>` : ""}
+          ${v.note ? `<div class="vocab-note-text">${escapeHtml(v.note)}</div>` : ""}
           <div class="vocab-card-actions">
             <span class="muted">${escapeHtml(v.createdAt || "")}</span>
             <div>
@@ -554,7 +563,7 @@
   function renderQuizStep() {
     const body = $("vocabQuizBody");
     if (quizIndex >= quizQueue.length) {
-      body.innerHTML = `<p>🎉 本轮 ${quizQueue.length} 词抽测完成！</p>`;
+      body.innerHTML = `<p>✓ 本轮 ${quizQueue.length} 词抽测完成</p>`;
       return;
     }
     const item = quizQueue[quizIndex];
@@ -562,7 +571,7 @@
       <div class="muted">进度：${quizIndex + 1} / ${quizQueue.length} · 分类：${escapeHtml(item.category)}</div>
       <div class="quiz-prompt">中文释义：${escapeHtml(item.meaning)} ${item.note ? `<span class="muted">(${escapeHtml(item.note)})</span>` : ""}</div>
       <div class="quiz-row">
-        <button class="btn btn-outline btn-sm" id="btnQuizSpeak">🔊 听发音</button>
+        <button class="btn btn-outline btn-sm" id="btnQuizSpeak">${SF.speaker} <span>听发音</span></button>
         <input type="text" id="quizInput" class="text-input" placeholder="输入英文拼写后回车..." autocomplete="off" />
         <button class="btn btn-primary btn-sm" id="btnQuizSubmit">核对</button>
         <button class="btn btn-ghost btn-sm" id="btnQuizSkip">看答案/跳过</button>
@@ -577,13 +586,13 @@
       const val = input.value.trim().toLowerCase();
       const ans = item.word.trim().toLowerCase();
       if (val === ans) {
-        $("quizFeedback").innerHTML = `<span style="color:var(--success)">✅ 正确！${escapeHtml(item.word)}</span>`;
+        $("quizFeedback").innerHTML = `<span style="color:var(--success)">✓ 正确 · ${escapeHtml(item.word)}</span>`;
         setTimeout(() => {
           quizIndex++;
           renderQuizStep();
         }, 700);
       } else {
-        $("quizFeedback").innerHTML = `<span style="color:var(--danger)">❌ 不对哦，再听一遍或点看答案</span>`;
+        $("quizFeedback").innerHTML = `<span style="color:var(--danger)">拼写有误，再听一遍或查看答案</span>`;
       }
     };
 
@@ -628,7 +637,7 @@
 
     list.innerHTML = filtered
       .map((r) => {
-        const typeLabel = r.type === "listening" ? "🎧 听力精听" : "📖 阅读精读";
+        const typeLabel = r.type === "listening" ? "听力精听" : "阅读精读";
         const pct = r.total > 0 && r.correct !== "" ? Math.round((Number(r.correct) / Number(r.total)) * 100) : null;
         const synLines = (r.synonyms || "")
           .split("\n")
@@ -645,14 +654,14 @@
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 ${r.correct !== "" ? `<span class="record-score-badge">${escapeHtml(r.correct)} / ${escapeHtml(r.total)}${pct !== null ? ` (${pct}%)` : ""}</span>` : ""}
-                ${r.excerpt ? `<button class="btn btn-outline btn-sm" data-pr-analyze="${escapeHtml(r.id)}">🔬 词频雷达</button>` : ""}
+                ${r.excerpt ? `<button class="btn btn-outline btn-sm" data-pr-analyze="${escapeHtml(r.id)}">${SF.spark} <span>词频雷达</span></button>` : ""}
                 <button class="btn btn-ghost btn-sm" data-pr-edit="${escapeHtml(r.id)}">编辑</button>
                 <button class="btn btn-danger-ghost btn-sm" data-pr-del="${escapeHtml(r.id)}">删</button>
               </div>
             </div>
             ${synLines.length ? `
               <div>
-                <span class="field-label">🔁 同义替换积累：</span>
+                <span class="field-label">同义替换积累：</span>
                 <div class="synonym-chips">
                   ${synLines.map((line) => `<span class="syn-chip">${escapeHtml(line)}</span>`).join("")}
                 </div>
@@ -660,13 +669,13 @@
             ` : ""}
             ${r.notes ? `
               <div style="margin-top:8px;">
-                <span class="field-label">📌 错题复盘 / 漏听词：</span>
+                <span class="field-label">错题复盘 / 漏听词：</span>
                 <div class="record-notes">${escapeHtml(r.notes)}</div>
               </div>
             ` : ""}
             ${(r.excerptHtml || r.excerpt) ? `
               <div style="margin-top:10px;">
-                <span class="field-label">✨ 原文精读片段（可直接鼠标划词高亮或收生词）：</span>
+                <span class="field-label">原文精读片段（选中英文可黄 / 红高亮或收录生词）：</span>
                 <div class="record-excerpt" data-pr-id="${escapeHtml(r.id)}">${r.excerptHtml || escapeHtml(r.excerpt)}</div>
               </div>
             ` : ""}
@@ -678,7 +687,7 @@
 
   function resetPracticeForm() {
     $("prEditId").value = "";
-    $("practiceFormTitle").textContent = "🎧 新增精听 / 精读记录";
+    $("practiceFormTitle").textContent = "新增精听 / 精读记录";
     $("prSource").value = "";
     $("prCorrect").value = "";
     $("prTotal").value = "20";
@@ -718,12 +727,12 @@
             <div>
               <span class="pill-tag">${escapeHtml(item.part)}</span>
               <span class="cat-badge">${escapeHtml(item.tag || "练习")}</span>
-              ${item.mastered ? `<span class="cat-badge 口语活词">✅ 已练熟</span>` : ""}
+              ${item.mastered ? `<span class="cat-badge 口语活词">✓ 已练熟</span>` : ""}
               <h3 style="margin-top:5px;font-size:15.5px;">${escapeHtml(item.topic)} — ${escapeHtml(item.question)}</h3>
             </div>
             <div style="display:flex;gap:4px;flex-shrink:0;">
-              <button class="btn btn-outline btn-sm" data-sp-speak="${escapeHtml(item.question)}" title="朗读题目">🔊</button>
-              <button class="btn btn-outline btn-sm" data-sp-copy="${escapeHtml(item.id)}" title="复制题目和草稿发给AI批改">📋 发AI批改</button>
+              <button class="btn btn-outline btn-sm" data-sp-speak="${escapeHtml(item.question)}" title="朗读题目">${SF.speaker}</button>
+              <button class="btn btn-outline btn-sm" data-sp-copy="${escapeHtml(item.id)}" title="复制题目和草稿发给AI批改">${SF.copy} <span>发 AI 批改</span></button>
               <button class="btn btn-ghost btn-sm" data-sp-toggle="${escapeHtml(item.id)}">${item.mastered ? "重练" : "✓ 熟了"}</button>
               <button class="btn btn-ghost btn-sm" data-sp-edit="${escapeHtml(item.id)}">编辑</button>
               <button class="btn btn-danger-ghost btn-sm" data-sp-del="${escapeHtml(item.id)}">删</button>
@@ -731,7 +740,7 @@
           </div>
           ${item.keywords ? `
             <div class="synonym-chips">
-              ${item.keywords.split(/[,，]/).map((k) => k.trim()).filter(Boolean).map((k) => `<span class="syn-chip">🔑 ${escapeHtml(k)}</span>`).join("")}
+              ${item.keywords.split(/[,，]/).map((k) => k.trim()).filter(Boolean).map((k) => `<span class="syn-chip">${escapeHtml(k)}</span>`).join("")}
             </div>
           ` : ""}
           ${item.draft ? `
@@ -743,16 +752,16 @@
             <div class="sp-inline-draft">
               <textarea class="textarea-input full-width" rows="2" data-sp-inline-input="${escapeHtml(item.id)}" placeholder="直接在这里打字或语音转文字填入你的回答草稿..."></textarea>
               <div class="sp-inline-actions">
-                <button class="btn btn-primary btn-sm" data-sp-inline-save="${escapeHtml(item.id)}">💾 保存草稿</button>
-                <button class="btn btn-outline btn-sm" data-sp-inline-ai="${escapeHtml(item.id)}">📋 保存并复制发 AI 批改</button>
+                <button class="btn btn-primary btn-sm" data-sp-inline-save="${escapeHtml(item.id)}">保存草稿</button>
+                <button class="btn btn-outline btn-sm" data-sp-inline-ai="${escapeHtml(item.id)}">${SF.copy} <span>保存并复制发 AI 批改</span></button>
               </div>
             </div>
           `}
           ${item.polished ? `
             <div class="sp-answer-block polished">
-              <div class="field-label" style="color:var(--success);display:flex;justify-content:space-between;">
-                <span>✨ 6.0–6.5 地道升级版（跟读背诵）：</span>
-                <button class="btn btn-ghost btn-sm" data-sp-speak="${escapeHtml(item.polished)}">🔊 听升级版</button>
+              <div class="field-label" style="color:var(--success);display:flex;justify-content:space-between;align-items:center;">
+                <span>6.0–6.5 地道升级版（跟读背诵）：</span>
+                <button class="btn btn-ghost btn-sm" data-sp-speak="${escapeHtml(item.polished)}">${SF.speaker} <span>听升级版</span></button>
               </div>
               ${escapeHtml(item.polished)}
             </div>
@@ -764,7 +773,7 @@
 
   function resetSpeakingForm() {
     $("spEditId").value = "";
-    $("spFormTitle").textContent = "➕ 从雅思哥添加今日口语题";
+    $("spFormTitle").textContent = "从雅思哥添加今日口语题";
     $("spTopic").value = "";
     $("spQuestion").value = "";
     $("spDraft").value = "";
@@ -1019,7 +1028,7 @@
         category: currentInspectedWord.category,
         note: customNote || currentInspectedWord.tip || ""
       });
-      $("btnInspSave").textContent = "✅ 已在生词本";
+      $("btnInspSave").textContent = "✓ 已在生词本";
     });
 
     $("btnSaveInspNote").addEventListener("click", () => {
@@ -1253,7 +1262,7 @@
         const rec = state.practiceRecords.find((r) => r.id === edt.dataset.prEdit);
         if (!rec) return;
         $("prEditId").value = rec.id;
-        $("practiceFormTitle").textContent = "✏️ 编辑精听 / 精读记录";
+        $("practiceFormTitle").textContent = "编辑精听 / 精读记录";
         $("prType").value = rec.type;
         $("prDate").value = rec.date || todayStr();
         $("prSource").value = rec.source || "";
@@ -1417,7 +1426,7 @@
         const item = state.speakingTopics.find((s) => s.id === edt.dataset.spEdit);
         if (!item) return;
         $("spEditId").value = item.id;
-        $("spFormTitle").textContent = "✏️ 编辑口语题与草稿";
+        $("spFormTitle").textContent = "编辑口语题与草稿";
         $("spPart").value = item.part;
         $("spTag").value = item.tag || "今日必练";
         $("spTopic").value = item.topic || "";
