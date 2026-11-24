@@ -913,9 +913,9 @@
     });
   }
 
-  // ==================== 4) 私人密码锁 (SHA-256) ====================
-  const AUTH_STORAGE_KEY = "ielts_sprint_auth_token_v1";
-  const EXPECTED_HASH = "39d411484740fb251bdbcce20f2c1eac54bba96f00c26ad63df072a4a4f96f48";
+  // ==================== 4) 私人密码锁 (SHA-256 · 账号严格区分大小写) ====================
+  const AUTH_STORAGE_KEY = "ielts_sprint_auth_token_v2";
+  const EXPECTED_HASH = "0cb00eb7a4d87317af8c5767c10994ae332841a82ca0fe3bfdbafef9490a9ff9";
 
   async function sha256Hex(str) {
     if (window.crypto && window.crypto.subtle) {
@@ -1067,7 +1067,7 @@
       const card = gate.querySelector(".auth-card");
       if (submitBtn && submitBtn.disabled) return;
 
-      const user = ($("authUser").value || "").trim().toLowerCase();
+      const user = ($("authUser").value || "").trim();
       const pass = ($("authPass").value || "").trim();
       const remember = $("authRemember").checked;
       const errEl = $("authError");
