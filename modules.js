@@ -2583,6 +2583,45 @@
   // ==================== VISUAL PLAYBOOK GUIDE + LIVE DAILY CHECKLIST ====================
   let openFlashcardsFn = null;
 
+  function syncGuideDynamicTargets(prog, day, tasks) {
+    if (!day) return;
+    const findTask = (tag) => tasks.find((t) => t.tag === tag || String(t.text || "").includes(tag));
+    const vTask = findTask("词汇");
+    const lTask = findTask("听力");
+    const rTask = findTask("阅读");
+    const sTask = findTask("口语");
+
+    const wordCnt = Array.isArray(day.words) ? day.words.length : 50;
+    const listenCnt = Array.isArray(day.words) ? day.words.filter((w) => w.category === "听力拼写").length : 20;
+    if ($("gtTargetVocab")) {
+      $("gtTargetVocab").textContent = `今日内容：${day.label || `Day ${prog.activeSeq}`}（共 ${wordCnt} 个高频词 · 其中 ${listenCnt} 个听力必拼词）`;
+    }
+    if ($("gtTargetListening") && lTask) {
+      $("gtTargetListening").textContent = `今日听力任务：${lTask.text}`;
+    }
+    if ($("gtTargetReading") && rTask) {
+      $("gtTargetReading").textContent = `今日阅读任务：${rTask.text}`;
+    }
+    if ($("gtTargetSpeaking") && sTask) {
+      $("gtTargetSpeaking").textContent = `今日口语任务：${sTask.text}`;
+    }
+
+    // Sync green "✓ 今日已完成" pills on steps 1/2/3/5
+    const tagDoneMap = {
+      "词汇": !!(vTask && vTask.done),
+      "听力": !!(lTask && lTask.done),
+      "阅读": !!(rTask && rTask.done),
+      "口语": !!(sTask && sTask.done)
+    };
+    document.querySelectorAll("[data-step-done]").forEach((el) => {
+      const tag = el.dataset.stepDone;
+      const done = !!tagDoneMap[tag];
+      el.classList.toggle("hidden", !done);
+      const stepCard = el.closest(".gt-step");
+      if (stepCard) stepCard.classList.toggle("is-step-done", done);
+    });
+  }
+
   function renderGuideChecklist() {
     const prog = getSprintProgress();
     const day = prog.activeDay || S().days[0];
@@ -2590,6 +2629,8 @@
     const done = tasks.filter((t) => t.done).length;
     const total = tasks.length;
     const allDone = total > 0 && done === total;
+
+    syncGuideDynamicTargets(prog, day, tasks);
 
     // 1) Update topbar live pill next to Guide
     const topBtn = $("btnOpenChecklist");
@@ -2803,7 +2844,14 @@
       if (actionBtn) {
         const act = actionBtn.dataset.guideAction;
         modal.classList.add("hidden");
-        if (act === "flashcards" && openFlashcardsFn) {
+        if (act === "cloze") {
+          navigateWithSpotlight("daily", "passage");
+          setTimeout(() => {
+            const btn = $("btnToggleCloze");
+            const bar = $("clozeBar");
+            if (btn && bar && bar.classList.contains("hidden")) btn.click();
+          }, 140);
+        } else if (act === "flashcards" && openFlashcardsFn) {
           openFlashcardsFn("today");
           if (App.toast) App.toast("已启动动态闪卡（键盘 1–4 速选 · Space 重听英音）");
         } else if (act === "flashcards-weak" && openFlashcardsFn) {

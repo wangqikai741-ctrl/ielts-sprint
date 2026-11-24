@@ -3419,12 +3419,13 @@ body.dark .gc-item-tag { color: #2dd4bf; }
   border-radius: 999px;
   display: block;
 }
-.gt-1, .g-dot.d1 { background: #64748b; }
-.gt-2, .g-dot.d2 { background: #0071e3; }
-.gt-3, .g-dot.d3 { background: #14151a; }
-.gt-4, .g-dot.d4 { background: #0d9488; }
-.gt-5, .g-dot.d5 { background: #d97706; }
-body.dark .gt-3, body.dark .g-dot.d3 { background: #e5e7eb; }
+.gt-seg.s-blue, .g-dot.s-blue     { background: #0071e3; }
+.gt-seg.s-teal, .g-dot.s-teal     { background: #0d9488; }
+.gt-seg.s-indigo, .g-dot.s-indigo { background: #5856d6; }
+.gt-seg.s-purple, .g-dot.s-purple { background: #7c3aed; }
+.gt-seg.s-rose, .g-dot.s-rose     { background: #e11d48; }
+.gt-seg.s-amber, .g-dot.s-amber   { background: #d97706; }
+
 .guide-timebar-legend {
   display: flex;
   flex-wrap: wrap;
@@ -3438,64 +3439,156 @@ body.dark .gt-3, body.dark .g-dot.d3 { background: #e5e7eb; }
   gap: 6px;
 }
 .g-dot {
-  width: 7px;
-  height: 7px;
+  width: 7.5px;
+  height: 7.5px;
   border-radius: 50%;
   display: inline-block;
 }
 
-/* 5-Step Vertical Timeline */
+/* Vivid 6-Step Exam-Aligned Playbook Cards */
 .guide-timeline {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 .gt-step {
-  display: grid;
-  grid-template-columns: 38px 1fr;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 16px 18px;
+  border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
-  transition: border-color 0.16s ease;
+  border-left-width: 4px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
-.gt-step:hover {
-  border-color: var(--primary);
+.gt-step.is-s1 { border-left-color: #0071e3; }
+.gt-step.is-s2 { border-left-color: #0d9488; }
+.gt-step.is-s3 { border-left-color: #5856d6; }
+.gt-step.is-s4 { border-left-color: #7c3aed; }
+.gt-step.is-s5 { border-left-color: #e11d48; }
+.gt-step.is-s6 { border-left-color: #d97706; }
+.gt-step.is-step-done {
+  background: rgba(13, 148, 136, 0.035);
 }
-.gt-num {
-  width: 34px;
-  height: 34px;
+
+.gt-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gt-title-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.gt-title-group h4 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 650;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.gt-step-pill {
+  font-family: "JetBrains Mono", "Plus Jakarta Sans", sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3.5px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+.gt-step-pill.s-blue   { background: #0071e3; }
+.gt-step-pill.s-teal   { background: #0d9488; }
+.gt-step-pill.s-indigo { background: #5856d6; }
+.gt-step-pill.s-purple { background: #7c3aed; }
+.gt-step-pill.s-rose   { background: #e11d48; }
+.gt-step-pill.s-amber  { background: #d97706; }
+
+.gt-done-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+body.dark .gt-done-pill {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.15);
+}
+
+/* Prominent Today's Specific Assignment Strip */
+.gt-today-target {
+  padding: 8px 12px;
   border-radius: 10px;
   background: var(--bg);
   border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* 3-Column Sub-Steps Grid */
+.gt-substeps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.gt-sub {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 10px 12px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12.5px;
+  flex-direction: column;
+  gap: 5px;
+}
+.gt-sub-num {
+  font-family: "JetBrains Mono", "Plus Jakarta Sans", sans-serif;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text);
 }
-.gt-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-.gt-head h4 {
+.gt-sub p {
   margin: 0;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 12.2px;
+  line-height: 1.55;
+  color: var(--text-sub);
 }
-.gt-dur {
-  display: inline-block;
-  margin-top: 2px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
+.gt-pass-bar {
+  font-size: 11.5px;
   color: var(--text-muted);
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+.guide-jump-btn.is-dark {
+  background: #18181b;
+  border-color: #18181b;
+  color: #ffffff;
+  font-weight: 600;
+}
+body.dark .guide-jump-btn.is-dark {
+  background: #f4f4f6;
+  border-color: #f4f4f6;
+  color: #111216;
+}
+
+@media (max-width: 760px) {
+  .gt-substeps {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .gt-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
 }
 .guide-jump-btn {
   border: 1px solid var(--border);
