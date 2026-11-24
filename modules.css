@@ -689,9 +689,9 @@ body.auth-revealing .main-container {
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(280px circle at var(--mx, -400px) var(--my, -400px), rgba(255, 255, 255, 0.22), rgba(125, 211, 252, 0.16) 44%, transparent 74%),
-    radial-gradient(340px circle at var(--tx1, -400px) var(--ty1, -400px), rgba(56, 189, 248, 0.24), rgba(99, 102, 241, 0.14) 48%, transparent 76%),
-    radial-gradient(390px circle at var(--tx2, -400px) var(--ty2, -400px), rgba(168, 85, 247, 0.22), rgba(244, 114, 182, 0.1) 50%, transparent 78%);
+    radial-gradient(250px circle at var(--mx, -400px) var(--my, -400px), rgba(255, 255, 255, 0.24), rgba(125, 211, 252, 0.16) 44%, transparent 74%),
+    radial-gradient(135px circle at var(--tx1, -400px) var(--ty1, -400px), rgba(56, 189, 248, 0.28), rgba(99, 102, 241, 0.14) 50%, transparent 78%),
+    radial-gradient(85px circle at var(--tx2, -400px) var(--ty2, -400px), rgba(192, 132, 252, 0.28), rgba(244, 114, 182, 0.12) 52%, transparent 80%);
   mix-blend-mode: screen;
   will-change: background;
 }
@@ -1958,6 +1958,13 @@ body.dark .theme-icon-wrap .sf-moon {
   align-items: center;
   gap: 8px;
 }
+.countdown-pill {
+  white-space: nowrap !important;
+  flex-shrink: 0;
+}
+.tab-count.is-zero {
+  display: none !important;
+}
 .focus-dot {
   width: 6px;
   height: 6px;
@@ -1979,9 +1986,12 @@ body.dark .theme-icon-wrap .sf-moon {
   .topbar-inner { flex-wrap: wrap; }
 }
 @media (max-width: 640px) {
-  /* Safe area padding for iPhone Notch / Dynamic Island & Home Indicator */
+  /* Native iOS Header Bar (clean, zero wrapping, uniform circular glass icons) */
   .topbar {
+    height: auto !important;
+    min-height: 54px;
     padding-top: env(safe-area-inset-top, 0px);
+    border-bottom: 0.5px solid var(--border) !important;
   }
   .topbar-inner {
     padding: 8px 14px !important;
@@ -1991,29 +2001,26 @@ body.dark .theme-icon-wrap .sf-moon {
   .topbar-left {
     gap: 8px !important;
     min-width: 0;
+    flex-shrink: 0;
   }
   .brand {
     gap: 8px !important;
   }
+  .brand-badge {
+    width: 32px !important;
+    height: 32px !important;
+  }
   .brand-title {
-    font-size: 16px !important;
+    font-size: 17px !important;
   }
-  .brand-sub {
-    display: none;
-  }
-  .countdown-pill {
-    padding: 3px 9px !important;
-    font-size: 11px !important;
-  }
-  .countdown-days {
-    font-size: 14px !important;
+  .brand-sub,
+  .countdown-pill,
+  #btnImportDaily {
+    display: none !important;
   }
   .topbar-right {
-    gap: 4px !important;
-  }
-  .search-trigger {
-    min-width: 0 !important;
-    padding: 6px 10px !important;
+    gap: 6px !important;
+    margin-left: auto;
   }
   .search-trigger-label,
   .search-trigger kbd,
@@ -2021,15 +2028,37 @@ body.dark .theme-icon-wrap .sf-moon {
     display: none !important;
   }
   .topbar-actions {
-    padding-left: 4px !important;
-    gap: 2px !important;
+    padding-left: 0 !important;
+    border-left: none !important;
+    gap: 6px !important;
   }
-  .topbar-actions .btn-sm {
-    padding: 6px 8px !important;
-    font-size: 13px !important;
+  .search-trigger,
+  #btnTopAnalyzer,
+  #btnBackup,
+  #btnLockApp,
+  #btnTheme {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(118, 118, 128, 0.1) !important;
+    border: 1px solid transparent !important;
+    color: var(--text) !important;
+    box-shadow: none !important;
+  }
+  body.dark .search-trigger,
+  body.dark #btnTopAnalyzer,
+  body.dark #btnBackup,
+  body.dark #btnLockApp,
+  body.dark #btnTheme {
+    background: rgba(255, 255, 255, 0.09) !important;
   }
 
-  /* iOS Floating Translucent Bottom Tab Bar */
+  /* iOS Native Translucent Bottom Tab Bar (Clean Apple Tab Style, No Clunky Box) */
   .nav-tabs {
     position: fixed !important;
     top: auto !important;
@@ -2037,17 +2066,18 @@ body.dark .theme-icon-wrap .sf-moon {
     left: 0;
     right: 0;
     z-index: 120;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
-    background: rgba(255, 255, 255, 0.84) !important;
+    margin-top: 0 !important;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    background: rgba(255, 255, 255, 0.88) !important;
     backdrop-filter: saturate(180%) blur(24px) !important;
     -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
     border-top: 0.5px solid var(--border) !important;
     border-bottom: none !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.05) !important;
   }
   body.dark .nav-tabs {
-    background: rgba(22, 22, 24, 0.86) !important;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+    background: rgba(18, 20, 28, 0.88) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45) !important;
   }
   .nav-tabs-inner {
     width: 100% !important;
@@ -2063,37 +2093,72 @@ body.dark .theme-icon-wrap .sf-moon {
     flex-direction: column !important;
     justify-content: center;
     padding: 5px 2px !important;
-    gap: 2px !important;
+    gap: 3px !important;
     border-radius: 10px !important;
     position: relative;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .nav-tab.active {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--primary) !important;
+  }
+  body.dark .nav-tab.active {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #38bdf8 !important;
+  }
+  .nav-tab.active .tab-tx-short {
+    font-weight: 700;
   }
   .tab-ic {
-    font-size: 17px;
-    line-height: 1.1;
+    line-height: 1;
+  }
+  .sf-tab-svg {
+    width: 20px;
+    height: 20px;
   }
   .tab-tx-full {
     display: none;
   }
   .tab-tx-short {
     display: block;
-    font-size: 10.5px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 500;
     line-height: 1.1;
   }
   .nav-tab .tab-count {
     position: absolute;
-    top: 2px;
-    right: 4px;
+    top: 1px;
+    right: 6px;
     font-size: 9px !important;
     padding: 0 4px !important;
     min-width: 14px;
     height: 14px;
     line-height: 14px;
+    background: var(--primary) !important;
+    color: #fff !important;
+    border: none !important;
   }
 
   /* Leave space at bottom for iOS Tab Bar */
   .main-container {
-    padding: 12px 12px calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 12px 12px calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Hero buttons clean balanced wrap on iPhone */
+  .hero-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+  .hero-actions .btn-primary {
+    grid-column: span 2;
+  }
+  .hero-actions .btn {
+    justify-content: center;
+    padding: 10px 14px !important;
   }
 
   /* Prevent iOS Safari auto-zoom on input focus (must be >= 16px) */

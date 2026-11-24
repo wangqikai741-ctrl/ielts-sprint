@@ -226,8 +226,8 @@
     const phaseIdx = PHASES.findIndex((p) => t >= p.from && t <= p.to);
     const phase = PHASES[phaseIdx >= 0 ? phaseIdx : t < START ? 0 : 2];
 
-    // 今日任务
-    const dayObj = s.days.find((d) => d.date === t);
+    // 今日任务（若当天尚未生成新计划，自动承接最近一天）
+    const dayObj = s.days.find((d) => d.date === t) || s.days[0];
     const tasks = dayObj ? dayObj.tasks || [] : [];
     const doneCount = tasks.filter((x) => x.done).length;
     const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
@@ -1133,9 +1133,8 @@
       });
     }
 
-    // Interactive Fluid Trailing Aurora Spotlight on Lock Screen (3-stage inertia comet tail)
+    // Interactive Zero-Lag Core + Tapered Comet-Tail Aurora on Lock Screen
     let targetX = -400, targetY = -400;
-    let mx = -400, my = -400;
     let tx1 = -400, ty1 = -400;
     let tx2 = -400, ty2 = -400;
     let trailActive = false;
@@ -1146,22 +1145,18 @@
         trailRaf = null;
         return;
       }
-      mx += (targetX - mx) * 0.3;
-      my += (targetY - my) * 0.3;
-      tx1 += (targetX - tx1) * 0.11;
-      ty1 += (targetY - ty1) * 0.11;
-      tx2 += (targetX - tx2) * 0.055;
-      ty2 += (targetY - ty2) * 0.055;
+      tx1 += (targetX - tx1) * 0.24;
+      ty1 += (targetY - ty1) * 0.24;
+      tx2 += (targetX - tx2) * 0.13;
+      ty2 += (targetY - ty2) * 0.13;
 
-      gate.style.setProperty("--mx", `${mx.toFixed(1)}px`);
-      gate.style.setProperty("--my", `${my.toFixed(1)}px`);
       gate.style.setProperty("--tx1", `${tx1.toFixed(1)}px`);
       gate.style.setProperty("--ty1", `${ty1.toFixed(1)}px`);
       gate.style.setProperty("--tx2", `${tx2.toFixed(1)}px`);
       gate.style.setProperty("--ty2", `${ty2.toFixed(1)}px`);
 
       const dist = Math.hypot(targetX - tx2, targetY - ty2);
-      if (dist > 0.6) {
+      if (dist > 0.5) {
         trailRaf = requestAnimationFrame(stepTrail);
       } else {
         trailRaf = null;
@@ -1172,10 +1167,13 @@
       const rect = gate.getBoundingClientRect();
       targetX = e.clientX - rect.left;
       targetY = e.clientY - rect.top;
+      // Primary core glow updates instantaneously (zero lag even on fast cursor flicks)
+      gate.style.setProperty("--mx", `${targetX.toFixed(1)}px`);
+      gate.style.setProperty("--my", `${targetY.toFixed(1)}px`);
       if (!trailActive) {
         trailActive = true;
-        mx = tx1 = tx2 = targetX;
-        my = ty1 = ty2 = targetY;
+        tx1 = tx2 = targetX;
+        ty1 = ty2 = targetY;
       }
       if (!trailRaf) trailRaf = requestAnimationFrame(stepTrail);
 
@@ -1501,10 +1499,18 @@
   }
 
   // ==================== 启动 ====================
+  function syncEmptyTabBadges() {
+    document.querySelectorAll(".nav-tab .tab-count").forEach((el) => {
+      const txt = (el.textContent || "").trim();
+      el.classList.toggle("is-zero", txt === "" || txt === "0");
+    });
+  }
+
   function renderAll() {
     ensureFields();
     renderDashboard();
     renderWritingList();
+    syncEmptyTabBadges();
   }
 
   initAuthGate();
