@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124ah" />
-  <link rel="stylesheet" href="modules.css?v=20261124ah" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ah" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124ah" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ah" />
+  <link rel="stylesheet" href="styles.css?v=20261124ai" />
+  <link rel="stylesheet" href="modules.css?v=20261124ai" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124ai" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124ai" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124ai" />
   <script>
     (function () {
       try {
@@ -391,13 +391,17 @@
                 <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                 <span>拼写挖空</span>
               </button>
-              <button class="btn btn-sm btn-outline" id="btnToggleTrans">
+              <button class="btn btn-sm btn-outline" id="btnToggleTrans" title="在每段英文下方直接展开/收起双语对照译文">
                 <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>
-                <span>中文译文</span>
+                <span>双语译文</span>
               </button>
               <button class="btn btn-sm btn-outline" id="btnReadPassage">
                 <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
                 <span>英音朗读</span>
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnJumpCoreList" title="展开并查看下方本日 50 个核心词汇表">
+                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></svg>
+                <span>词表</span>
               </button>
               <button class="btn btn-sm btn-ghost" id="btnClearPassageHl" title="清除本篇所有手动高亮">
                 <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
@@ -433,10 +437,11 @@
           </div>
         </div>
 
-        <!-- Right Pane: Word Inspector + Side Notes + Core Word List -->
-        <aside class="pane-right">
+        <!-- Right Pane: Sticky Word Inspector + Compact Quick Add -->
+        <aside class="pane-right" id="paneRight">
           <!-- Selected Word Inspector -->
           <div class="card inspector-card" id="wordInspector">
+            <div class="insp-sheet-handle" aria-hidden="true"></div>
             <div class="inspector-header">
               <div>
                 <div class="inspector-word-row">
@@ -454,6 +459,9 @@
                   <span>英音</span>
                 </button>
                 <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>存进生词本</button>
+                <button class="insp-mobile-close" id="btnCloseMobileInsp" type="button" title="收起词卡" aria-label="收起词卡">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
             </div>
             <div class="insp-mastery-bar hidden" id="inspMasteryBar">
@@ -532,23 +540,32 @@
               </div>
             </div>
           </details>
-
-          <!-- Day's Core Word List -->
-          <div class="card core-list-card">
-            <div class="core-list-header">
-              <h4 class="card-section-title">本日核心词表 (<span id="coreWordCount">0</span>)</h4>
-              <div class="filter-pills" id="coreFilterPills">
-                <button class="pill active" data-cat="all">全部</button>
-                <button class="pill" data-cat="听力拼写">听力</button>
-                <button class="pill" data-cat="阅读同义">阅读</button>
-                <button class="pill" data-cat="口语活词">口语</button>
-              </div>
-            </div>
-            <input type="text" id="coreWordSearch" class="text-input input-sm search-mb" placeholder="搜索本日词汇或中文翻译…" />
-            <div class="core-word-list" id="coreWordList"></div>
-          </div>
         </aside>
       </div>
+
+      <!-- Full-Width Collapsible Core Word Drawer (Relocated out of Right Sidebar for Distraction-Free Reading) -->
+      <details class="card core-list-card core-drawer-card" id="coreWordDrawer">
+        <summary class="core-drawer-summary">
+          <div class="core-drawer-title-group">
+            <svg class="sf-icon-sm core-drawer-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="13" y2="17"></line></svg>
+            <span class="core-drawer-title">本日核心词表 (<span id="coreWordCount">0</span>)</span>
+            <span class="core-drawer-sub">完整词汇总览与分类检索 · 点击任意词可在上方右侧查看剑桥级详解</span>
+          </div>
+          <span class="core-drawer-chevron" aria-hidden="true">▾</span>
+        </summary>
+        <div class="core-drawer-body">
+          <div class="core-drawer-controls">
+            <div class="filter-pills" id="coreFilterPills">
+              <button class="pill active" data-cat="all" type="button">全部</button>
+              <button class="pill" data-cat="听力拼写" type="button">听力拼写</button>
+              <button class="pill" data-cat="阅读同义" type="button">阅读同义</button>
+              <button class="pill" data-cat="口语活词" type="button">口语活词</button>
+            </div>
+            <input type="text" id="coreWordSearch" class="text-input input-sm core-drawer-search" placeholder="搜索本日词汇或中文翻译…" />
+          </div>
+          <div class="core-word-list core-word-grid" id="coreWordList"></div>
+        </div>
+      </details>
     </section>
 
     <!-- ==================== TAB 2: PERSONAL VOCAB BOOK ==================== -->
@@ -1546,8 +1563,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124ah"></script>
-  <script src="app.js?v=20261124ah"></script>
-  <script src="modules.js?v=20261124ah"></script>
+  <script src="data.js?v=20261124ai"></script>
+  <script src="app.js?v=20261124ai"></script>
+  <script src="modules.js?v=20261124ai"></script>
 </body>
 </html>

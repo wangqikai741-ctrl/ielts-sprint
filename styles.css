@@ -650,13 +650,23 @@ mark.user-hl-pink {
   margin-bottom: 10px;
 }
 
-/* Right Pane */
+/* Right Pane: Sticky alongside passage on desktop */
 .pane-right {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   position: sticky;
-  top: 76px;
+  top: 116px;
+  max-height: calc(100vh - 132px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-self: start;
+  padding-right: 2px;
+}
+
+.insp-sheet-handle,
+.insp-mobile-close {
+  display: none;
 }
 
 .inspector-header {
@@ -1766,6 +1776,9 @@ body.dark .sr-occ-pill.is-pr {
   }
   .pane-right {
     position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
   .vocab-add-bar {
     grid-template-columns: 1fr 1fr;

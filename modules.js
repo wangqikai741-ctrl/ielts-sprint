@@ -915,7 +915,8 @@
         $("btnCancelWriting").classList.remove("hidden");
         $("wrScoreBox").open = true;
         updateWordCount();
-        $("writingRoot").scrollIntoView({ behavior: "smooth" });
+        if (App && typeof App.scrollToEl === "function") App.scrollToEl($("writingRoot"), 14);
+        else $("writingRoot").scrollIntoView({ behavior: "smooth" });
       } else if (cp) {
         const w = s.writings.find((x) => x.id === cp.dataset.wrCopy);
         if (w) copyText(writingToAiText(w));
@@ -1912,7 +1913,7 @@
               App.goTab("daily");
               setTimeout(() => {
                 const p = document.querySelector("#tab-daily .pane-left");
-                if (p) p.scrollIntoView({ behavior: "smooth", block: "center" });
+                if (p && App && typeof App.scrollToEl === "function") App.scrollToEl(p, 14);
               }, 80);
             } else if (dest === "flashcards" && openFlashcardsFn) {
               openFlashcardsFn("today");
@@ -2784,7 +2785,11 @@
       setTimeout(() => {
         const el = cfg && typeof cfg.find === "function" ? cfg.find() : null;
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (App && typeof App.scrollToEl === "function") {
+            App.scrollToEl(el, 14);
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
           el.classList.remove("jump-spotlight-pulse");
           void el.offsetWidth;
           el.classList.add("jump-spotlight-pulse");

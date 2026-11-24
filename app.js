@@ -17,6 +17,7 @@
   let currentCoreFilter = "all";
   let currentInspectedWord = null;
   let clozeMode = false;
+  let transMode = false;
   let hideVocabCn = false;
   let currentPracticeFilter = "all";
   let currentSpFilter = "all";
@@ -648,15 +649,41 @@
     return item;
   }
 
-  // ==================== TABS & THEME ====================
+  // ==================== TABS, SMART SCROLL & THEME ====================
+  function smartScrollToEl(el, extraGap = 14) {
+    if (!el) return;
+    const topbar = document.querySelector(".topbar");
+    const navTabs = document.querySelector(".nav-tabs");
+    let stickyOffset = extraGap;
+    if (topbar) stickyOffset += topbar.getBoundingClientRect().height;
+    if (navTabs && window.innerWidth > 980) {
+      const navStyle = window.getComputedStyle(navTabs);
+      if (navStyle.position === "sticky" || navStyle.position === "fixed") {
+        stickyOffset += navTabs.getBoundingClientRect().height;
+      }
+    }
+    const targetTop = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - stickyOffset));
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
+  }
+
+  function closeMobileInspectorSheet() {
+    const card = $("wordInspector");
+    if (card) card.classList.remove("mobile-insp-sheet");
+  }
+
   function initTabs() {
     document.querySelectorAll(".nav-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
+        const wasActive = btn.classList.contains("active");
         document.querySelectorAll(".nav-tab").forEach((b) => b.classList.remove("active"));
         document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
         btn.classList.add("active");
         $("tab-" + btn.dataset.tab).classList.add("active");
         hideHlToolbar();
+        closeMobileInspectorSheet();
+        if (!wasActive) {
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }
       });
     });
 
@@ -743,18 +770,60 @@
       .join("");
   }
 
+  function syncInlineTranslations() {
+    const container = $("passageContent");
+    if (!container) return;
+    container.querySelectorAll(".para-trans-inline").forEach((el) => el.remove());
+    if (!transMode) return;
+    const day = getCurrentDay();
+    const transParas = (day && day.translationParagraphs) || [];
+    if (!transParas.length) return;
+    const paras = Array.from(container.querySelectorAll("p"));
+    paras.forEach((pEl, idx) => {
+      const cn = transParas[idx];
+      if (!cn) return;
+      const div = document.createElement("div");
+      div.className = "para-trans-inline";
+      div.textContent = cn;
+      pEl.insertAdjacentElement("afterend", div);
+    });
+  }
+
+  function serializeCleanPassageHtml(container) {
+    const clone = container.cloneNode(true);
+    clone.querySelectorAll(".para-trans-inline").forEach((el) => el.remove());
+    clone.querySelectorAll(".core-word.active-word").forEach((el) => el.classList.remove("active-word"));
+    return clone.innerHTML;
+  }
+
   function renderPassage() {
     const day = getCurrentDay();
     if (!day) return;
     $("passageTitle").textContent = day.title || day.label;
     $("passageContent").innerHTML = buildPassageHtml(day);
     refreshSavedWordHighlights();
+    syncInlineTranslations();
 
     const transEl = $("translationContent");
     const transParas = day.translationParagraphs || [];
     transEl.innerHTML = transParas.length
       ? transParas.map((p) => `<p>${escapeHtml(p)}</p>`).join("")
       : `<p class="muted">本篇暂未录入中文译文。</p>`;
+    if ($("translationBox")) {
+      $("translationBox").classList.toggle("hidden", !(transMode && !transParas.length));
+    }
+
+    // Pre-populate right-hand word inspector with the first core word of the day (zero scroll, zero audio)
+    if (Array.isArray(day.words) && day.words.length) {
+      const stillInDay = currentInspectedWord && day.words.some((w) => w.word.toLowerCase() === currentInspectedWord.word.toLowerCase());
+      if (!stillInDay) {
+        const firstSpan = document.querySelector("#passageContent .core-word");
+        const firstKey = (firstSpan && firstSpan.dataset.word) || day.words[0].word;
+        inspectWord(firstKey);
+      } else {
+        document.querySelectorAll(`#passageContent .core-word[data-word="${CSS.escape(currentInspectedWord.word)}"]`).forEach((el) => el.classList.add("active-word"));
+      }
+    }
   }
 
   function refreshSavedWordHighlights() {
@@ -1084,6 +1153,7 @@
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
           if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement && node.parentElement.closest(".para-trans-inline")) return NodeFilter.FILTER_REJECT;
           return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
       });
@@ -1106,11 +1176,11 @@
       });
     }
 
-    // Persist highlights
+    // Persist highlights (strip transient inline translations before saving)
     if (activeHighlightContainer.id === "passageContent") {
       const day = getCurrentDay();
       if (day) {
-        state.passageHighlights[day.id] = activeHighlightContainer.innerHTML;
+        state.passageHighlights[day.id] = serializeCleanPassageHtml(activeHighlightContainer);
         saveState();
       }
     } else if (activeHighlightContainer.dataset.prId) {
@@ -1578,7 +1648,7 @@
       if (e.key === "Enter") addTask();
     });
 
-    // Passage click to inspect core word (and scroll matching item into view in right list)
+    // Passage click to inspect core word directly in right sticky panel (NEVER hijack window scroll down to word list!)
     $("passageContent").addEventListener("click", (e) => {
       const span = e.target.closest(".core-word");
       if (!span) return;
@@ -1586,12 +1656,39 @@
       if (sel && sel.toString().trim().length > 0) return; // Don't hijack drag selection
       const wKey = span.dataset.word || span.textContent;
       inspectWord(wKey);
+
       const row = document.querySelector(`#coreWordList .core-word-row[data-inspect-word="${CSS.escape(wKey)}"]`);
-      if (row) {
-        document.querySelectorAll("#coreWordList .core-word-row.active-row").forEach((r) => r.classList.remove("active-row"));
-        row.classList.add("active-row");
-        row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      document.querySelectorAll("#coreWordList .core-word-row.active-row").forEach((r) => r.classList.remove("active-row"));
+      if (row) row.classList.add("active-row");
+
+      const inspCard = $("wordInspector");
+      const paneRight = $("paneRight") || document.querySelector(".pane-right");
+      if (window.innerWidth <= 980) {
+        if (inspCard) {
+          inspCard.classList.add("mobile-insp-sheet");
+          inspCard.scrollTop = 0;
+        }
+      } else {
+        if (paneRight) paneRight.scrollTop = 0;
+        if (inspCard) {
+          inspCard.classList.remove("insp-flash");
+          void inspCard.offsetWidth;
+          inspCard.classList.add("insp-flash");
+        }
       }
+    });
+
+    if ($("btnCloseMobileInsp")) {
+      $("btnCloseMobileInsp").addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeMobileInspectorSheet();
+      });
+    }
+    document.addEventListener("click", (e) => {
+      const inspCard = $("wordInspector");
+      if (!inspCard || !inspCard.classList.contains("mobile-insp-sheet")) return;
+      if (e.target.closest("#wordInspector") || e.target.closest(".core-word") || e.target.closest("[data-inspect-word]")) return;
+      closeMobileInspectorSheet();
     });
 
     // Cloze mode keyboard flow: Enter / Tab moves to next input; Enter on last checks answers
@@ -1611,11 +1708,27 @@
       }
     });
 
-    // Passage controls
+    // Passage controls: Inline paragraph-by-paragraph bilingual translation & Core Word Drawer shortcut
     $("btnToggleTrans").addEventListener("click", () => {
-      $("translationBox").classList.toggle("hidden");
-      $("btnToggleTrans").classList.toggle("active-toggle");
+      transMode = !transMode;
+      $("btnToggleTrans").classList.toggle("active-toggle", transMode);
+      syncInlineTranslations();
+      const day = getCurrentDay();
+      const hasParas = day && Array.isArray(day.translationParagraphs) && day.translationParagraphs.length > 0;
+      if ($("translationBox")) {
+        $("translationBox").classList.toggle("hidden", !(transMode && !hasParas));
+      }
+      showToast(transMode ? "已开启逐段双语对照译文" : "已收起双语译文");
     });
+
+    if ($("btnJumpCoreList")) {
+      $("btnJumpCoreList").addEventListener("click", () => {
+        const drawer = $("coreWordDrawer");
+        if (!drawer) return;
+        drawer.open = true;
+        smartScrollToEl(drawer, 14);
+      });
+    }
 
     $("btnReadPassage").addEventListener("click", () => {
       if (window.speechSynthesis && window.speechSynthesis.speaking) {
@@ -1734,7 +1847,7 @@
           goTab("practice");
           setTimeout(() => {
             const target = document.querySelector(`[data-pr-id="${CSS.escape(prBtn.dataset.occPractice)}"]`);
-            if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (target) smartScrollToEl(target.closest(".card") || target, 16);
           }, 80);
         }
       });
@@ -1837,7 +1950,30 @@
         return;
       }
       const row = e.target.closest("[data-inspect-word]");
-      if (row) inspectWord(row.dataset.inspectWord);
+      if (row) {
+        document.querySelectorAll("#coreWordList .core-word-row.active-row").forEach((r) => r.classList.remove("active-row"));
+        row.classList.add("active-row");
+        inspectWord(row.dataset.inspectWord);
+        const inspCard = $("wordInspector");
+        if (window.innerWidth <= 980) {
+          if (inspCard) {
+            inspCard.classList.add("mobile-insp-sheet");
+            inspCard.scrollTop = 0;
+          }
+        } else {
+          const paneRight = $("paneRight") || document.querySelector(".pane-right");
+          if (paneRight) paneRight.scrollTop = 0;
+          const wb = document.querySelector("#tab-daily .split-workbench");
+          if (wb && wb.getBoundingClientRect().top < -120) {
+            smartScrollToEl(wb, 14);
+          }
+          if (inspCard) {
+            inspCard.classList.remove("insp-flash");
+            void inspCard.offsetWidth;
+            inspCard.classList.add("insp-flash");
+          }
+        }
+      }
     });
 
     // TAB 2: Vocab Book + 1-click Auto-Lookup
@@ -1923,7 +2059,7 @@
         goTab("practice");
         setTimeout(() => {
           const target = document.querySelector(`[data-pr-id="${CSS.escape(prChip.dataset.occPractice)}"]`);
-          if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (target) smartScrollToEl(target.closest(".card") || target, 16);
         }, 80);
         return;
       }
@@ -2182,13 +2318,14 @@
         item.draft = val;
         saveState();
         renderSpeakingList();
+        const checkedTask = autoCheckTaskByTag("口语", "已保存口语作答草稿");
         if (inAi) {
           const msg = `请按雅思口语 6.0–6.5 标准帮我批改并升级这道题：\n【${item.part} · ${item.topic}】\n题目：${item.question}\n我的回答：${item.draft}`;
           navigator.clipboard.writeText(msg).then(
             () => showToast("草稿已保存并复制，直接粘贴发给 AI 批改！"),
-            () => showToast("草稿已保存！")
+            () => { if (!checkedTask) showToast("草稿已保存！"); }
           );
-        } else {
+        } else if (!checkedTask) {
           showToast("口语草稿已保存！");
         }
         return;
@@ -2492,6 +2629,7 @@
     toggleTaskDone,
     refresh: initRenderAll,
     goTab,
+    scrollToEl: smartScrollToEl,
     selectDay,
     openModal,
     closeAllModals,
