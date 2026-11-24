@@ -2151,6 +2151,47 @@
     }
   }
 
+  // ==================== VISUAL PLAYBOOK GUIDE MODAL ====================
+  function bindGuide() {
+    const btnOpen = $("btnOpenGuide");
+    const modal = $("modalGuide");
+    const seg = $("guideSegTabs");
+    if (!btnOpen || !modal) return;
+
+    function switchGuidePanel(panelKey) {
+      modal.querySelectorAll(".guide-seg-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.guideTab === panelKey);
+      });
+      modal.querySelectorAll(".guide-panel").forEach((p) => {
+        p.classList.toggle("active", p.dataset.guidePanel === panelKey);
+      });
+      const body = $("guideBody");
+      if (body) body.scrollTop = 0;
+    }
+
+    btnOpen.addEventListener("click", () => {
+      modal.classList.remove("hidden");
+    });
+
+    if (seg) {
+      seg.addEventListener("click", (e) => {
+        const btn = e.target.closest(".guide-seg-btn");
+        if (!btn) return;
+        switchGuidePanel(btn.dataset.guideTab);
+      });
+    }
+
+    modal.addEventListener("click", (e) => {
+      const jump = e.target.closest("[data-guide-jump]");
+      if (!jump) return;
+      const targetTab = jump.dataset.guideJump;
+      modal.classList.add("hidden");
+      if (targetTab && App && typeof App.goTab === "function") {
+        App.goTab(targetTab);
+      }
+    });
+  }
+
   // ==================== 启动 ====================
   function syncEmptyTabBadges() {
     document.querySelectorAll(".nav-tab .tab-count").forEach((el) => {
@@ -2173,6 +2214,7 @@
   bindWriting();
   bindSearch();
   bindAnalyzer();
+  bindGuide();
   renderAll();
 
   let pending = false;
