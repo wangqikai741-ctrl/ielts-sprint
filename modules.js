@@ -1620,9 +1620,31 @@
   const APPLE_ARROW_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
   const APPLE_CHECK_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
+  function dismissLaunchSplash(instant = false) {
+    const splash = $("launchSplash");
+    if (!splash) {
+      document.documentElement.classList.remove("has-saved-session", "pre-dark");
+      return;
+    }
+    if (instant) {
+      splash.classList.add("hidden");
+      document.documentElement.classList.remove("has-saved-session", "pre-dark");
+      return;
+    }
+    const statusEl = $("launchSplashStatus");
+    if (statusEl) statusEl.textContent = "已就绪 · 欢迎回来";
+    splash.classList.add("is-leaving");
+    setTimeout(() => {
+      splash.classList.add("hidden");
+      splash.classList.remove("is-leaving");
+      document.documentElement.classList.remove("has-saved-session", "pre-dark");
+    }, 340);
+  }
+
   function lockGate() {
     const gate = $("authGate");
     if (!gate) return;
+    dismissLaunchSplash(true);
     clearCloudSession();
     cloudState.pendingAuth = null;
     if ($("authPass")) $("authPass").value = "";
@@ -1673,8 +1695,15 @@
 
     if (isUnlocked()) {
       unlockGate(true);
-      setTimeout(() => cloudPull({ silent: true }), 120);
+      const minHold = new Promise((r) => setTimeout(r, 460));
+      const maxWait = new Promise((r) => setTimeout(r, 950));
+      const pullPromise = cloudPull({ silent: true }).catch(() => {});
+      Promise.all([minHold, Promise.race([pullPromise, maxWait])]).then(() => {
+        if (isUnlocked()) dismissLaunchSplash(false);
+        else dismissLaunchSplash(true);
+      });
     } else {
+      dismissLaunchSplash(true);
       document.body.classList.add("auth-locked");
       setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
     }

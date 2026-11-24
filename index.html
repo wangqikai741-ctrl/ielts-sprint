@@ -12,13 +12,69 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124z" />
-  <link rel="stylesheet" href="modules.css?v=20261124z" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124z" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124z" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124z" />
+  <link rel="stylesheet" href="styles.css?v=20261124aa" />
+  <link rel="stylesheet" href="modules.css?v=20261124aa" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124aa" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124aa" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124aa" />
+  <script>
+    (function () {
+      try {
+        var k = "bandup_cloud_session_v1";
+        var raw = sessionStorage.getItem(k) || localStorage.getItem(k);
+        if (raw) {
+          var obj = JSON.parse(raw);
+          if (obj && obj.token && obj.deviceId && (!obj.expires || obj.expires > Date.now())) {
+            document.documentElement.classList.add("has-saved-session");
+          }
+        }
+        var st = localStorage.getItem("ielts_sprint_workbench_v1");
+        if (st && JSON.parse(st).dark) {
+          document.documentElement.classList.add("pre-dark");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    html.has-saved-session #authGate { display: none !important; }
+    html:not(.has-saved-session) #launchSplash { display: none !important; }
+    html.has-saved-session #launchSplash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f7;
+    }
+    html.has-saved-session.pre-dark #launchSplash { background: #000000; }
+  </style>
 </head>
 <body>
+  <!-- Remembered-Device Welcome Launch Screen (Zero password-gate flash) -->
+  <div class="launch-splash" id="launchSplash" aria-live="polite">
+    <div class="launch-ambient" aria-hidden="true"></div>
+    <div class="launch-inner">
+      <div class="launch-mark-wrap">
+        <div class="launch-halo"></div>
+        <div class="launch-squircle">
+          <svg class="bandup-mark-svg" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="currentColor" fill-opacity="0.1"/>
+            <g stroke="currentColor" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
+              <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
+              <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="launch-brand">BandUp</div>
+      <div class="launch-welcome">Welcome back, Kai</div>
+      <div class="launch-bar"><span class="launch-bar-runner"></span></div>
+      <div class="launch-status" id="launchSplashStatus">已记住此设备 · 正在同步云端进度…</div>
+    </div>
+  </div>
+
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
   <div class="auth-gate" id="authGate">
     <div class="auth-aurora-canvas">
@@ -1420,8 +1476,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124z"></script>
-  <script src="app.js?v=20261124z"></script>
-  <script src="modules.js?v=20261124z"></script>
+  <script src="data.js?v=20261124aa"></script>
+  <script src="app.js?v=20261124aa"></script>
+  <script src="modules.js?v=20261124aa"></script>
 </body>
 </html>
