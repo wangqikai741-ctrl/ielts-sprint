@@ -936,6 +936,183 @@ mark.user-hl-pink {
   margin-bottom: 8px;
 }
 
+/* ==================== CROSS-REFERENCE & AUTO-LOOKUP UI ==================== */
+.insp-occ-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.occ-item {
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  border-radius: 9px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.occ-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.occ-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.occ-badge:hover {
+  border-color: var(--accent);
+}
+.occ-badge.is-practice {
+  border-color: rgba(13, 148, 136, 0.35);
+  color: #0d9488;
+}
+body.dark .occ-badge.is-practice {
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.35);
+}
+.occ-badge.is-day {
+  border-color: rgba(0, 113, 227, 0.3);
+  color: var(--accent);
+}
+.occ-meta {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.occ-snippet {
+  font-family: Arial, -apple-system, sans-serif;
+  font-size: 11.8px;
+  line-height: 1.5;
+  color: var(--text-sub);
+}
+.occ-snippet mark {
+  background: rgba(250, 204, 21, 0.36);
+  color: var(--text);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.occ-empty-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  padding: 4px 2px 0;
+}
+
+/* Vocab Book enhancements */
+.vb-phonetic {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-left: 5px;
+}
+.vb-syn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.vb-syn-pill {
+  font-family: Arial, -apple-system, sans-serif;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-sub);
+  cursor: pointer;
+}
+.vb-syn-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.vb-occ-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+.vb-occ-details {
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+.vb-occ-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  user-select: none;
+}
+.vb-occ-details summary:hover {
+  color: var(--text);
+}
+.vb-occ-details .occ-snippet {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+
+/* Global search occurrences & online live dict card */
+.sr-occ-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.sr-occ-pill {
+  font-size: 10.5px;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-sub);
+}
+.sr-occ-pill.is-pr {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.3);
+}
+body.dark .sr-occ-pill.is-pr {
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.3);
+}
+.sr-online-card {
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.sr-online-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.az-live-box {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .insp-note-wrap {
   margin-top: 8px;
   padding-top: 8px;
@@ -1187,7 +1364,7 @@ mark.user-hl-pink {
 
 .vocab-add-bar {
   display: grid;
-  grid-template-columns: 1.1fr 1.2fr 0.8fr 1.3fr auto;
+  grid-template-columns: 1.15fr 1.1fr 0.78fr 1.15fr auto auto;
   gap: 8px;
   margin-bottom: 14px;
 }

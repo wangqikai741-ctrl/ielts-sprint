@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124u" />
-  <link rel="stylesheet" href="modules.css?v=20261124u" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124u" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124u" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124u" />
+  <link rel="stylesheet" href="styles.css?v=20261124v" />
+  <link rel="stylesheet" href="modules.css?v=20261124v" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124v" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124v" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124v" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -356,6 +356,13 @@
               <p class="insp-ex-cn" id="inspExampleCn"></p>
             </div>
             <p class="insp-tip hidden" id="inspTip"></p>
+            <div class="insp-section hidden" id="inspOccBox">
+              <div class="insp-sec-head">
+                <span>真题与串文出处</span>
+                <span class="insp-sec-hint" id="inspOccCount"></span>
+              </div>
+              <div class="insp-occ-list" id="inspOccList"></div>
+            </div>
             <div class="insp-note-wrap hidden" id="inspNoteWrap">
               <label class="field-label">我的记忆笔记 / 自填翻译：</label>
               <div class="insp-note-row">
@@ -373,17 +380,20 @@
             </summary>
             <div class="quick-add-body">
               <div class="quick-add-grid">
-                <input type="text" id="quickWord" class="text-input input-sm" placeholder="英文单词/短语" />
-                <input type="text" id="quickMeaning" class="text-input input-sm" placeholder="中文翻译" />
+                <input type="text" id="quickWord" class="text-input input-sm" placeholder="输入英文即可（中文可留空自动查词）" />
+                <input type="text" id="quickMeaning" class="text-input input-sm" placeholder="中文翻译（留空自动补全）" />
                 <select id="quickCategory" class="select-input select-sm">
                   <option value="雅思哥生词">雅思哥生词</option>
                   <option value="听力拼写">听力拼写</option>
                   <option value="阅读同义">阅读同义</option>
                   <option value="口语活词">口语活词</option>
                 </select>
-                <input type="text" id="quickNote" class="text-input input-sm" placeholder="同义替换 / 易错拼写 / 备注（选填）" />
+                <input type="text" id="quickNote" class="text-input input-sm" placeholder="同义替换 / 备注（留空自动补全）" />
               </div>
-              <button class="btn btn-primary btn-sm full-width" id="btnQuickAddWord">记录到我的生词本</button>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline btn-sm" id="btnQuickLookup" type="button" title="自动拉取音标、中文释义与高频同义词">自动查词</button>
+                <button class="btn btn-primary btn-sm" id="btnQuickAddWord" style="flex:1;">记录到我的生词本</button>
+              </div>
             </div>
           </details>
 
@@ -423,15 +433,16 @@
 
         <!-- Inline Quick Add -->
         <div class="vocab-add-bar">
-          <input type="text" id="vbWord" class="text-input" placeholder="英文单词/词组（如：deteriorate）" />
-          <input type="text" id="vbMeaning" class="text-input" placeholder="中文翻译（如：恶化，变坏）" />
+          <input type="text" id="vbWord" class="text-input" placeholder="输入英文即可（如 deteriorate，中文可留空自动补全）" />
+          <input type="text" id="vbMeaning" class="text-input" placeholder="中文翻译（留空自动查词）" />
           <select id="vbCategory" class="select-input">
             <option value="雅思哥生词">雅思哥生词</option>
             <option value="听力拼写">听力拼写</option>
             <option value="阅读同义">阅读同义</option>
             <option value="口语活词">口语活词</option>
           </select>
-          <input type="text" id="vbNote" class="text-input" placeholder="同义词 / 出处（如：剑10 T1 P1）" />
+          <input type="text" id="vbNote" class="text-input" placeholder="同义替换 / 出处（留空自动补全）" />
+          <button class="btn btn-outline" id="btnVbLookup" type="button">自动查词</button>
           <button class="btn btn-primary" id="btnAddVocab">添加</button>
         </div>
 
@@ -978,10 +989,10 @@
                   </div>
                   <button class="guide-jump-btn" data-guide-jump="daily">去今日串文 →</button>
                 </div>
-                <p>点粗体词看同义替换与避坑提示；划词用 <b>黄点</b> 标好表达、<b>红点</b> 标易错词；点「英音朗读」跟读 2 遍，再用「拼写挖空」手打默写 20 个听力拼写词，错词一键记入生词本。</p>
+                <p>点粗体词看标准释义、同义替换与真题出处；划词用 <b>黄点</b> 标好表达、<b>红点</b> 标易错词，点「记生词」<b>自动补全音标、中文和同义词</b>；跟读 2 遍后再用「拼写挖空」默写 20 个听力词。</p>
                 <div class="gt-chips">
-                  <span class="gt-chip">点击粗体查释义</span>
-                  <span class="gt-chip">英音跟读 2 遍</span>
+                  <span class="gt-chip">点词看标准替换</span>
+                  <span class="gt-chip">划词一键自动记词</span>
                   <span class="gt-chip">拼写挖空过关</span>
                   <span class="gt-chip is-check">勾选任务 1</span>
                 </div>
@@ -993,16 +1004,16 @@
               <div class="gt-content">
                 <div class="gt-head">
                   <div>
-                    <h4>雅思哥机考刷真题 + 网站录入复盘</h4>
+                    <h4>雅思哥机考刷真题 + 真题雷达自动建库</h4>
                     <span class="gt-dur">2 – 2.5 小时 · 任务 2 & 3</span>
                   </div>
                   <button class="guide-jump-btn" data-guide-jump="practice">去听读记录 →</button>
                 </div>
-                <p>在电脑端 <b>雅思哥 Pro</b> 做今日对应的剑桥听力 & 阅读；错题先盲听 2 遍找连读/干扰项，阅读核对同义替换。回到本网站录入正确率与错因，生词多时直接用「真题雷达」粘贴原文批量筛词。</p>
+                <p>在电脑端 <b>雅思哥 Pro</b> 做剑桥听力 & 阅读；做完顺手把原文贴进顶部「真题雷达」点一次 <b>存入精听精读</b>：点新词自动查释义一键收录，以后全站查到该词都会<b>自动显示在剑雅哪本书哪篇出现过 + 原句</b>。</p>
                 <div class="gt-chips">
                   <span class="gt-chip">雅思哥 Pro 机考</span>
-                  <span class="gt-chip">录入错因与替换</span>
-                  <span class="gt-chip">真题雷达筛词</span>
+                  <span class="gt-chip">真题雷达一键入库</span>
+                  <span class="gt-chip">全站自动溯源原句</span>
                   <span class="gt-chip is-check">勾选任务 2 & 3</span>
                 </div>
               </div>
@@ -1133,16 +1144,16 @@
 
           <div class="guide-tips-strip">
             <div class="gts-item">
-              <b>全局查词</b>
-              <span>按快捷键 <kbd>/</kbd> 秒查全部串词与同义替换</span>
+              <b>自动查词（零手填）</b>
+              <span>在随手记 / 生词本 / 划词 / 真题雷达只输英文，1 秒自动补全音标、中文与同义词</span>
             </div>
             <div class="gts-item">
-              <b>真题雷达</b>
-              <span>粘贴剑桥原文，自动标出熟词与未背新词</span>
+              <b>真题自动溯源</b>
+              <span>真题雷达存过剑桥原文后，全站任意位置点词自动列出「Day 几 + 剑雅出处 + 原句」</span>
             </div>
             <div class="gts-item">
-              <b>Mac + iPhone 同步</b>
-              <span>iPhone Safari 点「添加到主屏幕」，最多 4 设备在线</span>
+              <b>错词滚动复现</b>
+              <span>AI 每天主动推 50 词高频串文；晚间交未掌握生词后，次日自动编进新故事反复强化</span>
             </div>
           </div>
         </div>
@@ -1279,8 +1290,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124s"></script>
-  <script src="app.js?v=20261124s"></script>
-  <script src="modules.js?v=20261124s"></script>
+  <script src="data.js?v=20261124v"></script>
+  <script src="app.js?v=20261124v"></script>
+  <script src="modules.js?v=20261124v"></script>
 </body>
 </html>

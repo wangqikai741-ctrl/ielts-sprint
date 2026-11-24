@@ -180,6 +180,338 @@
     return state.vocabBook.some((v) => v.word.toLowerCase() === clean);
   }
 
+  // ==================== AUTO-DICTIONARY & CROSS-REFERENCE ENGINE ====================
+  const DICT_CACHE_KEY = "bandup_dict_cache_v1";
+  let dictCache = null;
+  function getDictCache() {
+    if (dictCache) return dictCache;
+    try {
+      dictCache = JSON.parse(localStorage.getItem(DICT_CACHE_KEY) || "{}") || {};
+    } catch (e) {
+      dictCache = {};
+    }
+    return dictCache;
+  }
+  function saveDictCache(key, val) {
+    const cache = getDictCache();
+    cache[key] = val;
+    const keys = Object.keys(cache);
+    if (keys.length > 320) {
+      keys.slice(0, keys.length - 300).forEach((k) => delete cache[k]);
+    }
+    try {
+      localStorage.setItem(DICT_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) { /* ignore quota */ }
+  }
+
+  function findCoreWordAcrossDays(rawTerm) {
+    const low = String(rawTerm || "").trim().toLowerCase();
+    if (!low) return null;
+    for (const d of state.days || []) {
+      for (const w of d.words || []) {
+        if (w.word.toLowerCase() === low) return { ...w, dayId: d.id, dayLabel: d.label };
+        if (Array.isArray(w.forms) && w.forms.some((f) => String(f).toLowerCase() === low)) {
+          return { ...w, dayId: d.id, dayLabel: d.label };
+        }
+      }
+    }
+    return null;
+  }
+
+  function fetchWithTimeout(url, ms = 5500) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, { signal: ctrl.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null)
+      .finally(() => clearTimeout(timer));
+  }
+
+  function mapPosShort(pos) {
+    const p = String(pos || "").toLowerCase();
+    if (p === "noun") return "n.";
+    if (p === "verb") return "v.";
+    if (p === "adjective") return "adj.";
+    if (p === "adverb") return "adv.";
+    if (p === "preposition") return "prep.";
+    if (p === "conjunction") return "conj.";
+    return p ? p + "." : "";
+  }
+
+  async function lookupWordOnline(rawTerm) {
+    const clean = String(rawTerm || "").trim().replace(/\s+/g, " ");
+    if (!clean) return null;
+    const key = clean.toLowerCase();
+
+    // 1) Local curated IELTS core word hit (0ms)
+    const coreHit = findCoreWordAcrossDays(key);
+    if (coreHit) {
+      const synList = Array.isArray(coreHit.synonyms)
+        ? coreHit.synonyms.map((s) => (typeof s === "string" ? s : s.en)).filter(Boolean)
+        : [];
+      const synNote = Array.isArray(coreHit.synonyms) && coreHit.synonyms.length
+        ? "同义替换：" + coreHit.synonyms.map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "(" + s.cn + ")" : ""}`)).join(" / ")
+        : "";
+      return {
+        word: coreHit.word,
+        phonetic: coreHit.phonetic || "",
+        pos: coreHit.pos || "",
+        cn: coreHit.cn || "",
+        enDef: coreHit.enDef || "",
+        synonyms: synList,
+        example: coreHit.example || "",
+        noteText: [synNote, coreHit.tip || ""].filter(Boolean).join(" · "),
+        source: "ielts-core"
+      };
+    }
+
+    // 2) LocalStorage cache hit
+    const cached = getDictCache()[key];
+    if (cached && (cached.cn || cached.enDef)) return cached;
+
+    const isSingleWord = /^[a-z][a-z'-]*$/i.test(clean);
+    const enc = encodeURIComponent(clean);
+
+    // 3) Parallel free public dictionary + Datamuse synonyms + MyMemory EN->ZH
+    const [dictData, dmSyn, transData] = await Promise.all([
+      isSingleWord ? fetchWithTimeout(`https://api.dictionaryapi.dev/api/v2/entries/en/${enc}`, 5500) : Promise.resolve(null),
+      isSingleWord ? fetchWithTimeout(`https://api.datamuse.com/words?rel_syn=${enc}&max=6`, 4500) : Promise.resolve(null),
+      fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 5500)
+    ]);
+
+    let phonetic = "";
+    let pos = "";
+    let enDef = "";
+    let example = "";
+    const synSet = new Set();
+
+    if (Array.isArray(dictData) && dictData[0]) {
+      const entry = dictData[0];
+      const phObj = (entry.phonetics || []).find((p) => p.text && (p.audio || "").includes("-uk"))
+        || (entry.phonetics || []).find((p) => p.text);
+      phonetic = (phObj && phObj.text) || entry.phonetic || "";
+      const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
+      if (meanings[0]) {
+        pos = mapPosShort(meanings[0].partOfSpeech);
+        const defObj = (meanings[0].definitions || [])[0];
+        if (defObj) {
+          enDef = defObj.definition || "";
+          example = defObj.example || "";
+        }
+      }
+      meanings.forEach((m) => {
+        (m.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
+        (m.definitions || []).forEach((d) => {
+          if (!example && d.example) example = d.example;
+          (d.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
+        });
+      });
+    }
+
+    if (Array.isArray(dmSyn)) {
+      dmSyn.forEach((item) => {
+        if (item && item.word && item.word.toLowerCase() !== key) synSet.add(item.word);
+      });
+    }
+
+    // Fallback Datamuse meaning-like words if direct synonyms are sparse
+    if (isSingleWord && synSet.size < 3) {
+      const dmMl = await fetchWithTimeout(`https://api.datamuse.com/words?ml=${enc}&max=5`, 4000);
+      if (Array.isArray(dmMl)) {
+        dmMl.forEach((item) => {
+          if (item && item.word && item.word.toLowerCase() !== key && /^[a-z\s-]+$/i.test(item.word)) {
+            synSet.add(item.word);
+          }
+        });
+      }
+    }
+
+    let cn = "";
+    if (transData && transData.responseData && transData.responseData.translatedText) {
+      const rawCn = String(transData.responseData.translatedText).trim();
+      if (rawCn && rawCn.toLowerCase() !== key && !/MYMEMORY WARNING/i.test(rawCn)) {
+        cn = rawCn.replace(/[。.!！]+$/, "");
+      }
+    }
+
+    const synonyms = Array.from(synSet).slice(0, 5);
+    if (!cn && !enDef && !synonyms.length) return null;
+
+    const noteParts = [];
+    if (synonyms.length) noteParts.push(`同义替换：${synonyms.join(" / ")}`);
+    if (example) noteParts.push(`例句：${example}`);
+
+    const result = {
+      word: clean,
+      phonetic,
+      pos,
+      cn: cn || enDef,
+      enDef,
+      synonyms,
+      example,
+      noteText: noteParts.join(" · "),
+      source: "online"
+    };
+    saveDictCache(key, result);
+    return result;
+  }
+
+  function buildWordMatchRegex(rawWord, extraForms = []) {
+    const variants = new Set();
+    const addForms = (w) => {
+      const t = String(w || "").trim().toLowerCase();
+      if (!t || t.length < 2) return;
+      variants.add(t);
+      if (/^[a-z]+$/.test(t)) {
+        if (t.endsWith("y") && t.length > 3) {
+          variants.add(t.slice(0, -1) + "ies");
+          variants.add(t.slice(0, -1) + "ied");
+        } else if (t.endsWith("ies") && t.length > 4) {
+          variants.add(t.slice(0, -3) + "y");
+        }
+        variants.add(t + "s");
+        variants.add(t + "es");
+        variants.add(t + "ed");
+        variants.add(t + "ing");
+        if (t.endsWith("e") && t.length > 3) {
+          variants.add(t + "d");
+          variants.add(t.slice(0, -1) + "ing");
+        }
+        if (t.endsWith("s") && t.length > 4) variants.add(t.slice(0, -1));
+        if (t.endsWith("ed") && t.length > 5) {
+          variants.add(t.slice(0, -2));
+          variants.add(t.slice(0, -1));
+        }
+        if (t.endsWith("ing") && t.length > 6) {
+          variants.add(t.slice(0, -3));
+          variants.add(t.slice(0, -3) + "e");
+        }
+      }
+    };
+    addForms(rawWord);
+    (extraForms || []).forEach(addForms);
+    const list = Array.from(variants)
+      .sort((a, b) => b.length - a.length)
+      .map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (!list.length) return null;
+    return new RegExp(`\\b(${list.join("|")})\\b`, "gi");
+  }
+
+  function extractSnippetWithMark(rawText, regex) {
+    const clean = String(rawText || "").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+    if (!clean || !regex) return "";
+    const sentences = clean.split(/(?<=[.!?。！？])\s+/);
+    let picked = "";
+    for (const sent of sentences) {
+      regex.lastIndex = 0;
+      if (regex.test(sent)) {
+        picked = sent;
+        break;
+      }
+    }
+    if (!picked) {
+      regex.lastIndex = 0;
+      const m = regex.exec(clean);
+      if (!m) return "";
+      const start = Math.max(0, m.index - 65);
+      const end = Math.min(clean.length, m.index + m[0].length + 95);
+      picked = (start > 0 ? "…" : "") + clean.slice(start, end) + (end < clean.length ? "…" : "");
+    }
+    if (picked.length > 210) picked = picked.slice(0, 206) + "…";
+    regex.lastIndex = 0;
+    return escapeHtml(picked).replace(regex, "<mark>$1</mark>");
+  }
+
+  function findWordOccurrences(rawWord, extraForms = []) {
+    const regex = buildWordMatchRegex(rawWord, extraForms);
+    if (!regex) return { totalSources: 0, days: [], practices: [] };
+
+    const daysHits = [];
+    (state.days || []).forEach((d) => {
+      const fullText = (d.passageParagraphs || []).join(" ").replace(/\*\*/g, "");
+      regex.lastIndex = 0;
+      const matches = fullText.match(regex);
+      const inWordList = (d.words || []).some((w) => w.word.toLowerCase() === String(rawWord || "").trim().toLowerCase());
+      if ((matches && matches.length) || inWordList) {
+        daysHits.push({
+          kind: "day",
+          dayId: d.id,
+          label: d.label || d.id,
+          shortLabel: (d.label || d.id).split(" · ")[0],
+          count: matches ? matches.length : 1,
+          snippetHtml: extractSnippetWithMark(fullText, regex)
+        });
+      }
+    });
+
+    const practiceHits = [];
+    (state.practiceRecords || []).forEach((r) => {
+      const excerpt = String(r.excerpt || "");
+      const synRaw = String(r.synonyms || "");
+      const notesRaw = String(r.notes || "");
+      regex.lastIndex = 0;
+      const exMatches = excerpt.match(regex) || [];
+      const synLines = synRaw
+        .split(/\n+/)
+        .map((l) => l.trim())
+        .filter((l) => {
+          regex.lastIndex = 0;
+          return l && regex.test(l);
+        });
+      regex.lastIndex = 0;
+      const noteHit = regex.test(notesRaw);
+      if (exMatches.length || synLines.length || noteHit) {
+        practiceHits.push({
+          kind: "practice",
+          recId: r.id,
+          type: r.type || "reading",
+          typeLabel: r.type === "listening" ? "听力" : "阅读",
+          source: r.source || "剑桥真题",
+          date: r.date || "",
+          count: exMatches.length || synLines.length || 1,
+          snippetHtml: exMatches.length ? extractSnippetWithMark(excerpt, regex) : (synLines[0] ? escapeHtml(synLines[0]).replace(regex, "<mark>$1</mark>") : ""),
+          synLines
+        });
+      }
+    });
+
+    return {
+      totalSources: daysHits.length + practiceHits.length,
+      days: daysHits,
+      practices: practiceHits
+    };
+  }
+
+  async function enrichVocabById(vocabId, silent = false) {
+    const item = state.vocabBook.find((v) => v.id === vocabId);
+    if (!item) return null;
+    const res = await lookupWordOnline(item.word);
+    if (!res) {
+      if (!silent) showToast(`未能在线查到「${item.word}」，可点击编辑手动补充`);
+      return null;
+    }
+    const needMeaning = !item.meaning || item.meaning === "（待补充翻译）" || item.meaning === "正在自动查词…";
+    if (needMeaning && res.cn) {
+      item.meaning = `${res.pos ? res.pos + " " : ""}${res.cn}`;
+    }
+    if (res.phonetic && !item.phonetic) item.phonetic = res.phonetic;
+    if (res.enDef && !item.enDef) item.enDef = res.enDef;
+    if (res.example && !item.example) item.example = res.example;
+    if (Array.isArray(res.synonyms) && res.synonyms.length && (!Array.isArray(item.synonyms) || !item.synonyms.length)) {
+      item.synonyms = res.synonyms;
+    }
+    if (!item.note && res.noteText) {
+      item.note = res.noteText;
+    } else if (item.note && res.synonyms && res.synonyms.length && !item.note.includes("同义")) {
+      item.note = `同义替换：${res.synonyms.join(" / ")} · ${item.note}`;
+    }
+    saveState();
+    renderVocabBook();
+    renderCoreWordList();
+    if (!silent) showToast(`已自动补全「${item.word}」的释义与同义词`);
+    return item;
+  }
+
   // ==================== TABS & THEME ====================
   function initTabs() {
     document.querySelectorAll(".nav-tab").forEach((btn) => {
@@ -444,6 +776,42 @@
       $("inspTip").classList.add("hidden");
     }
 
+    // Cross-reference occurrences across all Days & saved Cambridge Listening/Reading records
+    const occBox = $("inspOccBox");
+    const occList = $("inspOccList");
+    const occCount = $("inspOccCount");
+    if (occBox && occList) {
+      const occ = findWordOccurrences(wObj.word, wObj.forms || []);
+      const rows = [];
+      occ.practices.forEach((p) => {
+        rows.push(`
+          <div class="occ-item">
+            <div class="occ-item-head">
+              <button type="button" class="occ-badge is-practice" data-occ-practice="${escapeHtml(p.recId)}">${escapeHtml(p.source)} · ${escapeHtml(p.typeLabel)}</button>
+              <span class="occ-meta">出现 ${p.count} 次</span>
+            </div>
+            ${p.snippetHtml ? `<div class="occ-snippet">${p.snippetHtml}</div>` : ""}
+          </div>
+        `);
+      });
+      occ.days.forEach((d) => {
+        rows.push(`
+          <div class="occ-item">
+            <div class="occ-item-head">
+              <button type="button" class="occ-badge is-day" data-occ-day="${escapeHtml(d.dayId)}">${escapeHtml(d.label)}</button>
+              <span class="occ-meta">串文 · ${d.count} 次</span>
+            </div>
+          </div>
+        `);
+      });
+      if (!occ.practices.length) {
+        rows.push(`<div class="occ-empty-hint">在顶部「真题雷达」或「精听精读」存入剑桥原文后，这里会自动关联剑雅具体书目、题号与原句。</div>`);
+      }
+      if (occCount) occCount.textContent = occ.practices.length ? `串文 ${occ.days.length} · 真题 ${occ.practices.length}` : `串文 ${occ.days.length} 处`;
+      occList.innerHTML = rows.join("");
+      occBox.classList.remove("hidden");
+    }
+
     $("btnInspSpeak").disabled = false;
     $("btnInspSave").disabled = false;
     const saved = isWordInVocabBook(wObj.word);
@@ -456,9 +824,17 @@
   function addWordToVocabBook(entry) {
     const clean = entry.word.trim();
     if (!clean) return false;
+    const rawMeaning = (entry.meaning || "").trim();
+    const autoEnrichNeeded = entry.autoEnrich !== false && (!rawMeaning || rawMeaning === "（待补充翻译）");
     const existing = state.vocabBook.find((v) => v.word.toLowerCase() === clean.toLowerCase());
     if (existing) {
-      if (entry.meaning && !existing.meaning) existing.meaning = entry.meaning;
+      if (rawMeaning && (!existing.meaning || existing.meaning === "（待补充翻译）" || existing.meaning === "正在自动查词…")) {
+        existing.meaning = rawMeaning;
+      }
+      if (entry.phonetic && !existing.phonetic) existing.phonetic = entry.phonetic;
+      if (Array.isArray(entry.synonyms) && entry.synonyms.length) existing.synonyms = entry.synonyms;
+      if (entry.enDef && !existing.enDef) existing.enDef = entry.enDef;
+      if (entry.example && !existing.example) existing.example = entry.example;
       if (entry.note) existing.note = entry.note;
       existing.mastered = false;
       saveState();
@@ -467,13 +843,21 @@
       refreshSavedWordHighlights();
       updateBadges();
       showToast(`已更新生词本中的「${clean}」`);
-      return true;
+      if (autoEnrichNeeded || !existing.meaning || existing.meaning === "（待补充翻译）") {
+        enrichVocabById(existing.id, true);
+      }
+      return existing.id;
     }
+    const newId = "v-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     state.vocabBook.unshift({
-      id: "v-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+      id: newId,
       word: clean,
-      meaning: (entry.meaning || "").trim() || "（待补充翻译）",
+      phonetic: (entry.phonetic || "").trim(),
+      meaning: rawMeaning || (autoEnrichNeeded ? "正在自动查词…" : "（待补充翻译）"),
       category: entry.category || "雅思哥生词",
+      synonyms: Array.isArray(entry.synonyms) ? entry.synonyms : [],
+      enDef: (entry.enDef || "").trim(),
+      example: (entry.example || "").trim(),
       note: (entry.note || "").trim(),
       mastered: false,
       createdAt: todayStr()
@@ -483,8 +867,11 @@
     renderCoreWordList();
     refreshSavedWordHighlights();
     updateBadges();
-    showToast(`已收录「${clean}」到我的生词本`);
-    return true;
+    showToast(autoEnrichNeeded ? `已收录「${clean}」，正在自动补全释义与同义词…` : `已收录「${clean}」到我的生词本`);
+    if (autoEnrichNeeded) {
+      enrichVocabById(newId, false);
+    }
+    return newId;
   }
 
   // ==================== IELTS HIGHLIGHTING ENGINE ====================
@@ -622,11 +1009,26 @@
     }
 
     container.innerHTML = filtered
-      .map((v) => `
+      .map((v) => {
+        const occ = findWordOccurrences(v.word);
+        const occBadges = [
+          ...occ.practices.map((p) => `<span class="occ-badge is-practice" data-occ-practice="${escapeHtml(p.recId)}">${escapeHtml(p.source)} · ${escapeHtml(p.typeLabel)}</span>`),
+          ...occ.days.map((d) => `<span class="occ-badge is-day" data-occ-day="${escapeHtml(d.dayId)}">${escapeHtml(d.shortLabel)}</span>`)
+        ].join("");
+        const occSnippets = [
+          ...occ.practices.filter((p) => p.snippetHtml).map((p) => `<div class="occ-snippet"><b>${escapeHtml(p.source)}：</b>${p.snippetHtml}</div>`),
+          ...occ.days.filter((d) => d.snippetHtml).slice(0, 1).map((d) => `<div class="occ-snippet"><b>${escapeHtml(d.shortLabel)}：</b>${d.snippetHtml}</div>`)
+        ].join("");
+        const synChips = Array.isArray(v.synonyms) && v.synonyms.length
+          ? `<div class="vb-syn-row">${v.synonyms.map((s) => `<button type="button" class="vb-syn-pill" data-vb-speak="${escapeHtml(s)}" title="点击朗读">${escapeHtml(s)}</button>`).join("")}</div>`
+          : "";
+        const needsEnrich = !v.phonetic || !Array.isArray(v.synonyms) || !v.synonyms.length || v.meaning === "（待补充翻译）";
+        return `
         <div class="vocab-card ${v.mastered ? "mastered" : ""}" data-vid="${escapeHtml(v.id)}">
           <div class="vocab-card-top">
             <div>
               <span class="vocab-word-title">${escapeHtml(v.word)}</span>
+              ${v.phonetic ? `<span class="vb-phonetic">${escapeHtml(v.phonetic)}</span>` : ""}
               <span class="cat-badge ${escapeHtml(v.category)}">${escapeHtml(v.category)}</span>
             </div>
             <button class="btn btn-ghost btn-sm" data-vb-speak="${escapeHtml(v.word)}" title="英音朗读">${SF.speaker}</button>
@@ -634,17 +1036,22 @@
           <div class="${hideVocabCn ? "vocab-meaning-blur" : ""}" onclick="this.classList.toggle('revealed')">
             ${escapeHtml(v.meaning)}
           </div>
+          ${synChips}
           ${v.note ? `<div class="vocab-note-text">${escapeHtml(v.note)}</div>` : ""}
+          ${occBadges ? `<div class="vb-occ-bar">${occBadges}</div>` : ""}
+          ${occSnippets ? `<details class="vb-occ-details"><summary>查看原句出处 (${occ.practices.length + occ.days.length})</summary>${occSnippets}</details>` : ""}
           <div class="vocab-card-actions">
             <span class="muted">${escapeHtml(v.createdAt || "")}</span>
             <div>
+              ${needsEnrich ? `<button class="btn btn-ghost btn-sm" data-vb-enrich="${escapeHtml(v.id)}">自动补全</button>` : ""}
               <button class="btn btn-outline btn-sm" data-vb-toggle="${escapeHtml(v.id)}">${v.mastered ? "标为未掌握" : "✓ 已掌握"}</button>
               <button class="btn btn-ghost btn-sm" data-vb-edit="${escapeHtml(v.id)}">编辑</button>
               <button class="btn btn-danger-ghost btn-sm" data-vb-del="${escapeHtml(v.id)}">删</button>
             </div>
           </div>
         </div>
-      `)
+      `;
+      })
       .join("");
   }
 
@@ -930,27 +1337,37 @@
       if (e.target.closest("#hlAddWordBtn")) {
         const text = savedSelectionRange ? savedSelectionRange.toString().trim() : "";
         if (text) {
-          if ($("quickAddDetails")) $("quickAddDetails").open = true;
-          $("quickWord").value = text;
           const day = getCurrentDay();
-          const matched = findWordObjInDay(day, text);
+          const matched = findWordObjInDay(day, text) || findCoreWordAcrossDays(text);
           if (matched) {
-            $("quickMeaning").value = matched.cn;
-            $("quickCategory").value = matched.category;
-            $("quickNote").value = matched.tip || "";
+            const synList = Array.isArray(matched.synonyms)
+              ? matched.synonyms.map((s) => (typeof s === "string" ? s : s.en)).filter(Boolean)
+              : [];
+            const synNote = Array.isArray(matched.synonyms) && matched.synonyms.length
+              ? "同义替换：" + matched.synonyms.map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "(" + s.cn + ")" : ""}`)).join(" / ")
+              : "";
+            addWordToVocabBook({
+              word: matched.word,
+              phonetic: matched.phonetic || "",
+              meaning: `${matched.pos ? matched.pos + " " : ""}${matched.cn}`,
+              category: matched.category || "听力拼写",
+              synonyms: synList,
+              enDef: matched.enDef || "",
+              example: matched.example || "",
+              note: [synNote, matched.tip || ""].filter(Boolean).join(" · "),
+              autoEnrich: false
+            });
           } else {
-            $("quickMeaning").value = "";
-            $("quickMeaning").focus();
-          }
-          // Switch to daily tab quick box if on daily, or add directly on practice tab
-          if ($("tab-daily").classList.contains("active")) {
-            $("quickMeaning").focus();
-            showToast(`已将「${text}」填入右侧记生词框，填好中文点击记录即可`);
-          } else {
-            const cn = prompt(`将「${text}」加入生词本，请输入中文翻译（可留空稍后补）：`, "");
-            if (cn !== null) {
-              addWordToVocabBook({ word: text, meaning: cn, category: "雅思哥生词", note: "来自精听/精读原文高亮" });
-            }
+            const fromPr = activeHighlightContainer && activeHighlightContainer.dataset.prId
+              ? state.practiceRecords.find((r) => r.id === activeHighlightContainer.dataset.prId)
+              : null;
+            addWordToVocabBook({
+              word: text,
+              meaning: "",
+              category: fromPr ? (fromPr.type === "listening" ? "听力拼写" : "阅读同义") : "雅思哥生词",
+              note: fromPr ? `来自真题：${fromPr.source}` : (day ? `来自串文：${(day.label || "").split(" · ")[0]}` : ""),
+              autoEnrich: true
+            });
           }
         }
         hideHlToolbar();
@@ -1125,18 +1542,46 @@
     $("btnInspSave").addEventListener("click", () => {
       if (!currentInspectedWord) return;
       const customNote = $("inspNoteInput").value.trim();
+      const synList = Array.isArray(currentInspectedWord.synonyms)
+        ? currentInspectedWord.synonyms.map((s) => (typeof s === "string" ? s : s.en)).filter(Boolean)
+        : [];
       const synSummary = Array.isArray(currentInspectedWord.synonyms) && currentInspectedWord.synonyms.length
         ? "同义替换：" + currentInspectedWord.synonyms.map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "(" + s.cn + ")" : ""}`)).join(" / ")
         : "";
       const autoNote = [synSummary, currentInspectedWord.tip || ""].filter(Boolean).join(" · ");
       addWordToVocabBook({
         word: currentInspectedWord.word,
+        phonetic: currentInspectedWord.phonetic || "",
         meaning: `${currentInspectedWord.pos ? currentInspectedWord.pos + " " : ""}${currentInspectedWord.cn}`,
         category: currentInspectedWord.category,
-        note: customNote || autoNote
+        synonyms: synList,
+        enDef: currentInspectedWord.enDef || "",
+        example: currentInspectedWord.example || "",
+        note: customNote || autoNote,
+        autoEnrich: false
       });
       $("btnInspSave").textContent = "✓ 已在生词本";
     });
+
+    const occBoxEl = $("inspOccBox");
+    if (occBoxEl) {
+      occBoxEl.addEventListener("click", (e) => {
+        const dayBtn = e.target.closest("[data-occ-day]");
+        if (dayBtn) {
+          selectDay(dayBtn.dataset.occDay);
+          goTab("daily");
+          return;
+        }
+        const prBtn = e.target.closest("[data-occ-practice]");
+        if (prBtn) {
+          goTab("practice");
+          setTimeout(() => {
+            const target = document.querySelector(`[data-pr-id="${CSS.escape(prBtn.dataset.occPractice)}"]`);
+            if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 80);
+        }
+      });
+    }
 
     const synBoxEl = $("inspSynBox");
     if (synBoxEl) {
@@ -1164,7 +1609,24 @@
       showToast("记忆笔记已保存");
     });
 
-    // Quick add word
+    // Quick add word + 1-click Auto-Lookup
+    async function fillQuickLookup() {
+      const w = $("quickWord").value.trim();
+      if (!w) return showToast("请先输入英文单词");
+      const btn = $("btnQuickLookup");
+      if (btn) { btn.disabled = true; btn.textContent = "查词中…"; }
+      const res = await lookupWordOnline(w);
+      if (btn) { btn.disabled = false; btn.textContent = "自动查词"; }
+      if (!res) return showToast(`未能在线查到「${w}」，可手动填写`);
+      $("quickMeaning").value = `${res.pos ? res.pos + " " : ""}${res.cn || ""}`.trim();
+      if (!$("quickNote").value.trim() && res.noteText) $("quickNote").value = res.noteText;
+      showToast(`已查到「${w}」的释义与同义词`);
+    }
+    if ($("btnQuickLookup")) $("btnQuickLookup").addEventListener("click", fillQuickLookup);
+    $("quickWord").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); $("btnQuickAddWord").click(); }
+    });
+
     $("btnQuickAddWord").addEventListener("click", () => {
       const w = $("quickWord").value.trim();
       if (!w) {
@@ -1175,7 +1637,8 @@
         word: w,
         meaning: $("quickMeaning").value.trim(),
         category: $("quickCategory").value,
-        note: $("quickNote").value.trim()
+        note: $("quickNote").value.trim(),
+        autoEnrich: true
       });
       $("quickWord").value = "";
       $("quickMeaning").value = "";
@@ -1220,7 +1683,24 @@
       if (row) inspectWord(row.dataset.inspectWord);
     });
 
-    // TAB 2: Vocab Book
+    // TAB 2: Vocab Book + 1-click Auto-Lookup
+    async function fillVbLookup() {
+      const word = $("vbWord").value.trim();
+      if (!word) return showToast("请先输入英文单词");
+      const btn = $("btnVbLookup");
+      if (btn) { btn.disabled = true; btn.textContent = "查词中…"; }
+      const res = await lookupWordOnline(word);
+      if (btn) { btn.disabled = false; btn.textContent = "自动查词"; }
+      if (!res) return showToast(`未能在线查到「${word}」，可手动填写`);
+      $("vbMeaning").value = `${res.pos ? res.pos + " " : ""}${res.cn || ""}`.trim();
+      if (!$("vbNote").value.trim() && res.noteText) $("vbNote").value = res.noteText;
+      showToast(`已查到「${word}」的释义与同义词`);
+    }
+    if ($("btnVbLookup")) $("btnVbLookup").addEventListener("click", fillVbLookup);
+    $("vbWord").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); $("btnAddVocab").click(); }
+    });
+
     $("btnAddVocab").addEventListener("click", () => {
       const word = $("vbWord").value.trim();
       if (!word) return showToast("请输入英文单词");
@@ -1228,7 +1708,8 @@
         word,
         meaning: $("vbMeaning").value.trim(),
         category: $("vbCategory").value,
-        note: $("vbNote").value.trim()
+        note: $("vbNote").value.trim(),
+        autoEnrich: true
       });
       $("vbWord").value = "";
       $("vbMeaning").value = "";
@@ -1262,6 +1743,33 @@
     $("vocabList").addEventListener("click", (e) => {
       const spk = e.target.closest("[data-vb-speak]");
       if (spk) return speakText(spk.dataset.vbSpeak);
+
+      const enr = e.target.closest("[data-vb-enrich]");
+      if (enr) {
+        enr.disabled = true;
+        enr.textContent = "补全中…";
+        enrichVocabById(enr.dataset.vbEnrich, false).finally(() => {
+          enr.disabled = false;
+        });
+        return;
+      }
+
+      const dayChip = e.target.closest("[data-occ-day]");
+      if (dayChip) {
+        selectDay(dayChip.dataset.occDay);
+        goTab("daily");
+        return;
+      }
+
+      const prChip = e.target.closest("[data-occ-practice]");
+      if (prChip) {
+        goTab("practice");
+        setTimeout(() => {
+          const target = document.querySelector(`[data-pr-id="${CSS.escape(prChip.dataset.occPractice)}"]`);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 80);
+        return;
+      }
 
       const tog = e.target.closest("[data-vb-toggle]");
       if (tog) {
@@ -1763,6 +2271,9 @@
     escapeHtml,
     todayStr,
     addWord: addWordToVocabBook,
+    lookupWordOnline,
+    findWordOccurrences,
+    enrichVocabById,
     refresh: initRenderAll,
     goTab,
     selectDay,

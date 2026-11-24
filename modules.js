@@ -970,6 +970,20 @@
     return t.replace(new RegExp(`(${esc(safe)})`, "ig"), "<mark>$1</mark>");
   }
 
+  let srLiveTimer = null;
+  let srLiveQueryId = 0;
+
+  function renderOccPillsHtml(word, forms) {
+    if (!App || typeof App.findWordOccurrences !== "function") return "";
+    const occ = App.findWordOccurrences(word, forms || []);
+    if (!occ.totalSources) return "";
+    const pills = [
+      ...occ.practices.map((p) => `<span class="sr-occ-pill is-pr">真题：${esc(p.source)} (${esc(p.typeLabel)})</span>`),
+      ...occ.days.map((d) => `<span class="sr-occ-pill">${esc(d.shortLabel)}</span>`)
+    ];
+    return `<div class="sr-occ-row">${pills.join("")}</div>`;
+  }
+
   function renderSearch() {
     const q = $("globalSearchInput").value.trim();
     const { core, vocab, syn } = searchAll(q);
@@ -983,8 +997,11 @@
         <a href="https://dictionary.cambridge.org/zhs/词典/英语-汉语-简体/${encodeURIComponent(q)}" target="_blank" rel="noopener">剑桥词典 ↗</a>
         <a href="https://www.youdao.com/result?word=${encodeURIComponent(q)}&lang=en" target="_blank" rel="noopener">有道 ↗</a>
         ${isEn ? `<button class="btn btn-sm btn-ghost" data-s-speak="${esc(q)}">${SF_SPEAK} <span>朗读</span></button>` : ""}
-        ${isEn && !s_inVocab(q) ? `<button class="btn btn-sm btn-outline" data-s-add="${esc(q)}">+ 加入生词本</button>` : ""}
+        ${isEn && !s_inVocab(q) ? `<button class="btn btn-sm btn-outline" data-s-add="${esc(q)}">+ 一键自动收录</button>` : ""}
       </div>`;
+      if (isEn && q.length >= 2 && !core.some((w) => w.word.toLowerCase() === q.toLowerCase())) {
+        html += `<div id="srLiveOnlineSlot"></div>`;
+      }
     }
     html += `<div class="search-group"><div class="sg-title">串文高频词 <span>${core.length}</span></div>`;
     html += core.length ? core.slice(0, lim).map((w) => `
@@ -996,20 +1013,22 @@
         <div class="sr-cn">${hl(w.cn, q)}</div>
         ${w.synText ? `<div class="sr-tip"><b>高频同义替换：</b>${hl(w.synText, q)}</div>` : ""}
         ${w.tip ? `<div class="sr-tip">${hl(w.tip, q)}</div>` : ""}
+        ${renderOccPillsHtml(w.word, w.forms)}
         <div class="sr-actions">
           <button class="btn btn-sm btn-ghost" data-s-speak="${esc(w.word)}" title="朗读">${SF_SPEAK}</button>
           <button class="btn btn-sm btn-ghost" data-s-goday="${esc(w.day.id)}">${esc((w.day.label || "").split(" · ")[0])} →</button>
           ${s_inVocab(w.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-ghost" data-s-addcore="${esc(w.word)}" data-cn="${esc(w.cn)}" data-cat="${esc(w.category || "")}">存生词本</button>`}
         </div>
-      </div>`).join("") : `<div class="sr-empty">没有匹配</div>`;
+      </div>`).join("") : `<div class="sr-empty">站内暂无匹配，上方将自动联网查词</div>`;
     html += `</div>`;
 
     html += `<div class="search-group"><div class="sg-title">我的生词本 <span>${vocab.length}</span></div>`;
     html += vocab.length ? vocab.slice(0, lim).map((v) => `
       <div class="sr-item">
-        <div class="sr-main"><b class="sr-word">${hl(v.word, q)}</b><span class="cat-chip">${esc(v.category)}</span>${v.mastered ? `<span class="ok-chip">已掌握</span>` : ""}</div>
+        <div class="sr-main"><b class="sr-word">${hl(v.word, q)}</b>${v.phonetic ? `<span class="phonetic">${esc(v.phonetic)}</span>` : ""}<span class="cat-chip">${esc(v.category)}</span>${v.mastered ? `<span class="ok-chip">已掌握</span>` : ""}</div>
         <div class="sr-cn">${hl(v.meaning, q)}</div>
         ${v.note ? `<div class="sr-tip">${hl(v.note, q)}</div>` : ""}
+        ${renderOccPillsHtml(v.word)}
         <div class="sr-actions"><button class="btn btn-sm btn-ghost" data-s-speak="${esc(v.word)}" title="朗读">${SF_SPEAK}</button></div>
       </div>`).join("") : `<div class="sr-empty">${q ? "生词本里没有" : "生词本还是空的"}</div>`;
     html += `</div>`;
@@ -1019,6 +1038,41 @@
       <div class="sr-item syn"><span>${hl(x.line, q)}</span><span class="muted">${esc(x.rec.source)}</span></div>`).join("") : `<div class="sr-empty">在精听精读记录里填“同义替换”，这里会自动汇总成你的专属替换库</div>`;
     html += `</div>`;
     box.innerHTML = html;
+
+    // Live debounced online dictionary lookup for unknown English words
+    clearTimeout(srLiveTimer);
+    const slot = $("srLiveOnlineSlot");
+    if (slot && isEn && q.length >= 2 && App && typeof App.lookupWordOnline === "function") {
+      const myReq = ++srLiveQueryId;
+      slot.innerHTML = `<div class="sr-online-card"><span class="muted">正在联网查词「${esc(q)}」的音标、中文释义与同义词…</span></div>`;
+      srLiveTimer = setTimeout(async () => {
+        const res = await App.lookupWordOnline(q);
+        if (myReq !== srLiveQueryId) return;
+        const curSlot = $("srLiveOnlineSlot");
+        if (!curSlot) return;
+        if (!res) {
+          curSlot.innerHTML = "";
+          return;
+        }
+        const synLine = Array.isArray(res.synonyms) && res.synonyms.length
+          ? `<div class="sr-tip"><b>高频同义词：</b>${esc(res.synonyms.join(" / "))}</div>` : "";
+        const occHtml = renderOccPillsHtml(res.word);
+        curSlot.innerHTML = `
+          <div class="sr-online-card">
+            <div class="sr-online-head">
+              <div><b class="sr-word">${esc(res.word)}</b> <span class="phonetic">${esc(res.phonetic || "")}</span> <span class="muted">${esc(res.pos || "")}</span></div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button class="btn btn-sm btn-ghost" data-s-speak="${esc(res.word)}" title="朗读">${SF_SPEAK}</button>
+                ${s_inVocab(res.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-primary" data-s-add="${esc(res.word)}">+ 存入生词本</button>`}
+              </div>
+            </div>
+            <div class="sr-cn">${esc(res.cn || "")}</div>
+            ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:2px;">${esc(res.enDef)}</div>` : ""}
+            ${synLine}
+            ${occHtml}
+          </div>`;
+      }, 280);
+    }
   }
 
   function s_inVocab(word) {
@@ -1058,12 +1112,10 @@
       if (sp) App.speak(sp.dataset.sSpeak);
       else if (gd) { App.closeAllModals(); App.selectDay(gd.dataset.sGoday); App.goTab("daily"); }
       else if (ad) {
-        const meaning = prompt(`给「${ad.dataset.sAdd}」写个中文释义（可先查右边的在线词典）`, "");
-        if (meaning === null) return;
-        App.addWord({ word: ad.dataset.sAdd, meaning, category: "雅思哥生词" });
+        App.addWord({ word: ad.dataset.sAdd, meaning: "", category: "雅思哥生词", autoEnrich: true });
         renderSearch();
       } else if (ac) {
-        App.addWord({ word: ac.dataset.sAddcore, meaning: ac.dataset.cn, category: ac.dataset.cat || "雅思哥生词" });
+        App.addWord({ word: ac.dataset.sAddcore, meaning: ac.dataset.cn, category: ac.dataset.cat || "雅思哥生词", autoEnrich: true });
         renderSearch();
       }
     });
@@ -2019,10 +2071,14 @@
     }
   }
 
+  let azLiveLookup = null;
+  let azLookupSeq = 0;
+
   function inspectAzWord(rawWord) {
     const clean = (rawWord || "").trim();
     if (!clean) return;
     azSelectedToken = clean;
+    azLiveLookup = null;
     const low = clean.toLowerCase();
     const { coreMap, vocabMap } = buildWordIndex();
     const match = guessBaseWord(low, coreMap, vocabMap);
@@ -2033,16 +2089,17 @@
 
     const dictLinks = `
       <div class="az-dict-links">
-        <span>速查释义：</span>
+        <span>外部词典：</span>
         <a href="https://dictionary.cambridge.org/zhs/词典/英语-汉语-简体/${encodeURIComponent(clean)}" target="_blank" rel="noopener">剑桥词典 ↗</a>
         <a href="https://www.youdao.com/result?word=${encodeURIComponent(clean)}&lang=en" target="_blank" rel="noopener">有道词典 ↗</a>
       </div>`;
+    const occHtml = renderOccPillsHtml(match ? match.data.word : clean, match && match.data.forms ? match.data.forms : []);
 
     if (match && match.type === "vocab") {
       const v = match.data;
-      $("azInspPhonetic").textContent = "";
+      $("azInspPhonetic").textContent = v.phonetic || "";
       $("azInspStatus").innerHTML = `<span class="az-badge az-b-vocab"><i class="az-dot is-vocab"></i> 已在我的生词本 (${esc(v.category)})</span>`;
-      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>释义：</b>${esc(v.meaning)}${v.note ? `<br><small class="muted">备注：${esc(v.note)}</small>` : ""}</div>${dictLinks}`;
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>释义：</b>${esc(v.meaning)}${v.note ? `<br><small class="muted">备注：${esc(v.note)}</small>` : ""}</div>${occHtml}${dictLinks}`;
       $("azAddMeaning").value = v.meaning === "（待补充翻译）" ? "" : v.meaning;
       $("btnAzAddVocab").textContent = "更新生词本释义";
     } else if (match && match.type === "core") {
@@ -2050,16 +2107,42 @@
       $("azInspPhonetic").textContent = c.phonetic || "";
       $("azInspStatus").innerHTML = `<span class="az-badge az-b-core"><i class="az-dot is-core"></i> 已背串文词 (${esc(c.dayLabel)} · ${esc(c.category)})</span>`;
       const synStr = formatSynonymsInline(c);
-      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${synStr ? `<br><small><b>同义替换：</b>${esc(synStr)}</small>` : ""}${c.tip ? `<br><small class="muted">${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${synStr ? `<br><small><b>同义替换：</b>${esc(synStr)}</small>` : ""}${c.tip ? `<br><small class="muted">${esc(c.tip)}</small>` : ""}</div>${occHtml}${dictLinks}`;
       $("azAddMeaning").value = `${c.pos ? c.pos + " " : ""}${c.cn}`;
       $("btnAzAddVocab").textContent = "同时存入我的生词本";
     } else {
       $("azInspPhonetic").textContent = "";
-      $("azInspStatus").innerHTML = `<span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录新词（生词本中尚未收录）</span>`;
-      $("azInspDict").innerHTML = dictLinks;
+      $("azInspStatus").innerHTML = `<span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录新词（自动查词中…）</span>`;
+      $("azInspDict").innerHTML = `<div class="az-live-box" id="azLiveBox"><span class="muted">正在自动拉取音标、中文释义与高频同义词…</span></div>${occHtml}${dictLinks}`;
       $("azAddMeaning").value = "";
       $("btnAzAddVocab").textContent = "加入我的生词本";
-      $("azAddMeaning").focus();
+
+      if (App && typeof App.lookupWordOnline === "function") {
+        const mySeq = ++azLookupSeq;
+        App.lookupWordOnline(clean).then((res) => {
+          if (mySeq !== azLookupSeq || azSelectedToken !== clean) return;
+          const liveBox = $("azLiveBox");
+          if (!res) {
+            $("azInspStatus").innerHTML = `<span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录新词（可手动输入释义）</span>`;
+            if (liveBox) liveBox.innerHTML = `<span class="muted">暂未查到该词条，可直接点下方剑桥/有道速查。</span>`;
+            return;
+          }
+          azLiveLookup = res;
+          $("azInspPhonetic").textContent = res.phonetic || "";
+          $("azInspStatus").innerHTML = `<span class="az-badge az-b-new"><i class="az-dot is-new"></i> 未记录新词（已自动补全，一键入库）</span>`;
+          if (!$("azAddMeaning").value.trim()) {
+            $("azAddMeaning").value = `${res.pos ? res.pos + " " : ""}${res.cn || ""}`.trim();
+          }
+          if (liveBox) {
+            liveBox.innerHTML = `
+              <div><b>${esc(res.pos || "")} ${esc(res.cn || "")}</b></div>
+              ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:2px;">${esc(res.enDef)}</div>` : ""}
+              ${res.synonyms && res.synonyms.length ? `<div style="margin-top:4px;font-size:11.5px;"><b>高频同义词：</b>${esc(res.synonyms.join(" / "))}</div>` : ""}
+              ${res.example ? `<div class="muted" style="margin-top:3px;font-size:11px;">例句：${esc(res.example)}</div>` : ""}
+            `;
+          }
+        });
+      }
     }
   }
 
@@ -2139,14 +2222,23 @@
 
     $("btnAzAddVocab").addEventListener("click", () => {
       if (!azSelectedToken) return;
-      const meaning = ($("azAddMeaning").value || "").trim() || "（待补充翻译）";
+      const meaning = ($("azAddMeaning").value || "").trim();
       const cat = $("azAddCat").value;
       const src = ($("azTitleInput").value || "").trim();
+      const live = azLiveLookup && azLiveLookup.word && azLiveLookup.word.toLowerCase() === azSelectedToken.toLowerCase() ? azLiveLookup : null;
+      const noteParts = [];
+      if (live && live.synonyms && live.synonyms.length) noteParts.push(`同义替换：${live.synonyms.join(" / ")}`);
+      if (src) noteParts.push(`来自真题：${src}`);
       App.addWord({
         word: azSelectedToken,
+        phonetic: live ? live.phonetic : "",
         meaning,
         category: cat,
-        note: src ? `来自真题：${src}` : ""
+        synonyms: live ? live.synonyms : [],
+        enDef: live ? live.enDef : "",
+        example: live ? live.example : "",
+        note: noteParts.join(" · "),
+        autoEnrich: !meaning
       });
       runPassageAnalyzer();
       inspectAzWord(azSelectedToken);
