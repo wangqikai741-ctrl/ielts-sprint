@@ -2304,21 +2304,39 @@
       return;
     }
 
-    listEl.innerHTML = tasks.map((t) => `
-      <label class="gc-item ${t.done ? "is-done" : ""}" data-gc-day="${esc(day.id)}" data-gc-task="${esc(t.id)}">
-        <input type="checkbox" ${t.done ? "checked" : ""} />
-        <div class="gc-item-body">
-          <span class="gc-item-tag">${esc(t.tag || "任务")}${t.done ? " · 已完成" : ""}</span>
-          <span class="gc-item-text">${esc(t.text)}</span>
-        </div>
-      </label>
-    `).join("");
+    function getTaskJumpMeta(t) {
+      const tag = String(t.tag || "");
+      const txt = String(t.text || "");
+      if (tag === "词汇" || txt.includes("串文") || txt.includes("拼写")) return { attr: `data-cl-jump="daily"`, label: "去串文 →" };
+      if (tag === "听力" || txt.includes("听力") || txt.includes("精听")) return { attr: `data-cl-jump="practice"`, label: "精听记录 →" };
+      if (tag === "阅读" || txt.includes("阅读") || txt.includes("精读")) return { attr: `data-cl-action="analyzer"`, label: "真题雷达 →" };
+      if (tag === "口语" || txt.includes("口语")) return { attr: `data-cl-jump="speaking"`, label: "口语库 →" };
+      if (tag === "写作" || txt.includes("写作") || txt.includes("作文")) return { attr: `data-cl-jump="writing"`, label: "写作批改 →" };
+      return { attr: `data-cl-jump="daily"`, label: "去完成 →" };
+    }
+
+    listEl.innerHTML = tasks.map((t) => {
+      const jmp = getTaskJumpMeta(t);
+      return `
+      <div class="gc-item-row ${t.done ? "is-done" : ""}" data-gc-day="${esc(day.id)}" data-gc-task="${esc(t.id)}">
+        <label class="gc-item-check">
+          <input type="checkbox" ${t.done ? "checked" : ""} />
+          <div class="gc-item-body">
+            <span class="gc-item-tag">${esc(t.tag || "任务")}${t.done ? " · 已完成" : ""}</span>
+            <span class="gc-item-text">${esc(t.text)}</span>
+          </div>
+        </label>
+        <button type="button" class="gc-jump-btn" ${jmp.attr}>${jmp.label}</button>
+      </div>
+    `;
+    }).join("");
   }
 
   function bindGuide() {
     const btnOpen = $("btnOpenGuide");
     const btnChecklist = $("btnOpenChecklist");
     const modal = $("modalGuide");
+    const modalCl = $("modalChecklist");
     const seg = $("guideSegTabs");
     if (!btnOpen || !modal) return;
 
@@ -2334,22 +2352,13 @@
     }
 
     btnOpen.addEventListener("click", () => {
-      renderGuideChecklist();
       modal.classList.remove("hidden");
     });
 
-    if (btnChecklist) {
+    if (btnChecklist && modalCl) {
       btnChecklist.addEventListener("click", () => {
         renderGuideChecklist();
-        switchGuidePanel("flow");
-        modal.classList.remove("hidden");
-        const card = modal.querySelector(".guide-checklist-card");
-        if (card) {
-          card.classList.remove("is-flash");
-          void card.offsetWidth;
-          card.classList.add("is-flash");
-          setTimeout(() => card.classList.remove("is-flash"), 1400);
-        }
+        modalCl.classList.remove("hidden");
       });
     }
 
@@ -2361,13 +2370,62 @@
       });
     }
 
-    const gcList = $("guideChecklistItems");
-    if (gcList) {
-      gcList.addEventListener("change", (e) => {
-        const row = e.target.closest("[data-gc-task]");
-        if (!row || !App || typeof App.toggleTaskDone !== "function") return;
-        App.toggleTaskDone(row.dataset.gcDay, row.dataset.gcTask);
+    if (modalCl) {
+      const gcList = $("guideChecklistItems");
+      if (gcList) {
+        gcList.addEventListener("change", (e) => {
+          const row = e.target.closest("[data-gc-task]");
+          if (!row || !App || typeof App.toggleTaskDone !== "function") return;
+          App.toggleTaskDone(row.dataset.gcDay, row.dataset.gcTask);
+          renderGuideChecklist();
+        });
+      }
+
+      const addQuickTask = () => {
+        const inp = $("clQuickTaskInput");
+        const txt = (inp && inp.value || "").trim();
+        if (!txt) return;
+        const prog = getSprintProgress();
+        const day = prog.activeDay || S().days[0];
+        if (!day) return;
+        if (!Array.isArray(day.tasks)) day.tasks = [];
+        day.tasks.push({ id: "t-" + Date.now(), tag: "自定", text: txt, done: false });
+        delete day.completedAt;
+        inp.value = "";
+        App.save();
+        App.refresh();
         renderGuideChecklist();
+        App.toast("已添加到今日完成清单");
+      };
+      if ($("btnClQuickAdd")) $("btnClQuickAdd").addEventListener("click", addQuickTask);
+      if ($("clQuickTaskInput")) {
+        $("clQuickTaskInput").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); addQuickTask(); }
+        });
+      }
+
+      modalCl.addEventListener("click", (e) => {
+        const jmp = e.target.closest("[data-cl-jump]");
+        if (jmp) {
+          modalCl.classList.add("hidden");
+          if (App && typeof App.goTab === "function") App.goTab(jmp.dataset.clJump);
+          return;
+        }
+        const act = e.target.closest("[data-cl-action]");
+        if (act) {
+          modalCl.classList.add("hidden");
+          if (act.dataset.clAction === "analyzer") openPassageAnalyzer("", "");
+          return;
+        }
+        if (e.target.closest("#btnClSwitchGuide")) {
+          modalCl.classList.add("hidden");
+          modal.classList.remove("hidden");
+          return;
+        }
+        if (e.target.closest("#btnClOpenReport")) {
+          modalCl.classList.add("hidden");
+          openReport();
+        }
       });
     }
 

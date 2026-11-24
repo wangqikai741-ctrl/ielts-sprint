@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124x" />
-  <link rel="stylesheet" href="modules.css?v=20261124x" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124x" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124x" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124x" />
+  <link rel="stylesheet" href="styles.css?v=20261124y" />
+  <link rel="stylesheet" href="modules.css?v=20261124y" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124y" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124y" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124y" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -140,7 +140,7 @@
             </svg>
             <span class="btn-label-desktop">指南</span>
           </button>
-          <button class="btn btn-sm checklist-topbar-btn" id="btnOpenChecklist" title="今日完成清单（完成一项自动打勾，点开可同步查看指南）">
+          <button class="btn btn-sm checklist-topbar-btn" id="btnOpenChecklist" title="打开今日完成清单（完成对应任务自动打勾）">
             <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
             <span class="btn-label-desktop">今日清单</span>
             <span class="cl-top-count" id="topbarChecklistCount">0/4</span>
@@ -952,7 +952,7 @@
 
       <div class="guide-seg-wrap">
         <div class="guide-seg" id="guideSegTabs" role="tablist">
-          <button class="guide-seg-btn active" data-guide-tab="flow" role="tab">每日 6 小时流 & 清单</button>
+          <button class="guide-seg-btn active" data-guide-tab="flow" role="tab">每日 6 小时流</button>
           <button class="guide-seg-btn" data-guide-tab="modules" role="tab">网站模块图解</button>
           <button class="guide-seg-btn" data-guide-tab="loop" role="tab">工具协作闭环</button>
           <button class="guide-seg-btn" data-guide-tab="roadmap" role="tab">58 天三阶段</button>
@@ -985,9 +985,7 @@
             </div>
           </div>
 
-          <div class="guide-flow-split">
-            <!-- Left: Detailed 6-Step Actionable Timeline -->
-            <div class="guide-timeline">
+          <div class="guide-timeline">
               <div class="gt-step">
                 <div class="gt-num">01</div>
                 <div class="gt-content">
@@ -1107,28 +1105,6 @@
                   </ul>
                 </div>
               </div>
-            </div>
-
-            <!-- Right: Synchronized Live Daily Checklist -->
-            <aside class="guide-checklist-aside" id="guideChecklistAside">
-              <div class="guide-checklist-card">
-                <div class="gc-head">
-                  <div>
-                    <span class="gc-eyebrow" id="gcDayLabel">DAY 1 · 今日进度</span>
-                    <h4>每日完成清单</h4>
-                  </div>
-                  <span class="gc-ratio" id="gcRatio">0 / 4</span>
-                </div>
-                <div class="gc-bar-track"><div class="gc-bar-fill" id="gcBarFill" style="width:0%"></div></div>
-                <div class="gc-list" id="guideChecklistItems"></div>
-                <div class="gc-auto-note">
-                  <b>自动打勾已开启：</b>完成闪卡/拼写挖空 → 自动勾「词汇」；保存听/读记录或真题雷达入库 → 自动勾「听力/阅读」；保存口语草稿 → 自动勾「口语」；亦可直接点选。
-                </div>
-                <div class="gc-actions">
-                  <button class="btn btn-primary btn-sm full-width" data-guide-action="report">一键生成今日汇报发 AI</button>
-                </div>
-              </div>
-            </aside>
           </div>
         </div>
 
@@ -1360,6 +1336,46 @@
     </div>
   </div>
 
+  <!-- Modal 5B: Dedicated Daily Checklist Modal (Apple Reminders Style) -->
+  <div class="modal-backdrop hidden" id="modalChecklist">
+    <div class="modal-dialog checklist-dialog">
+      <div class="cl-modal-head">
+        <div>
+          <span class="gc-eyebrow" id="gcDayLabel">DAY 1 · 进行中</span>
+          <h3 class="cl-modal-title">今日完成清单</h3>
+        </div>
+        <div class="cl-head-right">
+          <span class="gc-ratio" id="gcRatio">0 / 4</span>
+          <button class="cloud-close-btn modal-close" aria-label="关闭">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="cl-bar-wrap">
+        <div class="gc-bar-track"><div class="gc-bar-fill" id="gcBarFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="cl-modal-body">
+        <div class="gc-list" id="guideChecklistItems"></div>
+
+        <div class="gc-add-row">
+          <input type="text" id="clQuickTaskInput" class="text-input input-sm" placeholder="临时补一条今日待办（回车直接添加）…" />
+          <button type="button" class="btn btn-outline btn-sm" id="btnClQuickAdd">添加</button>
+        </div>
+
+        <div class="gc-auto-note">
+          <b>自动打勾已开启：</b>完成动态闪卡或拼写挖空达标 → 自动勾「词汇」；保存听/读复盘或真题雷达入库 → 自动勾「听力 / 阅读」；保存口语作答草稿 → 自动勾「口语」；全部完成立即点亮今日日历徽章。
+        </div>
+      </div>
+
+      <div class="modal-footer cloud-modal-footer guide-footer">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnClSwitchGuide">查看 6 小时指南 →</button>
+        <button type="button" class="cloud-act-btn cloud-act-primary" id="btnClOpenReport">生成今日汇报发 AI</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal 6: Dynamic Flashcards (不背单词-style 2-Round Visual + Audio Quiz) -->
   <div class="modal-backdrop hidden" id="modalFlashcard">
     <div class="modal-dialog fc-dialog">
@@ -1404,8 +1420,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124x"></script>
-  <script src="app.js?v=20261124x"></script>
-  <script src="modules.js?v=20261124x"></script>
+  <script src="data.js?v=20261124y"></script>
+  <script src="app.js?v=20261124y"></script>
+  <script src="modules.js?v=20261124y"></script>
 </body>
 </html>
