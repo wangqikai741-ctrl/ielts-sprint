@@ -28,6 +28,29 @@
   let timerInitial = 60;
   let timerInterval = null;
 
+  function mergeInitialDays(days) {
+    (window.IELTS_INITIAL_DATA.days || []).forEach((initDay) => {
+      const existing = days.find((d) => d.id === initDay.id);
+      if (!existing) {
+        days.unshift(structuredClone(initDay));
+        return;
+      }
+      // Enrich dictionary fields on existing days without touching user task progress or highlights
+      if (Array.isArray(initDay.words) && initDay.words.length) {
+        const initMap = new Map(initDay.words.map((w) => [String(w.word || "").toLowerCase(), w]));
+        if (!Array.isArray(existing.words) || !existing.words.length) {
+          existing.words = structuredClone(initDay.words);
+        } else {
+          existing.words = existing.words.map((w) => {
+            const richer = initMap.get(String(w.word || "").toLowerCase());
+            return richer ? { ...w, ...structuredClone(richer) } : w;
+          });
+        }
+      }
+    });
+    return days;
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -36,12 +59,7 @@
         const days = Array.isArray(parsed.days) && parsed.days.length
           ? parsed.days
           : structuredClone(window.IELTS_INITIAL_DATA.days);
-        // Auto-merge any newly added days from data.js without overwriting user progress
-        (window.IELTS_INITIAL_DATA.days || []).forEach((initDay) => {
-          if (!days.some((d) => d.id === initDay.id)) {
-            days.unshift(structuredClone(initDay));
-          }
-        });
+        mergeInitialDays(days);
         const speakingTopics = Array.isArray(parsed.speakingTopics)
           ? parsed.speakingTopics
           : structuredClone(window.IELTS_INITIAL_DATA.speakingTopics);
@@ -334,6 +352,91 @@
     catEl.classList.remove("hidden");
 
     $("inspMeaning").textContent = `${wObj.pos ? wObj.pos + " " : ""}${wObj.cn}`;
+
+    // English definition
+    const enDefEl = $("inspEnDef");
+    if (enDefEl) {
+      if (wObj.enDef) {
+        enDefEl.textContent = wObj.enDef;
+        enDefEl.classList.remove("hidden");
+      } else {
+        enDefEl.classList.add("hidden");
+      }
+    }
+
+    // Detailed multi-sense breakdown
+    const sensesEl = $("inspSenses");
+    if (sensesEl) {
+      if (Array.isArray(wObj.senses) && wObj.senses.length) {
+        sensesEl.innerHTML = wObj.senses
+          .map((s, idx) => `<li><span class="insp-sense-num">${idx + 1}.</span><span>${escapeHtml(s)}</span></li>`)
+          .join("");
+        sensesEl.classList.remove("hidden");
+      } else {
+        sensesEl.classList.add("hidden");
+      }
+    }
+
+    // Standardized IELTS Synonyms & Antonyms
+    const synBox = $("inspSynBox");
+    const synList = $("inspSynList");
+    const antRow = $("inspAntRow");
+    if (synBox && synList) {
+      const syns = Array.isArray(wObj.synonyms) ? wObj.synonyms : [];
+      const ants = Array.isArray(wObj.antonyms) ? wObj.antonyms : [];
+      if (syns.length || ants.length) {
+        synList.innerHTML = syns
+          .map((s) => {
+            const en = typeof s === "string" ? s : s.en;
+            const cn = typeof s === "string" ? "" : (s.cn || "");
+            return `<button type="button" class="insp-syn-chip" data-speak-phrase="${escapeHtml(en)}" title="点击朗读 ${escapeHtml(en)}"><span class="insp-syn-en">${escapeHtml(en)}</span>${cn ? `<span class="insp-syn-cn">${escapeHtml(cn)}</span>` : ""}</button>`;
+          })
+          .join("");
+        if (antRow) {
+          if (ants.length) {
+            antRow.innerHTML = `<span class="insp-ant-label">反义对照：</span>` + ants
+              .map((a) => {
+                const en = typeof a === "string" ? a : a.en;
+                const cn = typeof a === "string" ? "" : (a.cn || "");
+                return `<button type="button" class="insp-ant-chip" data-speak-phrase="${escapeHtml(en)}"><span>${escapeHtml(en)}</span>${cn ? `<span class="insp-syn-cn">${escapeHtml(cn)}</span>` : ""}</button>`;
+              })
+              .join("");
+            antRow.classList.remove("hidden");
+          } else {
+            antRow.classList.add("hidden");
+          }
+        }
+        synBox.classList.remove("hidden");
+      } else {
+        synBox.classList.add("hidden");
+      }
+    }
+
+    // Standard Collocations
+    const colBox = $("inspCollocBox");
+    const colList = $("inspCollocList");
+    if (colBox && colList) {
+      const cols = Array.isArray(wObj.collocations) ? wObj.collocations : [];
+      if (cols.length) {
+        colList.innerHTML = cols.map((c) => `<span class="insp-colloc-pill">${escapeHtml(c)}</span>`).join("");
+        colBox.classList.remove("hidden");
+      } else {
+        colBox.classList.add("hidden");
+      }
+    }
+
+    // Example Sentence
+    const exBox = $("inspExampleBox");
+    if (exBox) {
+      if (wObj.example) {
+        $("inspExampleEn").textContent = wObj.example;
+        $("inspExampleCn").textContent = wObj.exampleCn || "";
+        exBox.classList.remove("hidden");
+      } else {
+        exBox.classList.add("hidden");
+      }
+    }
+
     if (wObj.tip) {
       $("inspTip").textContent = wObj.tip;
       $("inspTip").classList.remove("hidden");
@@ -1022,14 +1125,37 @@
     $("btnInspSave").addEventListener("click", () => {
       if (!currentInspectedWord) return;
       const customNote = $("inspNoteInput").value.trim();
+      const synSummary = Array.isArray(currentInspectedWord.synonyms) && currentInspectedWord.synonyms.length
+        ? "同义替换：" + currentInspectedWord.synonyms.map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "(" + s.cn + ")" : ""}`)).join(" / ")
+        : "";
+      const autoNote = [synSummary, currentInspectedWord.tip || ""].filter(Boolean).join(" · ");
       addWordToVocabBook({
         word: currentInspectedWord.word,
         meaning: `${currentInspectedWord.pos ? currentInspectedWord.pos + " " : ""}${currentInspectedWord.cn}`,
         category: currentInspectedWord.category,
-        note: customNote || currentInspectedWord.tip || ""
+        note: customNote || autoNote
       });
       $("btnInspSave").textContent = "✓ 已在生词本";
     });
+
+    const synBoxEl = $("inspSynBox");
+    if (synBoxEl) {
+      synBoxEl.addEventListener("click", (e) => {
+        const chip = e.target.closest("[data-speak-phrase]");
+        if (!chip) return;
+        const phrase = (chip.dataset.speakPhrase || "").split("/")[0].trim();
+        if (phrase) speakText(phrase);
+      });
+    }
+
+    const exSpeakBtn = $("btnInspExSpeak");
+    if (exSpeakBtn) {
+      exSpeakBtn.addEventListener("click", () => {
+        if (currentInspectedWord && currentInspectedWord.example) {
+          speakText(currentInspectedWord.example, 0.92);
+        }
+      });
+    }
 
     $("btnSaveInspNote").addEventListener("click", () => {
       if (!currentInspectedWord) return;
@@ -1597,11 +1723,7 @@
     const days = Array.isArray(incoming.days) && incoming.days.length
       ? structuredClone(incoming.days)
       : structuredClone(window.IELTS_INITIAL_DATA.days);
-    (window.IELTS_INITIAL_DATA.days || []).forEach((initDay) => {
-      if (!days.some((d) => d.id === initDay.id)) {
-        days.unshift(structuredClone(initDay));
-      }
-    });
+    mergeInitialDays(days);
     const speakingTopics = Array.isArray(incoming.speakingTopics)
       ? structuredClone(incoming.speakingTopics)
       : structuredClone(window.IELTS_INITIAL_DATA.speakingTopics);

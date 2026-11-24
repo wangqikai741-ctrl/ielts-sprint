@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124r" />
-  <link rel="stylesheet" href="modules.css?v=20261124r" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124r" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124r" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124r" />
+  <link rel="stylesheet" href="styles.css?v=20261124s" />
+  <link rel="stylesheet" href="modules.css?v=20261124s" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124s" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124s" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124s" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -323,7 +323,31 @@
                 <button class="btn btn-sm btn-primary" id="btnInspSave" disabled>存进生词本</button>
               </div>
             </div>
-            <p class="insp-meaning" id="inspMeaning">选中左侧串文中的高频词，这里会立即显示词性、中文释义、同义替换和听力拼写避坑提示。</p>
+            <p class="insp-meaning" id="inspMeaning">选中左侧串文中的高频词，这里会立即显示标准词性释义、高频同义替换、地道搭配与雅思语境例句。</p>
+            <p class="insp-endef hidden" id="inspEnDef"></p>
+            <ul class="insp-senses hidden" id="inspSenses"></ul>
+            <div class="insp-section hidden" id="inspSynBox">
+              <div class="insp-sec-head">
+                <span>高频同义替换</span>
+                <span class="insp-sec-hint">点击可朗读</span>
+              </div>
+              <div class="insp-syn-list" id="inspSynList"></div>
+              <div class="insp-ant-row hidden" id="inspAntRow"></div>
+            </div>
+            <div class="insp-section hidden" id="inspCollocBox">
+              <div class="insp-sec-head"><span>标准高频搭配</span></div>
+              <div class="insp-colloc-list" id="inspCollocList"></div>
+            </div>
+            <div class="insp-example hidden" id="inspExampleBox">
+              <div class="insp-ex-top">
+                <span class="insp-ex-label">雅思语境例句</span>
+                <button class="insp-ex-speak" id="btnInspExSpeak" type="button" title="朗读例句" aria-label="朗读例句">
+                  <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                </button>
+              </div>
+              <p class="insp-ex-en" id="inspExampleEn"></p>
+              <p class="insp-ex-cn" id="inspExampleCn"></p>
+            </div>
             <p class="insp-tip hidden" id="inspTip"></p>
             <div class="insp-note-wrap hidden" id="inspNoteWrap">
               <label class="field-label">我的记忆笔记 / 自填翻译：</label>
@@ -1248,8 +1272,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261124r"></script>
-  <script src="app.js?v=20261124r"></script>
-  <script src="modules.js?v=20261124r"></script>
+  <script src="data.js?v=20261124s"></script>
+  <script src="app.js?v=20261124s"></script>
+  <script src="modules.js?v=20261124s"></script>
 </body>
 </html>

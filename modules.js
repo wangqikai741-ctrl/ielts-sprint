@@ -935,13 +935,24 @@
   }
 
   // ==================== 3) 全局查词 ====================
+  function formatSynonymsInline(w) {
+    if (!w || !Array.isArray(w.synonyms) || !w.synonyms.length) return "";
+    return w.synonyms
+      .map((s) => (typeof s === "string" ? s : `${s.en}${s.cn ? "（" + s.cn + "）" : ""}`))
+      .join(" · ");
+  }
+
   function searchAll(q) {
     const s = S();
     const query = q.trim().toLowerCase();
     const core = [];
     s.days.forEach((d) => (d.words || []).forEach((w) => {
-      const hay = [w.word, ...(w.forms || []), w.cn, w.tip].join(" ").toLowerCase();
-      if (!query || hay.includes(query)) core.push({ ...w, day: d });
+      const synText = formatSynonymsInline(w);
+      const antText = Array.isArray(w.antonyms)
+        ? w.antonyms.map((a) => (typeof a === "string" ? a : `${a.en} ${a.cn || ""}`)).join(" ")
+        : "";
+      const hay = [w.word, ...(w.forms || []), w.cn, w.enDef || "", ...(w.senses || []), synText, antText, ...(w.collocations || []), w.tip].join(" ").toLowerCase();
+      if (!query || hay.includes(query)) core.push({ ...w, day: d, synText });
     }));
     const vocab = s.vocabBook.filter((v) => !query || [v.word, v.meaning, v.note].join(" ").toLowerCase().includes(query));
     const syn = [];
@@ -983,6 +994,7 @@
           <span class="cat-chip">${esc(w.category || "")}</span>
         </div>
         <div class="sr-cn">${hl(w.cn, q)}</div>
+        ${w.synText ? `<div class="sr-tip"><b>高频同义替换：</b>${hl(w.synText, q)}</div>` : ""}
         ${w.tip ? `<div class="sr-tip">${hl(w.tip, q)}</div>` : ""}
         <div class="sr-actions">
           <button class="btn btn-sm btn-ghost" data-s-speak="${esc(w.word)}" title="朗读">${SF_SPEAK}</button>
@@ -2037,7 +2049,8 @@
       const c = match.data;
       $("azInspPhonetic").textContent = c.phonetic || "";
       $("azInspStatus").innerHTML = `<span class="az-badge az-b-core"><i class="az-dot is-core"></i> 已背串文词 (${esc(c.dayLabel)} · ${esc(c.category)})</span>`;
-      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${c.tip ? `<br><small class="muted">${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
+      const synStr = formatSynonymsInline(c);
+      $("azInspDict").innerHTML = `<div class="az-meaning-box"><b>${esc(c.pos || "")} ${esc(c.cn)}</b>${synStr ? `<br><small><b>同义替换：</b>${esc(synStr)}</small>` : ""}${c.tip ? `<br><small class="muted">${esc(c.tip)}</small>` : ""}</div>${dictLinks}`;
       $("azAddMeaning").value = `${c.pos ? c.pos + " " : ""}${c.cn}`;
       $("btnAzAddVocab").textContent = "同时存入我的生词本";
     } else {
