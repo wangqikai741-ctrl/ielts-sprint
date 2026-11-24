@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261124s" />
-  <link rel="stylesheet" href="modules.css?v=20261124s" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124s" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261124s" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261124s" />
+  <link rel="stylesheet" href="styles.css?v=20261124t" />
+  <link rel="stylesheet" href="modules.css?v=20261124t" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261124t" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261124t" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261124t" />
 </head>
 <body>
   <!-- Auth Lock Screen (Apple Event Aurora Silk Mesh + Pixel-Accurate Cursor Spotlight) -->
@@ -129,8 +129,15 @@
           <kbd>/</kbd>
         </button>
         <div class="topbar-actions">
-          <button class="btn btn-ghost btn-sm" id="btnOpenGuide" title="58 天每日执行手册 & 网站使用指南">
-            <svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+          <button class="btn btn-sm guide-topbar-btn" id="btnOpenGuide" title="58 天每日执行手册 & 网站使用指南">
+            <svg class="sf-icon guide-compass-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9.2"></circle>
+              <g class="guide-compass-needle">
+                <polygon points="16.4 7.6 13.8 13.8 10.2 10.2" fill="currentColor" stroke="currentColor" stroke-width="1.1"></polygon>
+                <polygon points="7.6 16.4 10.2 10.2 13.8 13.8" fill="none" stroke="currentColor" stroke-width="1.35" opacity="0.62"></polygon>
+                <circle cx="12" cy="12" r="1" fill="#ffffff" stroke="none"></circle>
+              </g>
+            </svg>
             <span class="btn-label-desktop">指南</span>
           </button>
           <button class="btn btn-outline btn-sm" id="btnTopAnalyzer" title="导入剑桥真题原文，智能匹配已背词与未记录生词">
