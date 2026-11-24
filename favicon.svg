@@ -1,26 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="ceramicBg" x1="20" y1="6" x2="108" y2="122" gradientUnits="userSpaceOnUse">
+    <linearGradient id="ceramicBg" x1="20" y1="4" x2="108" y2="124" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#ECEEF2"/>
+      <stop offset="100%" stop-color="#EEF0F5"/>
     </linearGradient>
-    <linearGradient id="inkStroke" x1="24" y1="26" x2="104" y2="102" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0B0C10"/>
-      <stop offset="100%" stop-color="#1E222B"/>
+    <linearGradient id="inkRibbon" x1="20" y1="26" x2="108" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0D0F14"/>
+      <stop offset="55%" stop-color="#191D26"/>
+      <stop offset="100%" stop-color="#2A303E"/>
     </linearGradient>
   </defs>
 
-  <!-- Ceramic White Squircle -->
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#ceramicBg)"/>
-  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" stroke="#0B0C10" stroke-opacity="0.08" stroke-width="1.5"/>
+  <!-- Apple Porcelain White Squircle -->
+  <rect x="4" y="4" width="120" height="120" rx="32" fill="url(#ceramicBg)"/>
+  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="31.25" stroke="#0D0F14" stroke-opacity="0.08" stroke-width="1.5"/>
 
-  <!-- Subtle Geometric Core Accent -->
-  <polygon points="64.00,54.65 53.20,73.35 74.80,73.35" fill="#0B0C10" fill-opacity="0.1"/>
+  <!-- Subtle Frosted Core inside Central Small Equilateral Triangle -->
+  <path d="M 64.00 55.30 L 52.80 74.70 L 75.20 74.70 Z" fill="#0D0F14" fill-opacity="0.1"/>
 
-  <!-- Pure Obsidian Black Symmetric Equilateral Geometry (L=54.0, Mid s=21.6, Axis x=64.0) -->
-  <g stroke="url(#inkStroke)" stroke-width="7.2" stroke-linejoin="round" stroke-linecap="round">
-    <polygon points="47.80,26.59 20.80,73.35 74.80,73.35"/>
-    <polygon points="80.20,26.59 53.20,73.35 107.20,73.35"/>
-    <polygon points="64.00,54.65 37.00,101.41 91.00,101.41"/>
+  <!-- Plush Bezier-Rounded Symmetric 3-Equilateral-Triangle Mark (6 Smooth Outer Corners, Exact Collinear Center) -->
+  <g stroke="url(#inkRibbon)" stroke-width="8.2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M 51.70 34.00 Q 47.20 26.20 42.70 34.00 L 23.70 66.91 Q 19.20 74.70 28.20 74.70 L 75.20 74.70 Z"/>
+    <path d="M 85.30 34.00 Q 80.80 26.20 76.30 34.00 L 52.80 74.70 L 99.80 74.70 Q 108.80 74.70 104.30 66.91 Z"/>
+    <path d="M 64.00 55.30 L 40.50 96.00 Q 36.00 103.80 45.00 103.80 L 83.00 103.80 Q 92.00 103.80 87.50 96.00 Z"/>
   </g>
 </svg>
