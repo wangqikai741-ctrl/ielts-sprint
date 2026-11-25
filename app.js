@@ -1030,6 +1030,52 @@
     });
   }
 
+  // Keep sticky panes exactly below the real header height (topbar + desktop segmented tabs)
+  function syncStickyTop() {
+    const topbar = document.querySelector(".topbar");
+    const navTabs = document.querySelector(".nav-tabs");
+    let h = topbar ? topbar.getBoundingClientRect().height : 0;
+    if (navTabs && window.innerWidth > 980 && !document.body.classList.contains("nav-hidden")) {
+      const pos = getComputedStyle(navTabs).position;
+      if (pos === "sticky" || pos === "fixed") h += navTabs.offsetHeight;
+    }
+    document.documentElement.style.setProperty("--sticky-top", `${Math.round(h)}px`);
+  }
+
+  // Desktop: tuck the segmented tab bar away while scrolling down, bring it back on scroll up / topbar hover
+  let navLastY = window.scrollY;
+  let navScrollRaf = 0;
+  function setNavHidden(hidden) {
+    if (document.body.classList.contains("nav-hidden") === hidden) return;
+    document.body.classList.toggle("nav-hidden", hidden);
+    syncStickyTop();
+  }
+  window.addEventListener("scroll", () => {
+    if (navScrollRaf) return;
+    navScrollRaf = requestAnimationFrame(() => {
+      navScrollRaf = 0;
+      const y = window.scrollY;
+      const dy = y - navLastY;
+      if (window.innerWidth <= 980 || y < 160) setNavHidden(false);
+      else if (dy > 8) setNavHidden(true);
+      else if (dy < -8) setNavHidden(false);
+      if (Math.abs(dy) > 8 || y < 160) navLastY = y;
+    });
+  }, { passive: true });
+  document.addEventListener("mouseover", (e) => {
+    if (e.target.closest && e.target.closest(".topbar")) setNavHidden(false);
+  }, { passive: true });
+  let stickyRaf = 0;
+  window.addEventListener("resize", () => {
+    if (stickyRaf) return;
+    stickyRaf = requestAnimationFrame(() => { stickyRaf = 0; syncStickyTop(); });
+  }, { passive: true });
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => syncStickyTop());
+    ["topbar", "nav-tabs"].forEach((c) => { const el = document.querySelector("." + c); if (el) ro.observe(el); });
+  }
+  syncStickyTop();
+
   // ==================== TAB 1: DAILY PLAN & STORY ====================
   function renderDaySelect() {
     const sel = $("daySelect");
@@ -1349,6 +1395,7 @@
       }
     } else {
       if (paneRight) paneRight.scrollTop = 0;
+      if (inspCard || $("wordInspector")) (inspCard || $("wordInspector")).scrollTop = 0;
       if (inspCard) {
         inspCard.classList.remove("insp-flash");
         void inspCard.offsetWidth;
@@ -2304,6 +2351,7 @@
         }
       } else {
         if (paneRight) paneRight.scrollTop = 0;
+      if (inspCard || $("wordInspector")) (inspCard || $("wordInspector")).scrollTop = 0;
         if (inspCard) {
           inspCard.classList.remove("insp-flash");
           void inspCard.offsetWidth;
@@ -2603,6 +2651,7 @@
         } else {
           const paneRight = $("paneRight") || document.querySelector(".pane-right");
           if (paneRight) paneRight.scrollTop = 0;
+      if (inspCard || $("wordInspector")) (inspCard || $("wordInspector")).scrollTop = 0;
           const wb = document.querySelector("#tab-daily .split-workbench");
           if (wb && wb.getBoundingClientRect().top < -120) {
             smartScrollToEl(wb, 14);

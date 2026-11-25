@@ -1333,6 +1333,7 @@ body.dark .az-tok-vocab {
   --border: rgba(0, 0, 0, 0.075);
   --text: #1d1d1f;
   --text-muted: #86868b;
+  --text-sub: #515154;
   --primary: #0071e3;
   --primary-hover: #0077ed;
   --primary-soft: rgba(0, 113, 227, 0.1);
@@ -1367,6 +1368,7 @@ body.dark {
   --border: rgba(255, 255, 255, 0.09);
   --text: #f3f4f6;
   --text-muted: #9ca3af;
+  --text-sub: #c7c9d1;
   --primary: #38bdf8;
   --primary-hover: #7dd3fc;
   --primary-soft: rgba(56, 189, 248, 0.16);
@@ -6365,3 +6367,70 @@ body.auth-revealing .main-container {
   }
 }
 #srLiveOnlineSlot.is-stale { opacity: 0.55; transition: opacity 0.15s ease; }
+
+/* =========================================================
+ * LAYOUT POLISH · 粘性右栏不再被顶栏遮挡、卡片边缘不再被裁切
+ * ========================================================= */
+:root { --sticky-top: 110px; }
+html { scroll-padding-top: calc(var(--sticky-top) + 14px); }
+
+/* 顶部分段导航收紧一点，给内容留更多高度 */
+.nav-tabs { padding: 2px 0 8px; }
+
+@media (min-width: 981px) {
+  /* 右栏本身不再滚动（避免卡片阴影被裁、出现第二条滚动条），只让词卡内部滚动 */
+  .pane-right {
+    top: calc(var(--sticky-top) + 14px);
+    max-height: calc(100vh - var(--sticky-top) - 28px);
+    max-height: calc(100dvh - var(--sticky-top) - 28px);
+    overflow: visible;
+    padding-right: 0;
+  }
+  .pane-right > .quick-add-card { flex: none; }
+  #wordInspector {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 128, 0.28) transparent;
+    scrollbar-gutter: stable;
+  }
+  #wordInspector::-webkit-scrollbar { width: 6px; }
+  #wordInspector::-webkit-scrollbar-track { background: transparent; margin: 14px 0; }
+  #wordInspector::-webkit-scrollbar-thumb { background: rgba(120, 120, 128, 0.28); border-radius: 99px; }
+  #wordInspector::-webkit-scrollbar-thumb:hover { background: rgba(120, 120, 128, 0.45); }
+
+  /* 词头（单词 + 发音 + 存生词本 + 熟/不熟）在词卡内吸顶，滚到下面也能操作 */
+  #wordInspector .inspector-header {
+    position: sticky;
+    top: -18px;
+    z-index: 3;
+    margin: -18px -18px 10px;
+    padding: 18px 18px 10px;
+    background: #ffffff;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  body.dark #wordInspector .inspector-header { background: #171a24; }
+}
+
+/* 桌面端：向下滚动时分段导航收起到顶栏后面，向上滚 / 鼠标移到顶栏时再出现 */
+@media (min-width: 981px) {
+  .nav-tabs {
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    will-change: transform;
+  }
+  body.nav-hidden .nav-tabs {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .pane-right { transition: top 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+}
+@media (min-width: 981px) {
+  .topbar { transition: box-shadow 0.2s ease; }
+  body.nav-hidden .topbar { box-shadow: 0 1px 0 var(--border), 0 8px 24px -10px rgba(0, 0, 0, 0.08); }
+}
+
+/* 顶栏「导入」不常用：桌面端只留图标，减少顶栏噪音 */
+#btnImportDaily .btn-label-desktop { display: none; }
