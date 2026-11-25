@@ -123,7 +123,7 @@
     t.textContent = msg;
     t.classList.remove("hidden");
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.add("hidden"), 2400);
+    t._timer = setTimeout(() => t.classList.add("hidden"), String(msg).length > 28 ? 3600 : 2400);
   }
 
   let activeDictAudio = null;
@@ -2171,7 +2171,10 @@
       if (!task) return;
       task.done = typeof forceChecked === "boolean" ? forceChecked : !task.done;
       if (task.done) task.doneAt = todayStr();
-      else delete task.doneAt;
+      else {
+        delete task.doneAt;
+        clearStepsForTask(day, task);
+      }
       syncDayCompletion(day);
       saveState();
       renderDailyTasks();
@@ -2259,6 +2262,7 @@
       if (!span) return;
       const wKey = span.dataset.word || span.textContent;
       inspectWord(wKey);
+      trackCoreWordSeen(wKey);
 
       const row = document.querySelector(`#coreWordList .core-word-row[data-inspect-word="${CSS.escape(wKey)}"]`);
       document.querySelectorAll("#coreWordList .core-word-row.active-row").forEach((r) => r.classList.remove("active-row"));
@@ -2380,9 +2384,15 @@
           inp.classList.add("wrong");
         }
       });
-      $("clozeScore").textContent = `拼写正确：${correct} / ${inputs.length}`;
-      if (inputs.length > 0 && correct / inputs.length >= 0.8) {
-        autoCheckTaskByTag("词汇", `拼写挖空达标 ${correct}/${inputs.length}`);
+      const pass = inputs.length > 0 && correct / inputs.length >= 0.8;
+      $("clozeScore").textContent = `拼写正确：${correct} / ${inputs.length}${pass ? " · 已达标" : inputs.length ? ` · 需 ≥ ${Math.ceil(inputs.length * 0.8)} 个才算完成第 2 步` : ""}`;
+      const active = getActiveSequentialDay();
+      if (active && active.id === currentDayId && inputs.length) {
+        if (!state.clozeBest || typeof state.clozeBest !== "object") state.clozeBest = {};
+        const prev = String(state.clozeBest[active.id] || "0/1").split("/").map(Number);
+        if (!prev[1] || correct / inputs.length >= prev[0] / prev[1]) state.clozeBest[active.id] = `${correct}/${inputs.length}`;
+        if (pass) setStepDone("2", true, `拼写挖空达标 ${correct}/${inputs.length}`);
+        else saveState();
       }
     });
 
@@ -2772,8 +2782,8 @@
       resetPracticeForm();
       renderPracticeRecords();
       updateBadges();
-      const autoTag = payload.type === "listening" ? "听力" : "阅读";
-      if (!autoCheckTaskByTag(autoTag, `已保存${autoTag}复盘`)) {
+      const stepNo = payload.type === "listening" ? "3" : "4";
+      if (!markStepDone(stepNo, `已保存${payload.type === "listening" ? "听力" : "阅读"}复盘`)) {
         showToast("精听/精读记录已保存！");
       }
     });
@@ -2887,7 +2897,7 @@
       resetSpeakingForm();
       renderSpeakingList();
       updateBadges();
-      if (!(payload.draft && autoCheckTaskByTag("口语", "已保存口语作答草稿"))) {
+      if (!(payload.draft && markStepDone("6", "已保存口语作答草稿"))) {
         showToast("口语题已保存！");
       }
     });
@@ -2921,7 +2931,7 @@
         item.draft = val;
         saveState();
         renderSpeakingList();
-        const checkedTask = autoCheckTaskByTag("口语", "已保存口语作答草稿");
+        const checkedTask = markStepDone("6", "已保存口语作答草稿");
         if (inAi) {
           const msg = `请按雅思口语 6.0–6.5 标准帮我批改并升级这道题：\n【${item.part} · ${item.topic}】\n题目：${item.question}\n我的回答：${item.draft}`;
           navigator.clipboard.writeText(msg).then(
@@ -3184,10 +3194,17 @@
     }
   }
 
+  function findTaskByTag(day, tag, pendingOnly = false) {
+    if (!day || !Array.isArray(day.tasks)) return null;
+    const pool = pendingOnly ? day.tasks.filter((t) => !t.done) : day.tasks;
+    const exact = day.tasks.filter((t) => t.tag === tag);
+    if (exact.length) return pool.find((t) => t.tag === tag) || null;
+    return pool.find((t) => !t.tag && String(t.text || "").includes(tag)) || null;
+  }
+
   function autoCheckTaskByTag(tag, reason = "") {
-    const day = getCurrentDay() || getActiveSequentialDay();
-    if (!day || !Array.isArray(day.tasks)) return false;
-    const target = day.tasks.find((t) => !t.done && (t.tag === tag || String(t.text || "").includes(tag)));
+    const day = getActiveSequentialDay() || getCurrentDay();
+    const target = findTaskByTag(day, tag, true);
     if (!target) return false;
     target.done = true;
     target.doneAt = todayStr();
@@ -3198,6 +3215,142 @@
     return true;
   }
 
+  // ==================== DAILY 8-STEP ROUTE ENGINE（每一步完成都有追踪） ====================
+  const STEP_ORDER = ["1", "2", "3", "4", "5", "6", "7", "8"];
+  const STEP_TASK_TAG = { "1": "词汇", "2": "词汇", "3": "听力", "4": "阅读", "5": "写作", "6": "口语" };
+  const STEP_SHORT = {
+    "1": "读串文查词", "2": "拼写挖空", "3": "听力真题复盘", "4": "阅读真题复盘",
+    "5": "写作盲打", "6": "口语开口练", "7": "动态闪卡", "8": "交今日汇报"
+  };
+  const READ_SEEN_TARGET = 10;
+
+  function getStepLog(dayId, create = false) {
+    if (!state.stepLog || typeof state.stepLog !== "object") state.stepLog = {};
+    if (!state.stepLog[dayId]) {
+      const legacy = state.guideSteps && state.guideSteps[dayId];
+      const migrated = {};
+      if (legacy && typeof legacy === "object") {
+        Object.keys(legacy).forEach((k) => { if (legacy[k] === true) migrated[k] = { at: "", via: "manual" }; });
+      }
+      if (!create && !Object.keys(migrated).length) return {};
+      state.stepLog[dayId] = migrated;
+    }
+    return state.stepLog[dayId];
+  }
+
+  function stepsOfTag(tag) {
+    return STEP_ORDER.filter((n) => STEP_TASK_TAG[n] === tag);
+  }
+
+  function isStepDone(day, n) {
+    if (!day) return false;
+    const log = getStepLog(day.id);
+    if (log[n]) return true;
+    const tag = STEP_TASK_TAG[n];
+    if (!tag) return false;
+    const task = findTaskByTag(day, tag);
+    return !!(task && task.done);
+  }
+
+  function getStepStatus(day) {
+    day = day || getActiveSequentialDay();
+    const log = day ? getStepLog(day.id) : {};
+    const steps = STEP_ORDER.map((n) => {
+      const entry = log[n];
+      const tag = STEP_TASK_TAG[n];
+      const task = day && tag ? findTaskByTag(day, tag) : null;
+      return {
+        num: n,
+        done: isStepDone(day, n),
+        at: entry && entry.at ? entry.at : "",
+        via: entry ? entry.via : (task && task.done ? "task" : ""),
+        task
+      };
+    });
+    const next = steps.find((x) => !x.done) || null;
+    const seen = day && state.readSeen && Array.isArray(state.readSeen[day.id]) ? state.readSeen[day.id].length : 0;
+    const seenTarget = day && Array.isArray(day.words) ? Math.min(READ_SEEN_TARGET, day.words.length || READ_SEEN_TARGET) : READ_SEEN_TARGET;
+    const cloze = day && state.clozeBest ? state.clozeBest[day.id] || "" : "";
+    return { day, steps, next, doneCount: steps.filter((x) => x.done).length, seen, seenTarget, cloze };
+  }
+
+  function setStepDone(n, done, reason = "", opts = {}) {
+    n = String(n);
+    const day = opts.day || getActiveSequentialDay();
+    if (!day || !STEP_ORDER.includes(n)) return false;
+    const log = getStepLog(day.id, true);
+    const wasDone = isStepDone(day, n);
+    const tag = STEP_TASK_TAG[n];
+    let taskChecked = false;
+    if (done) {
+      if (!log[n]) log[n] = { at: new Date().toISOString(), via: reason || "auto" };
+      if (tag) {
+        const group = stepsOfTag(tag);
+        const isLastOfGroup = group[group.length - 1] === n;
+        // Finishing the last step of a subject (e.g. step 2 cloze) back-fills earlier steps and ticks the daily task
+        if (isLastOfGroup) {
+          group.forEach((g) => { if (!log[g]) log[g] = { at: log[n].at, via: "auto-fill" }; });
+          const task = findTaskByTag(day, tag, true);
+          if (task) {
+            task.done = true;
+            task.doneAt = todayStr();
+            taskChecked = true;
+          }
+        }
+      }
+    } else {
+      delete log[n];
+      if (state.guideSteps && state.guideSteps[day.id]) delete state.guideSteps[day.id][n];
+      if (tag) {
+        const task = findTaskByTag(day, tag);
+        if (task && task.done) {
+          task.done = false;
+          delete task.doneAt;
+        }
+      }
+    }
+    syncDayCompletionGlobal(day);
+    saveState();
+    renderDailyTasks();
+    if (opts.silent) return !wasDone && done;
+    if (done && !wasDone) {
+      const status = getStepStatus(day);
+      const nextTxt = status.next ? `下一步：第 ${status.next.num} 步 ${STEP_SHORT[status.next.num]}` : "今日 8 步全部完成";
+      showToast(`第 ${n} 步「${STEP_SHORT[n]}」已完成${taskChecked ? `，已勾选「${tag}」任务` : ""} · ${nextTxt}`);
+      document.dispatchEvent(new CustomEvent("bandup:step-done", { detail: { step: n, dayId: day.id } }));
+    } else if (!done && wasDone) {
+      showToast(`已取消第 ${n} 步完成状态`);
+    }
+    return done && !wasDone;
+  }
+
+  function markStepDone(n, reason = "") {
+    return setStepDone(n, true, reason);
+  }
+
+  function clearStepsForTask(day, task) {
+    if (!day || !task || !task.tag) return;
+    const log = getStepLog(day.id);
+    stepsOfTag(task.tag).forEach((n) => { delete log[n]; });
+  }
+
+  function trackCoreWordSeen(wordKey) {
+    const active = getActiveSequentialDay();
+    if (!active || active.id !== currentDayId || !wordKey) return;
+    if (!state.readSeen || typeof state.readSeen !== "object") state.readSeen = {};
+    const arr = Array.isArray(state.readSeen[active.id]) ? state.readSeen[active.id] : [];
+    const k = String(wordKey).toLowerCase();
+    if (arr.includes(k)) return;
+    arr.push(k);
+    state.readSeen[active.id] = arr;
+    const target = Math.min(READ_SEEN_TARGET, (active.words || []).length || READ_SEEN_TARGET);
+    if (arr.length >= target && !isStepDone(active, "1")) {
+      setStepDone("1", true, `已查看 ${arr.length} 个高频词`);
+    } else {
+      saveState();
+    }
+  }
+
   function toggleTaskDone(dayId, taskId) {
     const day = (state.days || []).find((d) => d.id === dayId) || getCurrentDay();
     if (!day || !Array.isArray(day.tasks)) return false;
@@ -3205,7 +3358,10 @@
     if (!target) return false;
     target.done = !target.done;
     if (target.done) target.doneAt = todayStr();
-    else delete target.doneAt;
+    else {
+      delete target.doneAt;
+      clearStepsForTask(day, target);
+    }
     syncDayCompletionGlobal(day);
     saveState();
     renderDailyTasks();
@@ -3230,6 +3386,11 @@
     markWordMastered,
     autoCheckTaskByTag,
     toggleTaskDone,
+    getStepStatus,
+    setStepDone,
+    markStepDone,
+    stepShort: STEP_SHORT,
+    getActiveDayId: () => (getActiveSequentialDay() || {}).id,
     refresh: initRenderAll,
     goTab,
     scrollToEl: smartScrollToEl,

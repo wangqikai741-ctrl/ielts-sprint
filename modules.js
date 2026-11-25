@@ -244,12 +244,15 @@
     const lines = [`【Day ${n} 学习汇报 · ${t}】`, ""];
     if (day) {
       const tasks = day.tasks || [];
-      lines.push(`✅ 当前进度 Day ${n} 任务 ${tasks.filter((x) => x.done).length}/${tasks.length}`);
+      lines.push(`【任务】当前进度 Day ${n} 任务 ${tasks.filter((x) => x.done).length}/${tasks.length}`);
       tasks.forEach((x) => lines.push(`  ${x.done ? "☑" : "☐"} [${x.tag}] ${x.text}`));
+      const st = App.getStepStatus(day);
+      lines.push(`【8 步路线】已完成 ${st.doneCount}/8`);
+      st.steps.forEach((x) => lines.push(`  ${x.done ? "☑" : "☐"} 第 ${x.num} 步 ${App.stepShort[x.num]}${x.num === "2" && st.cloze ? `（拼写最佳 ${st.cloze}）` : ""}`));
       lines.push("");
     }
     const prs = s.practiceRecords.filter((r) => r.date === t);
-    lines.push("🎧📖 今日精听 / 精读");
+    lines.push("【今日精听 / 精读】");
     if (prs.length) {
       prs.forEach((r) => {
         lines.push(`  - ${r.type === "reading" ? "阅读" : "听力"} ${r.source}：${r.correct || "?"}/${r.total}${r.minutes ? `，用时 ${r.minutes} 分钟` : ""}`);
@@ -259,7 +262,7 @@
     } else lines.push("  （今天还没录入）");
     lines.push("");
     const sps = s.speakingTopics.filter((x) => x.tag === "今日必练" && !x.mastered);
-    lines.push("🗣️ 口语作答（请帮我批改升级）");
+    lines.push("【口语作答】（请帮我批改升级）");
     if (sps.length) {
       sps.forEach((x, i) => {
         lines.push(`  Q${i + 1} [${x.part}] ${x.question}`);
@@ -269,7 +272,7 @@
     lines.push("");
     const ws = s.writings.filter((w) => w.date === t);
     if (ws.length) {
-      lines.push("✍️ 今日写作（请按四项标准批改）");
+      lines.push("【今日写作】（请按四项标准批改）");
       ws.forEach((w) => {
         lines.push(`  ${w.task}｜题目：${w.prompt}`);
         lines.push(`  正文（${countWords(w.essay)} 词）：\n${w.essay}`);
@@ -294,7 +297,7 @@
     }
     const et = s.examTracker;
     lines.push("");
-    lines.push(`🎫 考位：${et.booked ? "已报名 " + (et.bookedInfo || "") : et.lastCheck ? "最近刷官网 " + et.lastCheck : "还没刷过官网"}`);
+    lines.push(`【考位】${et.booked ? "已报名 " + (et.bookedInfo || "") : et.lastCheck ? "最近刷官网 " + et.lastCheck : "还没刷过官网"}`);
     return lines.join("\n");
   }
 
@@ -469,6 +472,8 @@
           ${examWarn ? `<div class="exam-alert">${sinceCheck === null ? "尚未查询考位" : `已 ${sinceCheck} 天未查考位`} · 建议前往官网查看开封 / 郑州 1 月机考。</div>` : ""}
         </div>
       </div>
+
+      <div id="routeCardMount"></div>
 
       <div class="skill-grid">
         ${skill("L", "Listening · 听力", estL, `${s.practiceRecords.filter((r) => r.type === "listening").length} 次精听`)}
@@ -668,7 +673,10 @@
       modal.addEventListener("click", (e) => {
         if (e.target === modal || e.target.closest("[data-close]")) modal.classList.add("hidden");
       });
-      modal.querySelector("#btnCopyReport").addEventListener("click", () => copyText($("reportText").value));
+      modal.querySelector("#btnCopyReport").addEventListener("click", () => {
+        copyText($("reportText").value);
+        setTimeout(() => App.markStepDone("8", "已复制今日汇报"), 900);
+      });
     }
     $("reportText").value = text;
     modal.classList.remove("hidden");
@@ -875,7 +883,7 @@
       localStorage.removeItem(DRAFT_KEY);
       App.save();
       resetWritingForm();
-      App.toast(id ? "作文已更新" : "作文已保存！记得复制给 AI 批改");
+      if (!App.markStepDone("5", "已保存作文")) App.toast(id ? "作文已更新" : "作文已保存！记得复制给 AI 批改");
     });
 
     $("btnCopyWriting").addEventListener("click", () => {
@@ -2521,7 +2529,7 @@
       });
       App.save();
       App.refresh();
-      if (!(App.autoCheckTaskByTag && App.autoCheckTaskByTag("阅读", "真题雷达已入库"))) {
+      if (!App.markStepDone("4", "真题雷达已入库")) {
         App.toast("已存入「精听 & 精读记录」");
       }
     });
@@ -2589,12 +2597,228 @@
     }
   }
 
+  // ==================== TODAY'S ROUTE（8 步路线卡：现在做哪一步 · 怎么做 · 做完自动打勾） ====================
+  const ROUTE_STEPS = [
+    { n: "1", c: "s-blue", dur: 40, title: "读今日串文，点词查义并跟读", go: "去读串文", act: "read-passage",
+      how: ["通读英文短文，遇到蓝色粗体词就点一下，右侧看释义、同义替换和例句", "记不住的词点「标为不熟 · 明日复现」，也可以划词标黄 / 红", "点工具栏「英音朗读」，看着原文大声跟读 2 遍"],
+      rule: "点开查看 10 个蓝色粗体词后自动完成" },
+    { n: "2", c: "s-sky", dur: 20, title: "听力词「拼写挖空」默写", go: "去拼写挖空", act: "cloze",
+      how: ["点工具栏「拼写挖空」，文中的听力拼写词变成空格", "根据中文提示盲打拼写，全部写完点「核对拼写」", "拼错的词点「显示答案」对照，再默写一遍"],
+      rule: "「核对拼写」正确率达到 80% 自动完成，同时勾选「词汇」任务" },
+    { n: "3", c: "s-teal", dur: 80, title: "雅思哥做听力真题并复盘错题", go: "去录听力复盘", jump: "practice", tag: "听力",
+      how: ["电脑端打开雅思哥 Pro，原速做完一遍并对答案", "错题先不看原文，盲听 2–3 遍，找出连读、单复数和干扰项", "回到「精听 & 精读」，科目选听力，填对题数和错因后保存"],
+      rule: "保存一条听力精听记录后自动完成，同时勾选「听力」任务" },
+    { n: "4", c: "s-indigo", dur: 85, title: "雅思哥做阅读真题，同义替换入库", go: "开真题雷达", act: "analyzer", tag: "阅读",
+      how: ["雅思哥 Pro 计时 20 分钟做完一篇，对答案", "逐题找出题干和原文之间的同义替换", "打开「真题雷达」粘贴原文，生词入库后点「存入精听精读」"],
+      rule: "保存一条阅读记录或真题雷达入库后自动完成，同时勾选「阅读」任务" },
+    { n: "5", c: "s-purple", dur: 45, title: "机考写作盲打", go: "去练写作", jump: "writing",
+      how: ["__WRITING_PLAN__", "进入「写作批改」，打开倒计时盲打，刻意用上今天学的 3–5 个同义替换", "写完点保存，晚上的汇报会自动附上全文"],
+      rule: "在「写作批改」保存一篇作文后自动完成" },
+    { n: "6", c: "s-rose", dur: 45, title: "今日必练口语开口说，并保存草稿", go: "去练口语", jump: "speaking", tag: "口语",
+      how: ["打开「口语话题库」，开 45 秒计时器，不看稿说 2 遍", "把英文回答打进题目下方的作答框，点「保存草稿」", "顺带朗读前一天 AI 升级的 6.5 版回答"],
+      rule: "任意一题保存作答草稿后自动完成，同时勾选「口语」任务" },
+    { n: "7", c: "s-amber", dur: 35, title: "动态闪卡两轮验收", go: "刷动态闪卡", act: "flashcards",
+      how: ["第 1 轮看英文选中文，第 2 轮只听发音选中文", "犹豫或选错的词按 W 标为不熟", "不熟词会编进明天的新串文再次出现"],
+      rule: "刷完一轮动态闪卡后自动完成" },
+    { n: "8", c: "s-ink", dur: 10, title: "复制今日汇报发给 AI 教练", go: "生成汇报", act: "report",
+      how: ["点「生成汇报」，检查今天每一步的完成情况", "点「复制汇报」，粘贴发给 AI 教练", "AI 批改口语和作文，并生成明天的 Day N+1"],
+      rule: "在汇报弹窗点「复制汇报」后自动完成" }
+  ];
+  let routePick = null;
+  let runRouteStep = null;
+  const SF_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+  const SF_CIRCLE_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="8.5 12.2 11 14.6 15.6 9.6"></polyline></svg>`;
+
+  function writingPlanToday() {
+    const wd = parseDate(today()).getDay();
+    if (wd === 1 || wd === 4) return "今天写大作文 Task 2（40 分钟）";
+    if (wd === 2 || wd === 5) return "今天写小作文 Task 1（20 分钟），剩余时间审 1 道大作文题";
+    return "今天审 2 道大作文题，各写一个主体段骨架";
+  }
+
+  function fmtStepTime(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    return fmt(d) === today() ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  }
+
+  function routeTarget(meta, day) {
+    if (!day) return "";
+    const tasks = day.tasks || [];
+    const find = (tag) => tasks.find((t) => t.tag === tag);
+    if (meta.n === "1" || meta.n === "2") {
+      const cnt = (day.words || []).length;
+      const listenCnt = (day.words || []).filter((w) => w.category === "听力拼写").length;
+      return meta.n === "1" ? `${day.title || day.label}（${cnt} 个高频词）` : `今日听力拼写词 ${listenCnt || cnt} 个`;
+    }
+    if (meta.n === "5") return writingPlanToday();
+    const t = meta.tag ? find(meta.tag) : null;
+    return t ? t.text : "";
+  }
+
+  function routeProgressNote(n, status) {
+    if (n === "1" && !status.steps[0].done) return `已查看 ${Math.min(status.seen, status.seenTarget)} / ${status.seenTarget} 个词`;
+    if (n === "2" && status.cloze) return `最佳成绩 ${status.cloze}`;
+    return "";
+  }
+
+  function renderRoute() {
+    const status = App.getStepStatus();
+    const day = status.day;
+    if (!day) return;
+    const seq = getSprintProgress().activeSeq;
+    const pick = routePick && ROUTE_STEPS.some((m) => m.n === routePick) ? routePick : (status.next ? status.next.num : "8");
+    const meta = ROUTE_STEPS.find((m) => m.n === pick);
+    const st = status.steps.find((x) => x.num === pick);
+    const remain = ROUTE_STEPS.filter((m) => !status.steps.find((x) => x.num === m.n).done).reduce((a, m) => a + m.dur, 0);
+    const allDone = status.doneCount === 8;
+    const isCurrent = status.next && status.next.num === pick;
+    const how = meta.how.map((h) => (h === "__WRITING_PLAN__" ? writingPlanToday() : h));
+    const target = routeTarget(meta, day);
+    const note = routeProgressNote(pick, status);
+    const stateLbl = st.done
+      ? `已完成${st.at ? " · " + fmtStepTime(st.at) : ""}`
+      : isCurrent ? "现在做这一步" : "尚未完成";
+
+    const nodes = ROUTE_STEPS.map((m) => {
+      const x = status.steps.find((y) => y.num === m.n);
+      const cur = status.next && status.next.num === m.n;
+      return `<button type="button" class="route-node ${m.c} ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${m.n === pick ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}">
+        <span class="rn-dot ${m.c}">${x.done ? SF_CHECK : m.n}</span>
+        <span class="rn-label">${esc(App.stepShort[m.n])}</span>
+        <span class="rn-sub">${x.done ? (x.at ? fmtStepTime(x.at) : "已完成") : `${m.dur} 分钟`}</span>
+      </button>`;
+    }).join("");
+
+    const focus = `
+      <div class="route-focus ${meta.c} ${st.done ? "is-done" : ""}">
+        <div class="rf-head">
+          <span class="rf-step">第 ${pick} 步</span>
+          <h4 class="rf-title">${esc(meta.title)}</h4>
+          <span class="rf-dur">${meta.dur} 分钟</span>
+          <span class="rf-state ${st.done ? "is-done" : isCurrent ? "is-now" : ""}">${st.done ? SF_CHECK : ""}${esc(stateLbl)}</span>
+        </div>
+        ${target ? `<div class="rf-target">${esc(target)}</div>` : ""}
+        <ol class="rf-how">${how.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
+        <div class="rf-rule">${SF_CIRCLE_CHECK}<span><b>完成标准：</b>${esc(meta.rule)}${note ? `<em>${esc(note)}</em>` : ""}</span></div>
+        <div class="rf-actions">
+          <button type="button" class="btn btn-primary rf-go ${meta.c}" data-route-go="${pick}">${esc(meta.go)} →</button>
+          <button type="button" class="btn btn-outline" data-route-toggle="${pick}">${st.done ? "撤销完成" : "已在别处完成，手动标记"}</button>
+        </div>
+      </div>`;
+
+    const dash = $("routeCardMount");
+    if (dash) {
+      dash.innerHTML = `
+        <div class="card route-card">
+          <div class="route-head">
+            <div>
+              <span class="route-eyebrow">TODAY'S ROUTE · DAY ${seq}</span>
+              <h3 class="route-title">今日学习路线</h3>
+            </div>
+            <div class="route-meta">
+              <span class="route-count"><b>${status.doneCount}</b> / 8 步</span>
+              <span class="route-remain">${allDone ? "今日 8 步全部完成" : `剩余约 ${remain >= 60 ? `${Math.floor(remain / 60)} 小时` : ""}${remain % 60 ? ` ${remain % 60} 分钟` : ""}`.replace("约 ", "约")}</span>
+            </div>
+          </div>
+          <div class="route-bar"><span style="width:${Math.round((status.doneCount / 8) * 100)}%"></span></div>
+          <div class="route-track">${nodes}</div>
+          ${allDone && !routePick ? `<div class="route-all-done">${SF_CIRCLE_CHECK}<div><b>Day ${seq} 的 8 步已全部完成</b><span>把复制好的汇报发给 AI 教练，等待明天的 Day ${seq + 1} 上线。点击上方任意一步可回看详情。</span></div></div>` : focus}
+        </div>`;
+    }
+
+    const strip = $("dailyRouteStrip");
+    if (strip) {
+      const viewingId = App.getCurrentDayId();
+      if (viewingId && viewingId !== day.id) {
+        const vDay = S().days.find((d) => d.id === viewingId);
+        strip.innerHTML = `<div class="card route-strip is-review">
+          <span class="rs-review-txt">正在回看 ${esc(vDay ? vDay.label : viewingId)} · 当前进度在 <b>Day ${seq}</b>，回看期间不会记录步骤完成</span>
+          <button type="button" class="btn btn-primary btn-sm" data-route-back="${esc(day.id)}">回到 Day ${seq} →</button>
+        </div>`;
+      } else {
+        const sNow = status.next ? ROUTE_STEPS.find((m) => m.n === status.next.num) : null;
+        const showMeta = routePick ? meta : sNow;
+        const showSt = showMeta ? status.steps.find((x) => x.num === showMeta.n) : null;
+        const sNote = showMeta ? routeProgressNote(showMeta.n, status) : "";
+        const dots = ROUTE_STEPS.map((m) => {
+          const x = status.steps.find((y) => y.num === m.n);
+          const cur = status.next && status.next.num === m.n;
+          return `<button type="button" class="rs-dot ${m.c} ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${showMeta && showMeta.n === m.n ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}${x.done ? "（已完成）" : ""}">${x.done ? SF_CHECK : m.n}</button>`;
+        }).join("");
+        strip.innerHTML = `<div class="card route-strip">
+          <div class="rs-top">
+            <div class="rs-dots">${dots}</div>
+            <span class="rs-count">路线 ${status.doneCount} / 8 步</span>
+          </div>
+          ${showMeta ? `
+          <div class="rs-body">
+            <div class="rs-main">
+              <div class="rs-line"><span class="rs-step ${showMeta.c}">第 ${showMeta.n} 步</span><b>${esc(showMeta.title)}</b>${showSt && showSt.done ? `<span class="rs-done-tag">${SF_CHECK}已完成${showSt.at ? " " + fmtStepTime(showSt.at) : ""}</span>` : ""}</div>
+              <div class="rs-rule">${esc(showMeta.rule)}${sNote ? ` · <em>${esc(sNote)}</em>` : ""}</div>
+            </div>
+            <div class="rs-actions">
+              <button type="button" class="btn btn-primary btn-sm rf-go ${showMeta.c}" data-route-go="${showMeta.n}">${esc(showMeta.go)} →</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-route-toggle="${showMeta.n}">${showSt && showSt.done ? "撤销" : "标记完成"}</button>
+            </div>
+          </div>
+          <details class="rs-how"><summary>这一步怎么做</summary><ol>${showMeta.how.map((h) => `<li>${esc(h === "__WRITING_PLAN__" ? writingPlanToday() : h)}</li>`).join("")}</ol></details>`
+          : `<div class="rs-body"><div class="rs-main"><div class="rs-line"><b>今日 8 步全部完成</b></div><div class="rs-rule">记得把汇报发给 AI 教练，等待明天的新串文。</div></div></div>`}
+        </div>`;
+      }
+    }
+  }
+
+  function bindRoute() {
+    document.addEventListener("click", (e) => {
+      const pickBtn = e.target.closest("[data-route-pick]");
+      if (pickBtn) {
+        const n = pickBtn.dataset.routePick;
+        const status = App.getStepStatus();
+        routePick = status.next && status.next.num === n && routePick === null ? null : (routePick === n ? null : n);
+        renderRoute();
+        return;
+      }
+      const goBtn = e.target.closest("[data-route-go]");
+      if (goBtn && runRouteStep) {
+        const meta = ROUTE_STEPS.find((m) => m.n === goBtn.dataset.routeGo);
+        if (meta) runRouteStep(meta);
+        return;
+      }
+      const togBtn = e.target.closest("[data-route-toggle]");
+      if (togBtn) {
+        const n = togBtn.dataset.routeToggle;
+        const status = App.getStepStatus();
+        const st = status.steps.find((x) => x.num === n);
+        App.setStepDone(n, !(st && st.done), "manual");
+        return;
+      }
+      const backBtn = e.target.closest("[data-route-back]");
+      if (backBtn) {
+        App.selectDay(backBtn.dataset.routeBack);
+        renderRoute();
+      }
+    });
+    document.addEventListener("bandup:step-done", () => {
+      routePick = null;
+      document.querySelectorAll(".route-card, .route-strip").forEach((el) => {
+        el.classList.remove("route-flash");
+        void el.offsetWidth;
+        el.classList.add("route-flash");
+      });
+    });
+    const sel = $("daySelect");
+    if (sel) sel.addEventListener("change", () => setTimeout(renderRoute, 0));
+  }
+
   // ==================== VISUAL PLAYBOOK GUIDE + LIVE DAILY CHECKLIST ====================
   let openFlashcardsFn = null;
 
   function syncGuideDynamicTargets(prog, day, tasks) {
     if (!day) return;
-    const findTask = (tag) => tasks.find((t) => t.tag === tag || String(t.text || "").includes(tag));
+    const findTask = (tag) => tasks.find((t) => t.tag === tag) || tasks.find((t) => !t.tag && String(t.text || "").includes(tag));
     const vTask = findTask("词汇");
     const lTask = findTask("听力");
     const rTask = findTask("阅读");
@@ -2614,24 +2838,10 @@
       $("gtTargetSpeaking").textContent = `今日必练：${sTask.text}`;
     }
 
-    const tagDoneMap = {
-      "词汇": !!(vTask && vTask.done),
-      "听力": !!(lTask && lTask.done),
-      "阅读": !!(rTask && rTask.done),
-      "口语": !!(sTask && sTask.done)
-    };
-    if (!S().guideSteps || typeof S().guideSteps !== "object") S().guideSteps = {};
-    const stepManual = S().guideSteps[day.id] || {};
-    const todayIso = today();
-    const writingDoneToday = (S().writings || []).some((w) => w.date === todayIso);
-
-    const isStepDone = (stepNum, tag) => {
-      if (stepManual[stepNum] === true) return true;
-      if (stepManual[stepNum] === false) return false;
-      if (stepNum === "1") return !!tagDoneMap["词汇"];
-      if (stepNum === "2") return !!tagDoneMap["词汇"];
-      if (stepNum === "5") return writingDoneToday;
-      return tag ? !!tagDoneMap[tag] : false;
+    const status = App.getStepStatus(day);
+    const isStepDone = (stepNum) => {
+      const st = status.steps.find((x) => x.num === stepNum);
+      return !!(st && st.done);
     };
 
     document.querySelectorAll("[data-step-done]").forEach((el) => {
@@ -2642,8 +2852,7 @@
     let markedNext = false;
     document.querySelectorAll("#guideFlowTimeline .lf-row").forEach((row) => {
       const stepNum = String(row.dataset.lfStep || "");
-      const tag = row.dataset.stepTag;
-      const done = isStepDone(stepNum, tag);
+      const done = isStepDone(stepNum);
       row.classList.toggle("is-step-done", done);
 
       const badgeCircle = row.querySelector(".lf-badge");
@@ -2900,63 +3109,73 @@
       });
     }
 
+    function runGuideAct(act) {
+      if (act === "read-passage") {
+        navigateWithSpotlight("daily", "passage");
+        setTimeout(() => {
+          const btn = $("btnToggleCloze");
+          const bar = $("clozeBar");
+          // Ensure normal reading mode is shown first (not cloze)
+          if (btn && bar && !bar.classList.contains("hidden")) btn.click();
+        }, 80);
+      } else if (act === "cloze") {
+        navigateWithSpotlight("daily", "passage");
+        setTimeout(() => {
+          const btn = $("btnToggleCloze");
+          const bar = $("clozeBar");
+          if (btn && bar && bar.classList.contains("hidden")) btn.click();
+        }, 140);
+      } else if (act === "flashcards" && openFlashcardsFn) {
+        openFlashcardsFn("today");
+        if (App.toast) App.toast("已启动动态闪卡（键盘 1–4 速选 · Space 重听英音）");
+      } else if (act === "flashcards-weak" && openFlashcardsFn) {
+        openFlashcardsFn("weak");
+        if (App.toast) App.toast("已启动不熟词专项闪卡（若暂无不熟词将自动刷今日词）");
+      } else if (act === "analyzer") {
+        openPassageAnalyzer("", "");
+        if (App.toast) App.toast("粘贴剑桥原文扫描生词，点「存入精听精读」自动打勾并建立真题溯源");
+      } else if (act === "search") {
+        openSearch();
+      } else if (act === "report") {
+        openReport();
+      } else if (act === "cloud" && $("btnBackup")) {
+        $("btnBackup").click();
+      }
+    }
+
+    runRouteStep = (meta) => {
+      if (meta.act) return runGuideAct(meta.act);
+      if (!meta.jump) return;
+      navigateWithSpotlight(meta.jump, meta.jump);
+      if (meta.jump === "practice" && $("prType") && !($("prEditId") && $("prEditId").value)) {
+        $("prType").value = meta.n === "3" ? "listening" : "reading";
+        $("prType").dispatchEvent(new Event("change", { bubbles: true }));
+        const src = $("prSource");
+        const day = App.getStepStatus().day;
+        const task = day && (day.tasks || []).find((t) => t.tag === meta.tag);
+        if (src && !src.value.trim() && task) {
+          src.value = String(task.text).replace(/^雅思哥机考[:：]\s*/, "").split(/\s*\+\s*/)[0].trim();
+        }
+      }
+    };
+
     modal.addEventListener("click", (e) => {
       const stepTog = e.target.closest("[data-toggle-step]");
       if (stepTog) {
         e.stopPropagation();
         const stepNum = String(stepTog.dataset.toggleStep || "");
-        const prog = getSprintProgress();
-        const day = prog.activeDay || S().days[0];
-        if (day && stepNum) {
-          if (!S().guideSteps || typeof S().guideSteps !== "object") S().guideSteps = {};
-          if (!S().guideSteps[day.id]) S().guideSteps[day.id] = {};
-          const row = stepTog.closest(".lf-row");
-          const nowDone = !(row && row.classList.contains("is-step-done"));
-          S().guideSteps[day.id][stepNum] = nowDone;
-          App.save();
+        const row = stepTog.closest(".lf-row");
+        if (stepNum) {
+          App.setStepDone(stepNum, !(row && row.classList.contains("is-step-done")), "manual");
           renderGuideChecklist();
-          if (App.toast) {
-            App.toast(nowDone ? `第 ${stepNum} 步已完成，已自动推进到下一步` : `已取消第 ${stepNum} 步完成状态`);
-          }
         }
         return;
       }
 
       const actionBtn = e.target.closest("[data-guide-action]");
       if (actionBtn) {
-        const act = actionBtn.dataset.guideAction;
         modal.classList.add("hidden");
-        if (act === "read-passage") {
-          navigateWithSpotlight("daily", "passage");
-          setTimeout(() => {
-            const btn = $("btnToggleCloze");
-            const bar = $("clozeBar");
-            // Ensure normal reading mode is shown first (not cloze)
-            if (btn && bar && !bar.classList.contains("hidden")) btn.click();
-          }, 80);
-        } else if (act === "cloze") {
-          navigateWithSpotlight("daily", "passage");
-          setTimeout(() => {
-            const btn = $("btnToggleCloze");
-            const bar = $("clozeBar");
-            if (btn && bar && bar.classList.contains("hidden")) btn.click();
-          }, 140);
-        } else if (act === "flashcards" && openFlashcardsFn) {
-          openFlashcardsFn("today");
-          if (App.toast) App.toast("已启动动态闪卡（键盘 1–4 速选 · Space 重听英音）");
-        } else if (act === "flashcards-weak" && openFlashcardsFn) {
-          openFlashcardsFn("weak");
-          if (App.toast) App.toast("已启动不熟词专项闪卡（若暂无不熟词将自动刷今日词）");
-        } else if (act === "analyzer") {
-          openPassageAnalyzer("", "");
-          if (App.toast) App.toast("粘贴剑桥原文扫描生词，点「存入精听精读」自动打勾并建立真题溯源");
-        } else if (act === "search") {
-          openSearch();
-        } else if (act === "report") {
-          openReport();
-        } else if (act === "cloud" && $("btnBackup")) {
-          $("btnBackup").click();
-        }
+        runGuideAct(actionBtn.dataset.guideAction);
         return;
       }
       const jump = e.target.closest("[data-guide-jump]");
@@ -3133,9 +3352,7 @@
       $("fcProgressFill").style.width = "100%";
       $("fcProgressText").textContent = `${fc.queue.length} / ${fc.queue.length}`;
       $("fcStatPill").textContent = `正确 ${fc.rightCount} · 不熟 ${fc.weakWords.size}`;
-      if (fc.pool.length > 0 && App && typeof App.autoCheckTaskByTag === "function") {
-        App.autoCheckTaskByTag("词汇", "已完成一轮动态闪卡验收");
-      }
+      if (fc.pool.length > 0) App.markStepDone("7", "已完成一轮动态闪卡验收");
 
       const totalAttempts = fc.rightCount + fc.weakWords.size;
       const acc = totalAttempts ? Math.round((fc.rightCount / Math.max(fc.pool.length, 1)) * 100) : 100;
@@ -3416,6 +3633,7 @@
   function renderAll() {
     ensureFields();
     renderDashboard();
+    renderRoute();
     renderWritingList();
     renderGuideChecklist();
     syncEmptyTabBadges();
@@ -3429,6 +3647,7 @@
   bindSearch();
   bindAnalyzer();
   bindGuide();
+  bindRoute();
   bindFlashcards();
   renderAll();
 
