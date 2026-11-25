@@ -4911,7 +4911,39 @@ body.dark .fc-launch-btn {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 3px;
+  margin-top: 5px;
+}
+.inspector-meta-row .cat-badge,
+.inspector-meta-row .encounter-pill {
+  margin-top: 0 !important;
+  height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.inspector-btns {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+}
+.inspector-btns .btn {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 11px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  line-height: 1 !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
 }
 .encounter-pill {
   font-family: "JetBrains Mono", monospace;
