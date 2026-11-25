@@ -3337,6 +3337,7 @@
   function trackCoreWordSeen(wordKey) {
     const active = getActiveSequentialDay();
     if (!active || active.id !== currentDayId || !wordKey) return;
+    if (isStepDone(active, "1")) return;
     if (!state.readSeen || typeof state.readSeen !== "object") state.readSeen = {};
     const arr = Array.isArray(state.readSeen[active.id]) ? state.readSeen[active.id] : [];
     const k = String(wordKey).toLowerCase();
@@ -3344,7 +3345,7 @@
     arr.push(k);
     state.readSeen[active.id] = arr;
     const target = Math.min(READ_SEEN_TARGET, (active.words || []).length || READ_SEEN_TARGET);
-    if (arr.length >= target && !isStepDone(active, "1")) {
+    if (arr.length >= target) {
       setStepDone("1", true, `已查看 ${arr.length} 个高频词`);
     } else {
       saveState();

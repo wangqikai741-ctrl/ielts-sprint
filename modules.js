@@ -2748,25 +2748,29 @@
           const cur = status.next && status.next.num === m.n;
           return `<button type="button" class="rs-dot ${m.c} ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${showMeta && showMeta.n === m.n ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}${x.done ? "（已完成）" : ""}">${x.done ? SF_CHECK : m.n}</button>`;
         }).join("");
-        strip.innerHTML = `<div class="card route-strip">
-          <div class="rs-top">
+        strip.innerHTML = `<details class="card route-strip route-strip-compact" ${routePick ? "open" : ""}>
+          <summary class="rs-compact-bar">
             <div class="rs-dots">${dots}</div>
-            <span class="rs-count">路线 ${status.doneCount} / 8 步</span>
-          </div>
+            <div class="rs-compact-cur">
+              ${showMeta
+                ? `<span class="rs-step ${showMeta.c}">第 ${showMeta.n} 步</span><b class="rs-compact-title">${esc(showMeta.title)}</b>${sNote ? `<span class="rs-compact-note">${esc(sNote)}</span>` : ""}`
+                : `<b class="rs-compact-title">今日 8 步已全部完成</b>`}
+            </div>
+            <div class="rs-compact-right">
+              ${showMeta ? `<button type="button" class="btn btn-primary btn-sm rf-go ${showMeta.c}" data-route-go="${showMeta.n}">${esc(showMeta.go)} →</button>` : ""}
+              <span class="rs-count">${status.doneCount}/8</span>
+              <span class="rs-caret" aria-hidden="true">▾</span>
+            </div>
+          </summary>
           ${showMeta ? `
-          <div class="rs-body">
-            <div class="rs-main">
-              <div class="rs-line"><span class="rs-step ${showMeta.c}">第 ${showMeta.n} 步</span><b>${esc(showMeta.title)}</b>${showSt && showSt.done ? `<span class="rs-done-tag">${SF_CHECK}已完成${showSt.at ? " " + fmtStepTime(showSt.at) : ""}</span>` : ""}</div>
-              <div class="rs-rule">${esc(showMeta.rule)}${sNote ? ` · <em>${esc(sNote)}</em>` : ""}</div>
+          <div class="rs-compact-detail">
+            <div class="rs-rule"><b>完成标准：</b>${esc(showMeta.rule)}${sNote ? ` · <em>${esc(sNote)}</em>` : ""}</div>
+            <ol class="rs-compact-ol">${showMeta.how.map((h) => `<li>${esc(h === "__WRITING_PLAN__" ? writingPlanToday() : h)}</li>`).join("")}</ol>
+            <div class="rs-compact-foot">
+              <button type="button" class="btn btn-outline btn-sm" data-route-toggle="${showMeta.n}">${showSt && showSt.done ? "撤销此步完成" : "手动标记此步完成"}</button>
             </div>
-            <div class="rs-actions">
-              <button type="button" class="btn btn-primary btn-sm rf-go ${showMeta.c}" data-route-go="${showMeta.n}">${esc(showMeta.go)} →</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-route-toggle="${showMeta.n}">${showSt && showSt.done ? "撤销" : "标记完成"}</button>
-            </div>
-          </div>
-          <details class="rs-how"><summary>这一步怎么做</summary><ol>${showMeta.how.map((h) => `<li>${esc(h === "__WRITING_PLAN__" ? writingPlanToday() : h)}</li>`).join("")}</ol></details>`
-          : `<div class="rs-body"><div class="rs-main"><div class="rs-line"><b>今日 8 步全部完成</b></div><div class="rs-rule">记得把汇报发给 AI 教练，等待明天的新串文。</div></div></div>`}
-        </div>`;
+          </div>` : ""}
+        </details>`;
       }
     }
   }
@@ -2775,6 +2779,8 @@
     document.addEventListener("click", (e) => {
       const pickBtn = e.target.closest("[data-route-pick]");
       if (pickBtn) {
+        e.preventDefault();
+        e.stopPropagation();
         const n = pickBtn.dataset.routePick;
         const status = App.getStepStatus();
         routePick = status.next && status.next.num === n && routePick === null ? null : (routePick === n ? null : n);
@@ -2783,6 +2789,8 @@
       }
       const goBtn = e.target.closest("[data-route-go]");
       if (goBtn && runRouteStep) {
+        e.preventDefault();
+        e.stopPropagation();
         const meta = ROUTE_STEPS.find((m) => m.n === goBtn.dataset.routeGo);
         if (meta) runRouteStep(meta);
         return;
