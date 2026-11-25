@@ -126,7 +126,40 @@
     t._timer = setTimeout(() => t.classList.add("hidden"), 2400);
   }
 
-  function speakText(text, rate = 0.92) {
+  let activeDictAudio = null;
+
+  function pickBestUkVoice(voices) {
+    if (!Array.isArray(voices) || !voices.length) return null;
+    const isGb = (v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith("en-gb");
+    const gbVoices = voices.filter(isGb);
+    const badNames = /albert|bad news|bahh|bells|boing|bubbles|cellos|fred|good news|jester|organ|ralph|trinoids|whisper|zarvox|eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley/i;
+    const cleanGb = gbVoices.filter((v) => !badNames.test(v.name || ""));
+
+    const preferred = [
+      /google uk english female/i,
+      /\bserena\b/i,
+      /\bmartha\b/i,
+      /\bkate\b/i,
+      /\bstephanie\b/i,
+      /\blibby\b/i,
+      /\bsonia\b/i,
+      /siri.*(british|uk|en-gb)/i,
+      /google uk english male/i,
+      /\barthur\b/i,
+      /\boliver\b/i
+    ];
+    for (const pat of preferred) {
+      const hit = cleanGb.find((v) => pat.test(v.name || ""));
+      if (hit) return hit;
+    }
+    const nonDaniel = cleanGb.find((v) => !/\bdaniel\b/i.test(v.name || ""));
+    if (nonDaniel) return nonDaniel;
+    if (cleanGb[0]) return cleanGb[0];
+    return voices.find((v) => /google us english|samantha|ava|allison/i.test(v.name || ""))
+      || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("en"));
+  }
+
+  function speakViaWebSpeech(text, rate = 0.98) {
     if (!("speechSynthesis" in window)) {
       showToast("当前浏览器不支持语音朗读");
       return;
@@ -135,11 +168,47 @@
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "en-GB";
     utter.rate = rate;
-    const voices = window.speechSynthesis.getVoices();
-    const gbVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("en-gb"))
-      || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("en"));
+    utter.pitch = 1.02;
+    const gbVoice = pickBestUkVoice(window.speechSynthesis.getVoices());
     if (gbVoice) utter.voice = gbVoice;
     window.speechSynthesis.speak(utter);
+  }
+
+  function speakText(text, rate = 0.98) {
+    const clean = String(text || "").trim();
+    if (!clean) return;
+    if (activeDictAudio) {
+      try { activeDictAudio.pause(); activeDictAudio.currentTime = 0; } catch (e) { /* ignore */ }
+      activeDictAudio = null;
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+
+    // Use real studio British RP human pronunciation for single words & short phrases (<= 3 words)
+    const wordCount = clean.split(/\s+/).length;
+    if (wordCount <= 3 && /^[a-zA-Z0-9\s'-]+$/.test(clean) && clean.length <= 48) {
+      const url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(clean)}&type=1`;
+      const audio = new Audio(url);
+      activeDictAudio = audio;
+      let fellBack = false;
+      const fallback = () => {
+        if (fellBack) return;
+        fellBack = true;
+        if (activeDictAudio === audio) activeDictAudio = null;
+        speakViaWebSpeech(clean, rate);
+      };
+      audio.onerror = fallback;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(fallback);
+      }
+      return;
+    }
+
+    speakViaWebSpeech(clean, rate);
+  }
+
+  if ("speechSynthesis" in window && typeof window.speechSynthesis.getVoices === "function") {
+    window.speechSynthesis.getVoices();
   }
 
   function todayStr() {
