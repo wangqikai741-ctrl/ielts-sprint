@@ -1144,7 +1144,7 @@
       while (el.firstChild) parent.insertBefore(el.firstChild, el);
       parent.removeChild(el);
     });
-    clone.querySelectorAll(".core-word.active-word").forEach((el) => el.classList.remove("active-word"));
+    clone.querySelectorAll(".active-word").forEach((el) => el.classList.remove("active-word"));
     return clone.innerHTML;
   }
 
