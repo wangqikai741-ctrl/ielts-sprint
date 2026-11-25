@@ -15,11 +15,11 @@
   <link rel="preconnect" href="https://translate.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://api.dictionaryapi.dev" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261125l" />
-  <link rel="stylesheet" href="modules.css?v=20261125l" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261125l" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261125l" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261125l" />
+  <link rel="stylesheet" href="styles.css?v=20261125m" />
+  <link rel="stylesheet" href="modules.css?v=20261125m" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261125m" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261125m" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261125m" />
   <script>
     (function () {
       try {
@@ -91,7 +91,8 @@
         <span class="launch-spark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.5 4.8 3.2 7.5 8 8-4.8.5-7.5 3.2-8 8-.5-4.8-3.2-7.5-8-8 4.8-.5 7.5-3.2 8-8z"/></svg>
         </span>
-        <h1 class="launch-greeting"><span id="launchGreetingWord">Welcome</span>, <span class="launch-name-accent">Kai</span></h1>
+        <h1 class="launch-greeting"><span id="launchGreetingWord"></span>, <span class="launch-name-accent">Kai</span></h1>
+        <script>(function(){var h=new Date().getHours();var g=h<5?"Still up":h<12?"Good morning":h<18?"Good afternoon":"Good evening";var el=document.getElementById("launchGreetingWord");if(el)el.textContent=g;})();</script>
       </div>
       <p class="launch-theme-line" id="launchThemeLine">Day 1 · 校园报到与租房生活 · 距机考 57 天</p>
 
@@ -1579,8 +1580,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261125l"></script>
-  <script src="app.js?v=20261125l"></script>
-  <script src="modules.js?v=20261125l"></script>
+  <script src="data.js?v=20261125m"></script>
+  <script src="app.js?v=20261125m"></script>
+  <script src="modules.js?v=20261125m"></script>
 </body>
 </html>
