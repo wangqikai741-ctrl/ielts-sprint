@@ -989,15 +989,18 @@
     if (!el) return;
     const topbar = document.querySelector(".topbar");
     const navTabs = document.querySelector(".nav-tabs");
-    let stickyOffset = extraGap;
-    if (topbar) stickyOffset += topbar.getBoundingClientRect().height;
+    const topbarH = topbar ? topbar.getBoundingClientRect().height : 0;
+    const rawTop = el.getBoundingClientRect().top + window.scrollY;
+    let stickyOffset = topbarH + extraGap;
     if (navTabs && window.innerWidth > 980) {
       const navStyle = window.getComputedStyle(navTabs);
-      if (navStyle.position === "sticky" || navStyle.position === "fixed") {
-        stickyOffset += navTabs.getBoundingClientRect().height;
+      const navSticky = navStyle.position === "sticky" || navStyle.position === "fixed";
+      const scrollingDownPastFold = rawTop - stickyOffset > Math.max(160, window.scrollY + 8);
+      if (navSticky && !document.body.classList.contains("nav-hidden") && !scrollingDownPastFold) {
+        stickyOffset += navTabs.offsetHeight;
       }
     }
-    const targetTop = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - stickyOffset));
+    const targetTop = Math.max(0, Math.round(rawTop - stickyOffset));
     window.scrollTo({ top: targetTop, behavior: "smooth" });
   }
 
