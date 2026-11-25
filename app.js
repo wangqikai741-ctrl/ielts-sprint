@@ -1015,26 +1015,65 @@
     const day = getCurrentDay();
     if (!day) return;
     const list = $("dailyTaskList");
+    const completedList = $("dailyCompletedList");
+    const completedFold = $("completedTasksFold");
+    const completedSummary = $("completedTasksSummary");
+    const pillsBox = $("dayCompactPills");
     const tasks = day.tasks || [];
-    const doneCount = tasks.filter((t) => t.done).length;
+    const doneTasks = tasks.filter((t) => t.done);
+    const pendingTasks = tasks.filter((t) => !t.done);
+    const doneCount = doneTasks.length;
     const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
-    $("dayProgressText").textContent = `今日完成 ${doneCount} / ${tasks.length} (${pct}%)`;
+    $("dayProgressText").textContent = `${doneCount} / ${tasks.length}`;
     $("dayProgressFill").style.width = `${pct}%`;
 
-    list.innerHTML = tasks
-      .map((t) => `
-        <div class="task-item ${t.done ? "done" : ""}" data-tid="${escapeHtml(t.id)}">
-          <label class="task-left">
-            <input type="checkbox" ${t.done ? "checked" : ""} data-toggle-task="${escapeHtml(t.id)}" />
-            <span class="task-text">
-              ${t.tag ? `<span class="task-tag">${escapeHtml(t.tag)}</span>` : ""}${escapeHtml(t.text)}
-            </span>
-          </label>
-          <button class="btn btn-ghost btn-sm" data-del-task="${escapeHtml(t.id)}" title="删除任务">✕</button>
-        </div>
-      `)
-      .join("");
+    // Compact 1-line status pills: completed items softly dim; when all done, collapse into 1 clean pill
+    if (pillsBox) {
+      if (tasks.length > 0 && pendingTasks.length === 0) {
+        pillsBox.innerHTML = `<span class="day-pill-all-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>本日 ${doneCount} 项已全部完成</span></span>`;
+      } else {
+        pillsBox.innerHTML = tasks
+          .map((t) => {
+            const label = t.tag || String(t.text || "").slice(0, 6);
+            return `<button type="button" class="day-task-pill ${t.done ? "is-done" : ""}" data-pill-toggle="${escapeHtml(t.id)}" title="${escapeHtml(t.text)}（点击切换完成状态）">
+              <span class="dtp-dot">${t.done ? "✓" : ""}</span>
+              <span>${escapeHtml(label)}</span>
+            </button>`;
+          })
+          .join("");
+      }
+    }
+
+    const renderRow = (t) => `
+      <div class="task-item ${t.done ? "done" : ""}" data-tid="${escapeHtml(t.id)}">
+        <label class="task-left">
+          <input type="checkbox" ${t.done ? "checked" : ""} data-toggle-task="${escapeHtml(t.id)}" />
+          <span class="task-text">
+            ${t.tag ? `<span class="task-tag">${escapeHtml(t.tag)}</span>` : ""}${escapeHtml(t.text)}
+          </span>
+        </label>
+        <button class="btn btn-ghost btn-sm" data-del-task="${escapeHtml(t.id)}" title="删除任务">✕</button>
+      </div>
+    `;
+
+    // Active list only displays unfinished items so completing each task cleanly clears the canvas
+    if (list) {
+      list.innerHTML = pendingTasks.length
+        ? pendingTasks.map(renderRow).join("")
+        : (tasks.length ? `<div class="tasks-all-clear">太棒了，今日全部待办已完成</div>` : "");
+    }
+    if (completedFold && completedList && completedSummary) {
+      if (doneTasks.length) {
+        completedSummary.textContent = `已完成 ${doneTasks.length} 项（点击查看或取消）`;
+        completedList.innerHTML = doneTasks.map(renderRow).join("");
+        completedFold.classList.remove("hidden");
+      } else {
+        completedList.innerHTML = "";
+        completedFold.open = false;
+        completedFold.classList.add("hidden");
+      }
+    }
   }
 
   function buildPassageHtml(day) {
@@ -2117,30 +2156,67 @@
       }
     }
 
-    $("dailyTaskList").addEventListener("change", (e) => {
-      const tid = e.target.dataset.toggleTask;
-      if (!tid) return;
+    const taskDrawerEl = $("dailyTaskDrawer");
+    const handleTaskToggle = (tid, forceChecked) => {
       const day = getCurrentDay();
-      const task = day.tasks.find((t) => t.id === tid);
-      if (task) {
-        task.done = e.target.checked;
-        if (task.done) task.doneAt = todayStr();
-        else delete task.doneAt;
-        syncDayCompletion(day);
-        saveState();
-        renderDailyTasks();
-      }
-    });
-
-    $("dailyTaskList").addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-del-task]");
-      if (!btn) return;
-      const day = getCurrentDay();
-      day.tasks = day.tasks.filter((t) => t.id !== btn.dataset.delTask);
+      const task = day && day.tasks ? day.tasks.find((t) => t.id === tid) : null;
+      if (!task) return;
+      task.done = typeof forceChecked === "boolean" ? forceChecked : !task.done;
+      if (task.done) task.doneAt = todayStr();
+      else delete task.doneAt;
       syncDayCompletion(day);
       saveState();
       renderDailyTasks();
-    });
+    };
+
+    if ($("dayCompactPills")) {
+      $("dayCompactPills").addEventListener("click", (e) => {
+        const pill = e.target.closest("[data-pill-toggle]");
+        if (!pill) return;
+        handleTaskToggle(pill.dataset.pillToggle);
+      });
+    }
+
+    if ($("btnToggleTaskDrawer") && taskDrawerEl) {
+      $("btnToggleTaskDrawer").addEventListener("click", () => {
+        const isOpen = !taskDrawerEl.classList.toggle("hidden");
+        $("btnToggleTaskDrawer").classList.toggle("is-open", isOpen);
+        $("btnToggleTaskDrawer").setAttribute("aria-expanded", String(isOpen));
+      });
+    }
+
+    if (taskDrawerEl) {
+      taskDrawerEl.addEventListener("change", (e) => {
+        const tid = e.target.dataset.toggleTask;
+        if (tid) handleTaskToggle(tid, e.target.checked);
+      });
+      taskDrawerEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-del-task]");
+        if (!btn) return;
+        const day = getCurrentDay();
+        day.tasks = day.tasks.filter((t) => t.id !== btn.dataset.delTask);
+        syncDayCompletion(day);
+        saveState();
+        renderDailyTasks();
+      });
+    }
+
+    // Dismissible passage hint bar
+    const hintBar = $("passageHintBar");
+    if (hintBar) {
+      try {
+        if (localStorage.getItem("bandup_hide_passage_hint") === "1") {
+          hintBar.classList.add("hidden");
+        }
+      } catch (e) { /* ignore */ }
+      const btnDismissHint = $("btnDismissHint");
+      if (btnDismissHint) {
+        btnDismissHint.addEventListener("click", () => {
+          hintBar.classList.add("hidden");
+          try { localStorage.setItem("bandup_hide_passage_hint", "1"); } catch (e) { /* ignore */ }
+        });
+      }
+    }
 
     const addTask = () => {
       const val = $("newTaskInput").value.trim();

@@ -15,11 +15,11 @@
   <link rel="preconnect" href="https://translate.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://api.dictionaryapi.dev" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261125i" />
-  <link rel="stylesheet" href="modules.css?v=20261125i" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261125i" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261125i" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261125i" />
+  <link rel="stylesheet" href="styles.css?v=20261125j" />
+  <link rel="stylesheet" href="modules.css?v=20261125j" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261125j" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261125j" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261125j" />
   <script>
     (function () {
       try {
@@ -353,26 +353,38 @@
     </section>
 
     <section class="tab-panel" id="tab-daily">
-      <!-- Day Selector & Daily Checklist Strip -->
-      <div class="card day-header-card">
-        <div class="day-selector-row">
+      <!-- Slim Apple-Minimalist Day Header & Auto-Decluttering Task Strip -->
+      <div class="card day-header-card day-header-slim">
+        <div class="day-slim-bar">
           <div class="day-select-group">
-            <label for="daySelect" class="field-label-inline">当前学习日：</label>
-            <select id="daySelect" class="select-input"></select>
-            <button class="btn btn-outline btn-sm" id="btnNewDay">+ 手动新建一天</button>
+            <select id="daySelect" class="select-input" aria-label="当前学习日"></select>
+            <button class="btn btn-ghost btn-sm" id="btnNewDay" title="手动新建一天">+ 新建</button>
           </div>
-          <div class="day-progress-wrap">
-            <span class="progress-text" id="dayProgressText">今日完成 0 / 0</span>
-            <div class="progress-bar">
-              <div class="progress-fill" id="dayProgressFill" style="width: 0%"></div>
+          <div class="day-compact-pills" id="dayCompactPills"></div>
+          <div class="day-slim-right">
+            <div class="day-progress-wrap">
+              <span class="progress-text" id="dayProgressText">0 / 0</span>
+              <div class="progress-bar">
+                <div class="progress-fill" id="dayProgressFill" style="width: 0%"></div>
+              </div>
             </div>
+            <button class="btn btn-outline btn-sm day-drawer-toggle" id="btnToggleTaskDrawer" type="button" aria-expanded="false">
+              <span>详情</span>
+              <span class="day-drawer-caret">▾</span>
+            </button>
           </div>
         </div>
 
-        <div class="task-strip" id="dailyTaskList"></div>
-        <div class="add-task-inline">
-          <input type="text" id="newTaskInput" class="text-input input-sm" placeholder="临时加一条今日待办（回车添加，如：刷雅思哥 Part 1 Hometown）..." />
-          <button class="btn btn-outline btn-sm" id="btnAddTask">添加任务</button>
+        <div class="day-task-drawer hidden" id="dailyTaskDrawer">
+          <div class="task-strip" id="dailyTaskList"></div>
+          <details class="completed-tasks-fold hidden" id="completedTasksFold">
+            <summary class="completed-fold-summary" id="completedTasksSummary">已完成 0 项</summary>
+            <div class="task-strip completed-task-strip" id="dailyCompletedList"></div>
+          </details>
+          <div class="add-task-inline">
+            <input type="text" id="newTaskInput" class="text-input input-sm" placeholder="临时加一条今日待办（回车添加）…" />
+            <button class="btn btn-outline btn-sm" id="btnAddTask">添加</button>
+          </div>
         </div>
       </div>
 
@@ -413,9 +425,10 @@
             </div>
           </div>
 
-          <div class="ielts-hint-bar">
+          <div class="ielts-hint-bar" id="passageHintBar">
             <svg class="sf-icon-sm hint-sf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <span><b>机考仿真操作</b>：点击粗体高频词立即查释义与发音；<b>选中任意英文</b>可黄 / 红高亮、朗读或一键收入生词本。</span>
+            <span style="flex:1;">点蓝色词或橙虚线词直接右侧查义；选中任意英文可高亮、查词或收入生词本。</span>
+            <button type="button" class="hint-dismiss-btn" id="btnDismissHint" title="不再显示提示" aria-label="关闭提示">✕</button>
           </div>
 
           <!-- Cloze Score Bar (visible only in cloze mode) -->
@@ -1566,8 +1579,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261125i"></script>
-  <script src="app.js?v=20261125i"></script>
-  <script src="modules.js?v=20261125i"></script>
+  <script src="data.js?v=20261125j"></script>
+  <script src="app.js?v=20261125j"></script>
+  <script src="modules.js?v=20261125j"></script>
 </body>
 </html>
