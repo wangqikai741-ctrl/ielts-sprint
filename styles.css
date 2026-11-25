@@ -673,23 +673,32 @@ mark.user-hl-pink {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.inspector-header > div:first-child {
+  min-width: 0;
+  flex: 1;
 }
 
 .inspector-btns {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 6px;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .inspector-btns .btn {
   height: 30px;
-  padding: 0 11px;
+  padding: 0 10px;
+  font-size: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -697,13 +706,16 @@ mark.user-hl-pink {
 .inspector-word-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 2px;
   flex-wrap: wrap;
 }
 
 .inspector-word-row h3 {
   font-size: 20px;
+  line-height: 1.25;
   color: var(--primary);
+  word-break: break-word;
 }
 
 .phonetic {
