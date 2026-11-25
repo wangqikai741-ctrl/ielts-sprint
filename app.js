@@ -654,10 +654,45 @@
     const word = String(isObj ? wordInput.word : wordInput || "").trim();
     if (!word) return;
     const st = ensureWordStat(word);
+    const today = todayStr();
+
+    // Clicking "标为不熟" again on the inspector card cleanly undoes the mark (no double-counting!)
+    if (!opts.fromQuiz && st.status === "weak") {
+      st.status = "learning";
+      if (st.weakMarkedDate === today || (!st.weakMarkedDate && st.lastReviewed === today)) {
+        st.weakMarks = 0;
+      } else {
+        st.weakMarks = Math.max(0, (st.weakMarks || 1) - 1);
+      }
+      delete st.weakMarkedDate;
+      // Remove auto-added vocab entry if it was only created by this weak click
+      state.vocabBook = state.vocabBook.filter(
+        (v) => !(v.word.toLowerCase() === word.toLowerCase() && v.autoFromWeak)
+      );
+      saveState();
+      renderVocabBook();
+      renderCoreWordList();
+      refreshSavedWordHighlights();
+      updateBadges();
+      if (currentInspectedWord && currentInspectedWord.word.toLowerCase() === word.toLowerCase()) {
+        updateInspectorMasteryUI(currentInspectedWord);
+      }
+      if (!opts.silent) showToast(`已取消「${word}」的不熟标记`);
+      return;
+    }
+
     st.status = "weak";
-    st.weakMarks = (st.weakMarks || 0) + 1;
-    if (opts.fromQuiz) st.quizWrong = (st.quizWrong || 0) + 1;
-    st.lastReviewed = todayStr();
+    // Same-day dedupe: never inflate weakMarks to x2/x3 on repeated clicks in the same day
+    if (opts.fromQuiz) {
+      st.quizWrong = (st.quizWrong || 0) + 1;
+      if (st.weakMarkedDate !== today || !st.weakMarks) {
+        st.weakMarks = (st.weakMarks || 0) + 1;
+      }
+    } else if (st.weakMarkedDate !== today || !st.weakMarks) {
+      st.weakMarks = (st.weakMarks || 0) + 1;
+    }
+    st.weakMarkedDate = today;
+    st.lastReviewed = today;
 
     // Auto-sync into vocabBook as unmastered so it flows into tomorrow's AI review story
     const core = isObj && wordInput.cn ? wordInput : findCoreWordAcrossDays(word);
@@ -682,7 +717,8 @@
         example: core.example || "",
         note: [synNote, core.tip || ""].filter(Boolean).join(" · "),
         mastered: false,
-        createdAt: todayStr()
+        autoFromWeak: true,
+        createdAt: today
       });
     } else if (isObj) {
       state.vocabBook.unshift({
@@ -690,13 +726,14 @@
         word,
         phonetic: wordInput.phonetic || "",
         meaning: wordInput.meaning || wordInput.cn || "（待补充翻译）",
-        category: wordInput.category || "雅思哥生词",
+        category: wordInput.category || "拓展生词",
         synonyms: Array.isArray(wordInput.synonyms) ? wordInput.synonyms : [],
         enDef: wordInput.enDef || "",
         example: wordInput.example || "",
         note: wordInput.note || "",
         mastered: false,
-        createdAt: todayStr()
+        autoFromWeak: true,
+        createdAt: today
       });
     }
 
@@ -708,7 +745,7 @@
     if (currentInspectedWord && currentInspectedWord.word.toLowerCase() === word.toLowerCase()) {
       updateInspectorMasteryUI(currentInspectedWord);
     }
-    if (!opts.silent) showToast(`已标为不熟（累计 ${st.weakMarks} 次）· 将自动加入明日串文复现队列`);
+    if (!opts.silent) showToast(`已标为不熟（再次点击可撤销）· 将加入明日复现队列`);
   }
 
   function markWordMastered(wordInput, opts = {}) {
@@ -716,12 +753,44 @@
     const word = String(isObj ? wordInput.word : wordInput || "").trim();
     if (!word) return;
     const st = ensureWordStat(word);
+    const today = todayStr();
+
+    // Clicking "已背熟" again on the inspector card cleanly toggles it off
+    if (!opts.fromQuiz && st.status === "mastered") {
+      st.status = "learning";
+      if (st.weakMarkedDate === today || (!st.weakMarkedDate && st.lastReviewed === today)) {
+        st.weakMarks = 0;
+        delete st.weakMarkedDate;
+      }
+      saveState();
+      renderVocabBook();
+      renderCoreWordList();
+      refreshSavedWordHighlights();
+      updateBadges();
+      if (currentInspectedWord && currentInspectedWord.word.toLowerCase() === word.toLowerCase()) {
+        updateInspectorMasteryUI(currentInspectedWord);
+      }
+      if (!opts.silent) showToast(`已取消「${word}」的已背熟标记`);
+      return;
+    }
+
     st.status = "mastered";
     if (opts.fromQuiz) st.quizRight = (st.quizRight || 0) + 1;
-    st.lastReviewed = todayStr();
+    // Clear same-day accidental weak mark when switching back to mastered
+    if (st.weakMarkedDate === today || (!st.weakMarkedDate && st.lastReviewed === today)) {
+      st.weakMarks = 0;
+      delete st.weakMarkedDate;
+    }
+    st.lastReviewed = today;
 
     const existingVb = state.vocabBook.find((v) => v.word.toLowerCase() === word.toLowerCase());
-    if (existingVb) existingVb.mastered = true;
+    if (existingVb) {
+      if (existingVb.autoFromWeak && existingVb.createdAt === today) {
+        state.vocabBook = state.vocabBook.filter((v) => v.id !== existingVb.id);
+      } else {
+        existingVb.mastered = true;
+      }
+    }
 
     saveState();
     renderVocabBook();
@@ -741,7 +810,9 @@
     if (encEl) {
       const parts = [];
       parts.push(info.totalSeen > 1 ? `复现第 ${info.totalSeen} 次` : "第 1 次见");
-      if (info.weakMarks > 0) parts.push(`不熟 ×${info.weakMarks}`);
+      if (info.status === "weak" && info.weakMarks > 0) parts.push(`不熟 ×${info.weakMarks}`);
+      else if (info.status === "mastered") parts.push("已背熟");
+      else if (info.weakMarks > 0) parts.push(`曾标不熟 ×${info.weakMarks}`);
       encEl.textContent = parts.join(" · ");
       encEl.className = "encounter-pill" + (info.status === "weak" ? " is-weak" : info.totalSeen > 1 ? " is-repeat" : "");
       encEl.classList.remove("hidden");
@@ -752,11 +823,16 @@
     const masterBtn = $("btnInspMaster");
     if (weakBtn) {
       weakBtn.classList.toggle("active", info.status === "weak");
-      $("inspWeakLabel").textContent = info.weakMarks > 0 ? `不熟 ×${info.weakMarks} · 明日复现` : "标为不熟 · 明日复现";
+      $("inspWeakLabel").textContent = info.status === "weak"
+        ? "已标不熟 · 再点取消"
+        : (info.weakMarks > 0 ? `不熟 ×${info.weakMarks} · 明日复现` : "标为不熟 · 明日复现");
     }
     if (masterBtn) {
       masterBtn.classList.toggle("active", info.status === "mastered");
-      $("inspMasterLabel").textContent = info.status === "mastered" ? "✓ 已背熟" : "标为已背熟";
+      $("inspMasterLabel").textContent = info.status === "mastered" ? "已背熟" : "标为已背熟";
+    }
+    if ($("btnInspSave")) {
+      $("btnInspSave").textContent = isWordInVocabBook(wObj.word) ? "✓ 已在生词本" : "存进生词本";
     }
   }
 
