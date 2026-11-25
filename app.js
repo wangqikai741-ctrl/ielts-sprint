@@ -1634,6 +1634,12 @@
     // Ignore clicks on toolbar itself
     if (e.target.closest("#hlToolbar")) return;
 
+    // Never re-open highlight toolbar when clicking buttons/controls outside the reading text (e.g., right inspector)
+    if (!e.target.closest("#passageContent, .record-excerpt")) {
+      hideHlToolbar();
+      return;
+    }
+
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.toString().trim()) {
       hideHlToolbar();
@@ -2087,6 +2093,7 @@
         const text = savedSelectionRange ? savedSelectionRange.toString().trim() : "";
         const inPassage = activeHighlightContainer && activeHighlightContainer.id === "passageContent";
         hideHlToolbar();
+        try { window.getSelection().removeAllRanges(); } catch (err) { /* ignore */ }
         if (text) {
           if (inPassage) {
             inspectAnyWord(text);
