@@ -127,6 +127,32 @@
   }
 
   let activeDictAudio = null;
+  let activeAudioTimer = null;
+  const dictAudioCache = new Map();
+
+  function getYoudaoUkUrl(clean) {
+    return `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(clean)}&type=1`;
+  }
+
+  function isShortSpeakable(clean) {
+    if (!clean || clean.length > 48) return false;
+    return clean.split(/\s+/).length <= 3 && /^[a-zA-Z0-9\s'-]+$/.test(clean);
+  }
+
+  function preloadWordAudio(text) {
+    const clean = String(text || "").trim();
+    if (!isShortSpeakable(clean)) return;
+    const key = clean.toLowerCase();
+    if (dictAudioCache.has(key)) return;
+    if (dictAudioCache.size > 120) {
+      const oldest = dictAudioCache.keys().next().value;
+      dictAudioCache.delete(oldest);
+    }
+    const audio = new Audio(getYoudaoUkUrl(clean));
+    audio.preload = "auto";
+    try { audio.load(); } catch (e) { /* ignore */ }
+    dictAudioCache.set(key, audio);
+  }
 
   function pickBestUkVoice(voices) {
     if (!Array.isArray(voices) || !voices.length) return null;
@@ -177,26 +203,49 @@
   function speakText(text, rate = 0.98) {
     const clean = String(text || "").trim();
     if (!clean) return;
+    if (activeAudioTimer) {
+      clearTimeout(activeAudioTimer);
+      activeAudioTimer = null;
+    }
     if (activeDictAudio) {
       try { activeDictAudio.pause(); activeDictAudio.currentTime = 0; } catch (e) { /* ignore */ }
       activeDictAudio = null;
     }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
-    // Use real studio British RP human pronunciation for single words & short phrases (<= 3 words)
-    const wordCount = clean.split(/\s+/).length;
-    if (wordCount <= 3 && /^[a-zA-Z0-9\s'-]+$/.test(clean) && clean.length <= 48) {
-      const url = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(clean)}&type=1`;
-      const audio = new Audio(url);
+    // Use preloaded/cached studio British RP human pronunciation for single words & short phrases
+    if (isShortSpeakable(clean)) {
+      const key = clean.toLowerCase();
+      let audio = dictAudioCache.get(key);
+      if (!audio) {
+        audio = new Audio(getYoudaoUkUrl(clean));
+        audio.preload = "auto";
+        dictAudioCache.set(key, audio);
+      } else {
+        try { audio.currentTime = 0; } catch (e) { /* ignore */ }
+      }
       activeDictAudio = audio;
-      let fellBack = false;
+      let settled = false;
       const fallback = () => {
-        if (fellBack) return;
-        fellBack = true;
-        if (activeDictAudio === audio) activeDictAudio = null;
+        if (settled) return;
+        settled = true;
+        if (activeAudioTimer) { clearTimeout(activeAudioTimer); activeAudioTimer = null; }
+        if (activeDictAudio === audio) {
+          try { audio.pause(); } catch (e) { /* ignore */ }
+          activeDictAudio = null;
+        }
         speakViaWebSpeech(clean, rate);
       };
+      audio.onplaying = () => {
+        settled = true;
+        if (activeAudioTimer) { clearTimeout(activeAudioTimer); activeAudioTimer = null; }
+      };
       audio.onerror = fallback;
+
+      // If network audio isn't buffered yet, cap wait at 700ms so clicking never feels laggy
+      if (audio.readyState < 3) {
+        activeAudioTimer = setTimeout(fallback, 700);
+      }
       const playPromise = audio.play();
       if (playPromise && typeof playPromise.catch === "function") {
         playPromise.catch(fallback);
@@ -1183,6 +1232,8 @@
   function renderInspectorWordObj(wObj) {
     if (!wObj) return;
     currentInspectedWord = wObj;
+    // Preload studio British RP audio immediately while Kai reads the meaning so clicking "英音" is 0ms instant
+    preloadWordAudio(wObj.word);
 
     // Highlight active word in passage
     document.querySelectorAll("#passageContent .core-word.active-word").forEach((el) => el.classList.remove("active-word"));
