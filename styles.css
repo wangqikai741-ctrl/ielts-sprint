@@ -677,6 +677,23 @@ mark.user-hl-pink {
   margin-bottom: 8px;
 }
 
+.inspector-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.inspector-btns .btn {
+  height: 30px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .inspector-word-row {
   display: flex;
   align-items: baseline;
@@ -724,7 +741,9 @@ mark.user-hl-pink {
   border-color: #bbf7d0;
 }
 
-.cat-badge.雅思哥生词 {
+.cat-badge.雅思哥生词,
+.cat-badge.拓展生词,
+.cat-badge.划词查义 {
   background: #f3e8ff;
   color: #6b21a8;
   border-color: #e9d5ff;

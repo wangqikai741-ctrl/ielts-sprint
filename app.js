@@ -1023,7 +1023,7 @@
       phonetic: res.phonetic || "",
       pos: res.pos || "",
       cn: res.cn || res.enDef || "（暂无中文释义）",
-      category: "雅思哥生词",
+      category: "拓展生词",
       enDef: res.enDef || "",
       senses: Array.isArray(res.senses) ? res.senses : [],
       synonyms: Array.isArray(res.synonyms) ? res.synonyms : [],
