@@ -1060,37 +1060,40 @@
       const myReq = ++srLiveQueryId;
       slot.innerHTML = `<div class="sr-online-card"><span class="muted">正在联网查词「${esc(q)}」的音标、中文释义与同义词…</span></div>`;
       srLiveTimer = setTimeout(async () => {
-        const res = await App.lookupWordOnline(q);
-        if (myReq !== srLiveQueryId) return;
-        const curSlot = $("srLiveOnlineSlot");
-        if (!curSlot) return;
-        if (!res) {
-          curSlot.innerHTML = "";
-          return;
-        }
-        const synLine = Array.isArray(res.synonyms) && res.synonyms.length
-          ? `<div class="sr-tip"><b>高频同义词：</b>${esc(res.synonyms.join(" / "))}</div>` : "";
-        const sensesLine = Array.isArray(res.senses) && res.senses.length > 1
-          ? `<div class="sr-tip" style="margin-top:3px;">${res.senses.map((s) => esc(s)).join(" · ")}</div>` : "";
-        const occHtml = renderOccPillsHtml(res.word);
-        const cnDisplay = res.cn ? `${res.pos && !res.cn.startsWith(res.pos) ? res.pos + " " : ""}${res.cn}` : "（暂未获取到中文释义，可点击上方有道/剑桥查看）";
-        curSlot.innerHTML = `
-          <div class="sr-online-card">
-            <div class="sr-online-head">
-              <div><b class="sr-word">${esc(res.word)}</b> <span class="phonetic">${esc(res.phonetic || "")}</span> <span class="muted">${esc(res.pos || "")}</span></div>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-sm btn-ghost" data-s-speak="${esc(res.word)}" title="朗读">${SF_SPEAK}</button>
-                ${s_inVocab(res.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-primary" data-s-add="${esc(res.word)}">+ 存入生词本</button>`}
+        const renderLiveCard = (res) => {
+          if (myReq !== srLiveQueryId) return;
+          const curSlot = $("srLiveOnlineSlot");
+          if (!curSlot) return;
+          if (!res) {
+            curSlot.innerHTML = "";
+            return;
+          }
+          const synLine = Array.isArray(res.synonyms) && res.synonyms.length
+            ? `<div class="sr-tip"><b>高频同义词：</b>${esc(res.synonyms.join(" / "))}</div>` : "";
+          const sensesLine = Array.isArray(res.senses) && res.senses.length > 1
+            ? `<div class="sr-tip" style="margin-top:3px;">${res.senses.map((s) => esc(s)).join(" · ")}</div>` : "";
+          const occHtml = renderOccPillsHtml(res.word);
+          const cnDisplay = res.cn ? `${res.pos && !res.cn.startsWith(res.pos) ? res.pos + " " : ""}${res.cn}` : "（暂未获取到中文释义，可点击上方有道/剑桥查看）";
+          curSlot.innerHTML = `
+            <div class="sr-online-card">
+              <div class="sr-online-head">
+                <div><b class="sr-word">${esc(res.word)}</b> <span class="phonetic">${esc(res.phonetic || "")}</span> <span class="muted">${esc(res.pos || "")}</span></div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button class="btn btn-sm btn-ghost" data-s-speak="${esc(res.word)}" title="朗读">${SF_SPEAK}</button>
+                  ${s_inVocab(res.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-primary" data-s-add="${esc(res.word)}">+ 存入生词本</button>`}
+                </div>
               </div>
-            </div>
-            <div class="sr-cn" style="font-weight:600;color:var(--text);">${esc(cnDisplay)}</div>
-            ${sensesLine}
-            ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:3px;">${esc(res.enDef)}</div>` : ""}
-            ${res.example ? `<div class="muted" style="font-size:11.5px;margin-top:3px;font-style:italic;">e.g. ${esc(res.example)}</div>` : ""}
-            ${synLine}
-            ${occHtml}
-          </div>`;
-      }, 280);
+              <div class="sr-cn" style="font-weight:600;color:var(--text);">${esc(cnDisplay)}</div>
+              ${sensesLine}
+              ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:3px;">${esc(res.enDef)}</div>` : ""}
+              ${res.example ? `<div class="muted" style="font-size:11.5px;margin-top:3px;font-style:italic;">e.g. ${esc(res.example)}</div>` : ""}
+              ${synLine}
+              ${occHtml}
+            </div>`;
+        };
+        const res = await App.lookupWordOnline(q, { onPartial: renderLiveCard });
+        renderLiveCard(res);
+      }, 120);
     }
   }
 

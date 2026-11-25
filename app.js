@@ -420,10 +420,13 @@
     return { cn, pos: firstPos, senses };
   }
 
-  async function lookupWordOnline(rawTerm) {
+  const inFlightLookups = new Map();
+
+  async function lookupWordOnline(rawTerm, opts = {}) {
     const clean = String(rawTerm || "").trim().replace(/\s+/g, " ");
     if (!clean) return null;
     const key = clean.toLowerCase();
+    const onPartial = typeof opts.onPartial === "function" ? opts.onPartial : null;
 
     // 1) Local curated IELTS core word hit (0ms)
     const coreHit = findCoreWordAcrossDays(key);
@@ -449,104 +452,143 @@
       };
     }
 
-    // 2) LocalStorage cache hit (only trust cached results that actually contain Chinese meaning!)
+    // 2) LocalStorage cache hit (0ms; only trust cached entries that have Chinese meaning)
     const cached = getDictCache()[key];
     if (cached && hasChineseChars(cached.cn)) return cached;
 
+    // 3) Reuse in-flight request (e.g., started the instant Kai highlighted the word!)
+    if (inFlightLookups.has(key)) {
+      const entry = inFlightLookups.get(key);
+      if (onPartial) {
+        if (entry.partial) {
+          try { onPartial(entry.partial); } catch (e) { /* ignore */ }
+        } else {
+          entry.listeners.add(onPartial);
+        }
+      }
+      return entry.promise;
+    }
+
     const isSingleWord = /^[a-z][a-z'-]*$/i.test(clean);
     const enc = encodeURIComponent(clean);
+    const flight = { partial: null, listeners: new Set(), promise: null };
+    if (onPartial) flight.listeners.add(onPartial);
 
-    // 3) Parallel Google Bilingual Dict + Free Dictionary API + Datamuse Synonyms
-    const [gZh, dictData, dmSyn] = await Promise.all([
-      fetchGoogleZhDict(enc, key),
-      isSingleWord ? fetchWithTimeout(`https://api.dictionaryapi.dev/api/v2/entries/en/${enc}`, 5500) : Promise.resolve(null),
-      isSingleWord ? fetchWithTimeout(`https://api.datamuse.com/words?rel_syn=${enc}&max=6`, 4500) : Promise.resolve(null)
-    ]);
-
-    let phonetic = "";
-    let pos = (gZh && gZh.pos) || "";
-    let enDef = "";
-    let example = "";
-    const synSet = new Set();
-
-    if (Array.isArray(dictData) && dictData[0]) {
-      const entry = dictData[0];
-      const phObj = (entry.phonetics || []).find((p) => p.text && (p.audio || "").includes("-uk"))
-        || (entry.phonetics || []).find((p) => p.text);
-      phonetic = (phObj && phObj.text) || entry.phonetic || "";
-      const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
-      if (meanings[0]) {
-        if (!pos) pos = mapPosShort(meanings[0].partOfSpeech);
-        const defObj = (meanings[0].definitions || [])[0];
-        if (defObj) {
-          enDef = defObj.definition || "";
-          example = defObj.example || "";
-        }
-      }
-      meanings.forEach((m) => {
-        (m.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
-        (m.definitions || []).forEach((d) => {
-          if (!example && d.example) example = d.example;
-          (d.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
-        });
+    const emitPartial = (partialObj) => {
+      flight.partial = partialObj;
+      flight.listeners.forEach((fn) => {
+        try { fn(partialObj); } catch (e) { /* ignore */ }
       });
-    }
-
-    if (Array.isArray(dmSyn)) {
-      dmSyn.forEach((item) => {
-        if (item && item.word && item.word.toLowerCase() !== key) synSet.add(item.word);
-      });
-    }
-
-    let cn = (gZh && gZh.cn) || "";
-    const senses = (gZh && Array.isArray(gZh.senses)) ? gZh.senses : [];
-
-    // Secondary Chinese fallback via MyMemory if Google Translate didn't return Chinese
-    if (!hasChineseChars(cn)) {
-      const transData = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 5000);
-      if (transData && transData.responseData && transData.responseData.translatedText) {
-        const rawCn = String(transData.responseData.translatedText).trim();
-        if (rawCn && rawCn.toLowerCase() !== key && hasChineseChars(rawCn) && !/MYMEMORY WARNING/i.test(rawCn)) {
-          cn = rawCn.replace(/[。.!！]+$/, "");
-        }
-      }
-    }
-
-    // Fallback Datamuse meaning-like words if direct synonyms are sparse
-    if (isSingleWord && synSet.size < 3) {
-      const dmMl = await fetchWithTimeout(`https://api.datamuse.com/words?ml=${enc}&max=5`, 3500);
-      if (Array.isArray(dmMl)) {
-        dmMl.forEach((item) => {
-          if (item && item.word && item.word.toLowerCase() !== key && /^[a-z\s-]+$/i.test(item.word)) {
-            synSet.add(item.word);
-          }
-        });
-      }
-    }
-
-    const synonyms = Array.from(synSet).slice(0, 5);
-    if (!cn && !enDef && !synonyms.length) return null;
-
-    const noteParts = [];
-    if (synonyms.length) noteParts.push(`同义替换：${synonyms.join(" / ")}`);
-    if (example) noteParts.push(`例句：${example}`);
-
-    const result = {
-      word: clean,
-      phonetic,
-      pos,
-      cn: cn || "",
-      enDef,
-      senses,
-      synonyms,
-      example,
-      noteText: noteParts.join(" · "),
-      source: "online"
+      flight.listeners.clear();
     };
-    if (hasChineseChars(result.cn)) {
-      saveDictCache(key, result);
-    }
-    return result;
+
+    const run = async () => {
+      // Launch fast Chinese dict + English dict + synonyms in parallel; stream Chinese immediately!
+      const gZhPromise = fetchGoogleZhDict(enc, key).then((gZh) => {
+        if (gZh && hasChineseChars(gZh.cn)) {
+          emitPartial({
+            word: clean,
+            phonetic: "",
+            pos: gZh.pos || "",
+            cn: gZh.cn,
+            enDef: "",
+            senses: Array.isArray(gZh.senses) ? gZh.senses : [],
+            synonyms: [],
+            example: "",
+            noteText: "",
+            source: "online-partial"
+          });
+        }
+        return gZh;
+      });
+      const dictPromise = isSingleWord
+        ? fetchWithTimeout(`https://api.dictionaryapi.dev/api/v2/entries/en/${enc}`, 3200)
+        : Promise.resolve(null);
+      const dmPromise = isSingleWord
+        ? fetchWithTimeout(`https://api.datamuse.com/words?rel_syn=${enc}&max=6`, 2600)
+        : Promise.resolve(null);
+
+      const [gZh, dictData, dmSyn] = await Promise.all([gZhPromise, dictPromise, dmPromise]);
+
+      let phonetic = "";
+      let pos = (gZh && gZh.pos) || "";
+      let enDef = "";
+      let example = "";
+      const synSet = new Set();
+
+      if (Array.isArray(dictData) && dictData[0]) {
+        const entry = dictData[0];
+        const phObj = (entry.phonetics || []).find((p) => p.text && (p.audio || "").includes("-uk"))
+          || (entry.phonetics || []).find((p) => p.text);
+        phonetic = (phObj && phObj.text) || entry.phonetic || "";
+        const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
+        if (meanings[0]) {
+          if (!pos) pos = mapPosShort(meanings[0].partOfSpeech);
+          const defObj = (meanings[0].definitions || [])[0];
+          if (defObj) {
+            enDef = defObj.definition || "";
+            example = defObj.example || "";
+          }
+        }
+        meanings.forEach((m) => {
+          (m.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
+          (m.definitions || []).forEach((d) => {
+            if (!example && d.example) example = d.example;
+            (d.synonyms || []).forEach((s) => { if (s && s.toLowerCase() !== key) synSet.add(s); });
+          });
+        });
+      }
+
+      if (Array.isArray(dmSyn)) {
+        dmSyn.forEach((item) => {
+          if (item && item.word && item.word.toLowerCase() !== key) synSet.add(item.word);
+        });
+      }
+
+      let cn = (gZh && gZh.cn) || "";
+      const senses = (gZh && Array.isArray(gZh.senses)) ? gZh.senses : [];
+
+      // Secondary Chinese fallback via MyMemory only if Google Translate didn't return Chinese
+      if (!hasChineseChars(cn)) {
+        const transData = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 3500);
+        if (transData && transData.responseData && transData.responseData.translatedText) {
+          const rawCn = String(transData.responseData.translatedText).trim();
+          if (rawCn && rawCn.toLowerCase() !== key && hasChineseChars(rawCn) && !/MYMEMORY WARNING/i.test(rawCn)) {
+            cn = rawCn.replace(/[。.!！]+$/, "");
+          }
+        }
+      }
+
+      const synonyms = Array.from(synSet).slice(0, 5);
+      if (!cn && !enDef && !synonyms.length) return null;
+
+      const noteParts = [];
+      if (synonyms.length) noteParts.push(`同义替换：${synonyms.join(" / ")}`);
+      if (example) noteParts.push(`例句：${example}`);
+
+      const result = {
+        word: clean,
+        phonetic,
+        pos,
+        cn: cn || "",
+        enDef,
+        senses,
+        synonyms,
+        example,
+        noteText: noteParts.join(" · "),
+        source: "online"
+      };
+      if (hasChineseChars(result.cn)) {
+        saveDictCache(key, result);
+      }
+      return result;
+    };
+
+    flight.promise = run().finally(() => {
+      inFlightLookups.delete(key);
+    });
+    inFlightLookups.set(key, flight);
+    return flight.promise;
   }
 
   function buildWordMatchRegex(rawWord, extraForms = []) {
@@ -1286,7 +1328,24 @@
     });
     revealWordInspector();
 
-    const res = await lookupWordOnline(clean);
+    const res = await lookupWordOnline(clean, {
+      onPartial(partial) {
+        if (reqId !== inspLookupSeq || !partial) return;
+        renderInspectorWordObj({
+          word: partial.word || clean,
+          phonetic: partial.phonetic || "",
+          pos: partial.pos || "",
+          cn: partial.cn || "",
+          category: "拓展生词",
+          enDef: partial.enDef || "",
+          senses: Array.isArray(partial.senses) ? partial.senses : [],
+          synonyms: Array.isArray(partial.synonyms) ? partial.synonyms : [],
+          collocations: [],
+          example: partial.example || "",
+          tip: ""
+        });
+      }
+    });
     if (reqId !== inspLookupSeq) return;
     if (!res) {
       renderInspectorWordObj({
@@ -1312,7 +1371,6 @@
       exampleCn: res.exampleCn || "",
       tip: ""
     });
-    revealWordInspector();
   }
 
   function renderInspectorWordObj(wObj) {
@@ -1566,6 +1624,13 @@
     const top = Math.max(8, rect.top + window.scrollY - 46);
     toolbar.style.left = `${left}px`;
     toolbar.style.top = `${top}px`;
+
+    // Speculatively warm up dictionary & British RP audio the moment Kai selects a short English word
+    const selWord = sel.toString().trim();
+    if (isShortSpeakable(selWord)) {
+      preloadWordAudio(selWord);
+      lookupWordOnline(selWord);
+    }
   }
 
   function applyHighlightColor(color) {
