@@ -5754,6 +5754,45 @@ body.dark .tasks-all-clear {
   background: rgba(15, 23, 42, 0.08);
   color: var(--text);
 }
+.lf-badge[data-toggle-step] {
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+.lf-badge[data-toggle-step]:hover {
+  transform: scale(1.08);
+}
+.lf-row.is-step-done .lf-badge {
+  background: #16a34a !important;
+  color: #ffffff !important;
+}
+.lf-done-toggle {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.lf-done-toggle:hover {
+  border-color: rgba(22, 163, 74, 0.45);
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.06);
+}
+.lf-done-toggle.is-done {
+  border-color: rgba(22, 163, 74, 0.3);
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
+}
+body.dark .lf-done-toggle.is-done {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.16);
+}
 @media (max-width: 720px) {
   .day-slim-right .progress-bar {
     display: none;

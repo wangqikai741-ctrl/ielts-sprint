@@ -2620,23 +2620,53 @@
       "阅读": !!(rTask && rTask.done),
       "口语": !!(sTask && sTask.done)
     };
+    if (!S().guideSteps || typeof S().guideSteps !== "object") S().guideSteps = {};
+    const stepManual = S().guideSteps[day.id] || {};
+    const todayIso = today();
+    const writingDoneToday = (S().writings || []).some((w) => w.date === todayIso);
+
+    const isStepDone = (stepNum, tag) => {
+      if (stepManual[stepNum] === true) return true;
+      if (stepManual[stepNum] === false) return false;
+      if (stepNum === "1") return !!tagDoneMap["词汇"];
+      if (stepNum === "2") return !!tagDoneMap["词汇"];
+      if (stepNum === "5") return writingDoneToday;
+      return tag ? !!tagDoneMap[tag] : false;
+    };
+
     document.querySelectorAll("[data-step-done]").forEach((el) => {
-      const tag = el.dataset.stepDone;
-      const done = !!tagDoneMap[tag];
-      el.classList.toggle("hidden", !done);
+      el.classList.add("hidden");
     });
 
-    // Highlight the exact first incomplete step so the user immediately sees "start here!"
+    // Highlight the exact first incomplete step and allow 1-click completion toggle per step
     let markedNext = false;
     document.querySelectorAll("#guideFlowTimeline .lf-row").forEach((row) => {
+      const stepNum = String(row.dataset.lfStep || "");
       const tag = row.dataset.stepTag;
-      const isDone = tag ? !!tagDoneMap[tag] : false;
-      row.classList.toggle("is-step-done", isDone);
-      row.querySelectorAll(".lf-next-tag").forEach((n) => n.remove());
-      if (!isDone && !markedNext) {
+      const done = isStepDone(stepNum, tag);
+      row.classList.toggle("is-step-done", done);
+
+      const badgeCircle = row.querySelector(".lf-badge");
+      if (badgeCircle) {
+        badgeCircle.dataset.toggleStep = stepNum;
+        badgeCircle.title = done ? "点击取消此步完成状态" : "点击标记此步已完成，进入下一步";
+        badgeCircle.textContent = done ? "✓" : stepNum;
+      }
+
+      row.querySelectorAll(".lf-next-tag, .lf-done-toggle").forEach((n) => n.remove());
+      const headLine = row.querySelector(".lf-head-line");
+      if (headLine) {
+        const togBtn = document.createElement("button");
+        togBtn.type = "button";
+        togBtn.className = "lf-done-toggle" + (done ? " is-done" : "");
+        togBtn.dataset.toggleStep = stepNum;
+        togBtn.textContent = done ? "✓ 已完成" : "标记完成";
+        headLine.appendChild(togBtn);
+      }
+
+      if (!done && !markedNext) {
         markedNext = true;
         row.classList.add("is-next-up");
-        const headLine = row.querySelector(".lf-head-line");
         if (headLine) {
           const badge = document.createElement("span");
           badge.className = "lf-next-tag";
@@ -2871,6 +2901,27 @@
     }
 
     modal.addEventListener("click", (e) => {
+      const stepTog = e.target.closest("[data-toggle-step]");
+      if (stepTog) {
+        e.stopPropagation();
+        const stepNum = String(stepTog.dataset.toggleStep || "");
+        const prog = getSprintProgress();
+        const day = prog.activeDay || S().days[0];
+        if (day && stepNum) {
+          if (!S().guideSteps || typeof S().guideSteps !== "object") S().guideSteps = {};
+          if (!S().guideSteps[day.id]) S().guideSteps[day.id] = {};
+          const row = stepTog.closest(".lf-row");
+          const nowDone = !(row && row.classList.contains("is-step-done"));
+          S().guideSteps[day.id][stepNum] = nowDone;
+          App.save();
+          renderGuideChecklist();
+          if (App.toast) {
+            App.toast(nowDone ? `第 ${stepNum} 步已完成，已自动推进到下一步` : `已取消第 ${stepNum} 步完成状态`);
+          }
+        }
+        return;
+      }
+
       const actionBtn = e.target.closest("[data-guide-action]");
       if (actionBtn) {
         const act = actionBtn.dataset.guideAction;
