@@ -1418,9 +1418,10 @@
     // Preload studio British RP audio immediately while Kai reads the meaning so clicking "英音" is 0ms instant
     preloadWordAudio(wObj.word);
 
-    // Highlight active word in passage
-    document.querySelectorAll("#passageContent .core-word.active-word").forEach((el) => el.classList.remove("active-word"));
+    // Highlight ONLY the currently inspected word in passage (clear both core-word & user-saved-word active states)
+    document.querySelectorAll("#passageContent .active-word").forEach((el) => el.classList.remove("active-word"));
     document.querySelectorAll(`#passageContent .core-word[data-word="${CSS.escape(wObj.word)}"]`).forEach((el) => el.classList.add("active-word"));
+    document.querySelectorAll(`#passageContent .user-saved-word[data-user-word="${CSS.escape(String(wObj.word || "").toLowerCase())}"]`).forEach((el) => el.classList.add("active-word"));
 
     $("inspWord").textContent = wObj.word;
     $("inspPhonetic").textContent = wObj.phonetic || "";
