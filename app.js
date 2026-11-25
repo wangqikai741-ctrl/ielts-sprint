@@ -1058,6 +1058,11 @@
   function serializeCleanPassageHtml(container) {
     const clone = container.cloneNode(true);
     clone.querySelectorAll(".para-trans-inline").forEach((el) => el.remove());
+    clone.querySelectorAll(".user-saved-word").forEach((el) => {
+      const parent = el.parentNode;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
     clone.querySelectorAll(".core-word.active-word").forEach((el) => el.classList.remove("active-word"));
     return clone.innerHTML;
   }
@@ -1097,6 +1102,87 @@
       const w = el.dataset.word || el.textContent;
       el.classList.toggle("saved-word", isWordInVocabBook(w));
     });
+
+    const container = $("passageContent");
+    if (!container) return;
+
+    // 1) Unwrap previous transient .user-saved-word spans cleanly
+    container.querySelectorAll(".user-saved-word").forEach((span) => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      parent.removeChild(span);
+    });
+    container.normalize();
+
+    if (clozeMode) return;
+
+    // 2) Collect non-core English words that are unmastered in vocabBook or marked weak
+    const day = getCurrentDay();
+    const coreSet = new Set(((day && day.words) || []).map((w) => String(w.word || "").toLowerCase()));
+    const userWords = new Set();
+    (state.vocabBook || []).forEach((v) => {
+      if (v.mastered) return;
+      const w = String(v.word || "").trim().toLowerCase();
+      if (w.length >= 2 && /^[a-z][a-z'-]*$/.test(w) && !coreSet.has(w)) userWords.add(w);
+    });
+    Object.entries(state.wordStats || {}).forEach(([w, st]) => {
+      if (!st || st.status !== "weak") return;
+      const k = String(w || "").trim().toLowerCase();
+      if (k.length >= 2 && /^[a-z][a-z'-]*$/.test(k) && !coreSet.has(k)) userWords.add(k);
+    });
+    if (!userWords.size) return;
+
+    const escapedList = Array.from(userWords)
+      .sort((a, b) => b.length - a.length)
+      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const pattern = new RegExp(`\\b(${escapedList.join("|")})\\b`, "gi");
+
+    // 3) Decorate matching plain words inside passage paragraphs with an amber dashed underline
+    const paras = container.querySelectorAll("p");
+    paras.forEach((pEl) => {
+      const textNodes = [];
+      const walker = document.createTreeWalker(pEl, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement && node.parentElement.closest(".core-word, .user-saved-word, .cloze-hint, .para-trans-inline")) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      let n;
+      while ((n = walker.nextNode())) textNodes.push(n);
+
+      textNodes.forEach((textNode) => {
+        const text = textNode.nodeValue;
+        pattern.lastIndex = 0;
+        if (!pattern.test(text)) return;
+        pattern.lastIndex = 0;
+        const frag = document.createDocumentFragment();
+        let lastIdx = 0;
+        let m;
+        while ((m = pattern.exec(text)) !== null) {
+          if (m.index > lastIdx) frag.appendChild(document.createTextNode(text.slice(lastIdx, m.index)));
+          const span = document.createElement("span");
+          span.className = "user-saved-word";
+          span.dataset.userWord = m[0].toLowerCase();
+          span.title = "已标注拓展生词 · 点击查看中文释义与发音";
+          span.textContent = m[0];
+          frag.appendChild(span);
+          lastIdx = m.index + m[0].length;
+        }
+        if (lastIdx < text.length) frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+        textNode.parentNode.replaceChild(frag, textNode);
+      });
+    });
+
+    if (currentInspectedWord) {
+      const activeKey = String(currentInspectedWord.word || "").toLowerCase();
+      container.querySelectorAll(`.user-saved-word[data-user-word="${CSS.escape(activeKey)}"]`).forEach((el) => {
+        el.classList.add("active-word");
+      });
+    }
   }
 
   function renderCoreWordList() {
@@ -2006,12 +2092,22 @@
       if (e.key === "Enter") addTask();
     });
 
-    // Passage click to inspect core word directly in right sticky panel (NEVER hijack window scroll down to word list!)
+    // Passage click to inspect core word OR user-marked plain word directly in right sticky panel
     $("passageContent").addEventListener("click", (e) => {
-      const span = e.target.closest(".core-word");
-      if (!span) return;
       const sel = window.getSelection();
       if (sel && sel.toString().trim().length > 0) return; // Don't hijack drag selection
+
+      const userSpan = e.target.closest(".user-saved-word");
+      if (userSpan) {
+        const wKey = userSpan.dataset.userWord || userSpan.textContent;
+        document.querySelectorAll("#passageContent .active-word").forEach((el) => el.classList.remove("active-word"));
+        userSpan.classList.add("active-word");
+        inspectAnyWord(wKey);
+        return;
+      }
+
+      const span = e.target.closest(".core-word");
+      if (!span) return;
       const wKey = span.dataset.word || span.textContent;
       inspectWord(wKey);
 
@@ -2045,7 +2141,7 @@
     document.addEventListener("click", (e) => {
       const inspCard = $("wordInspector");
       if (!inspCard || !inspCard.classList.contains("mobile-insp-sheet")) return;
-      if (e.target.closest("#wordInspector") || e.target.closest("#hlToolbar") || e.target.closest(".core-word") || e.target.closest("[data-inspect-word]")) return;
+      if (e.target.closest("#wordInspector") || e.target.closest("#hlToolbar") || e.target.closest(".core-word") || e.target.closest(".user-saved-word") || e.target.closest("[data-inspect-word]")) return;
       closeMobileInspectorSheet();
     });
 

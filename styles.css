@@ -570,6 +570,19 @@ body.dark .topbar {
   border-bottom: 2px solid #f59e0b;
 }
 
+.user-saved-word {
+  border-bottom: 1.8px dashed #f59e0b;
+  padding: 0 1px 1px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+
+.user-saved-word:hover,
+.user-saved-word.active-word {
+  background: rgba(245, 158, 11, 0.14);
+}
+
 /* IELTS Manual Highlights */
 mark.user-hl-yellow {
   background: var(--hl-yellow);
