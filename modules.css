@@ -5394,7 +5394,7 @@ body.dark .fc-weak-chip { color: #fca5a5; background: rgba(248, 113, 113, 0.14);
   border-left: 2.5px solid rgba(0, 113, 227, 0.42);
   background: rgba(0, 113, 227, 0.035);
   border-radius: 0 9px 9px 0;
-  font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif !important;
   font-size: 13.5px !important;
   line-height: 1.72 !important;
   color: var(--text-sub);
@@ -6205,3 +6205,163 @@ body.dark .rs-step.s-ink { color: #111216; }
   .rs-compact-cur { order: 3; width: 100%; }
   .rs-compact-note { display: none; }
 }
+
+/* =========================================================
+ * PERFORMANCE PASS · 只用 transform / opacity 做动画，去掉不可见的高成本滤镜
+ * ========================================================= */
+
+/* 1) 卡片底色本就接近不透明：去掉逐卡 backdrop 模糊，滚动更顺 */
+.card,
+.skill-card,
+.record-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* 大卡片（串文、日历等）不再随鼠标重绘光斑，只保留小卡片的悬停光斑 */
+.card:hover,
+body.dark .card:hover {
+  background: var(--surface) !important;
+}
+
+/* 2) 锁屏遮罩本身不透明：后台工作台不再做全屏模糊 / 缩放 */
+body.auth-locked .topbar,
+body.auth-locked .nav-tabs,
+body.auth-locked .main-container {
+  filter: none;
+  transform: none;
+}
+body.auth-revealing .topbar,
+body.auth-revealing .nav-tabs,
+body.auth-revealing .main-container {
+  animation: workbenchRevealFast 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes workbenchRevealFast {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.auth-gate { transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.auth-card {
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.32s ease;
+}
+@keyframes authGateEngage {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 极光：用柔边渐变代替 76px 实时模糊 + 混合模式，动画只走 GPU transform */
+.aurora-ribbon {
+  filter: none;
+  mix-blend-mode: normal;
+  opacity: 0.9;
+  backface-visibility: hidden;
+}
+.aurora-ribbon.ribbon-1 {
+  background: radial-gradient(closest-side, rgba(14, 165, 233, 0.55), rgba(56, 189, 248, 0.3) 45%, rgba(129, 140, 248, 0.12) 75%, transparent 100%);
+}
+.aurora-ribbon.ribbon-2 {
+  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.5), rgba(192, 132, 252, 0.3) 45%, rgba(244, 114, 182, 0.12) 75%, transparent 100%);
+}
+.aurora-ribbon.ribbon-3 {
+  background: radial-gradient(closest-side, rgba(125, 211, 252, 0.45), rgba(56, 189, 248, 0.12) 60%, transparent 100%);
+}
+.auth-prismatic-halo { will-change: transform; }
+
+/* 光标跟随光晕：3 个独立图层 translate 移动，不再每帧重绘整屏渐变 */
+.auth-cursor-glow {
+  background: none;
+  mix-blend-mode: normal;
+  will-change: auto;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.auth-cursor-glow.is-live { opacity: 1; }
+.auth-cursor-glow .acg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+  transform: translate3d(-600px, -600px, 0);
+}
+.acg-core {
+  width: 500px;
+  height: 500px;
+  margin: -250px 0 0 -250px;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.2), rgba(125, 211, 252, 0.12) 45%, transparent 100%);
+}
+.acg-t1 {
+  width: 270px;
+  height: 270px;
+  margin: -135px 0 0 -135px;
+  background: radial-gradient(closest-side, rgba(56, 189, 248, 0.24), rgba(99, 102, 241, 0.1) 55%, transparent 100%);
+}
+.acg-t2 {
+  width: 170px;
+  height: 170px;
+  margin: -85px 0 0 -85px;
+  background: radial-gradient(closest-side, rgba(192, 132, 252, 0.24), rgba(244, 114, 182, 0.08) 55%, transparent 100%);
+}
+
+/* 3) 欢迎页：环境光改为 transform 跟随，退场更快 */
+.launch-ambient {
+  left: 0;
+  top: 0;
+  transform: translate3d(calc(var(--lx, 50vw) - 50%), calc(var(--ly, 44vh) - 50%), 0);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.launch-splash { transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.launch-splash.is-leaving .launch-inner {
+  transition: opacity 0.24s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 4) 弹窗与面板：更短、更轻 */
+.modal-backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation-duration: 0.18s;
+}
+.modal-dialog { animation-duration: 0.26s; }
+@media (max-width: 720px) {
+  .modal-dialog { animation-duration: 0.28s; }
+}
+.tab-panel.active { animation: applePanelRise 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes applePanelRise {
+  from { opacity: 0.4; transform: translate3d(0, 4px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 5) 全局查词：结果区独立合成层，滚动不卡 */
+#globalSearchResults {
+  contain: content;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.sr-online-card { animation: srCardIn 0.18s ease-out both; }
+@keyframes srCardIn {
+  from { opacity: 0; transform: translate3d(0, 3px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 6) iPhone / 触屏：没有鼠标就不跑光标特效，降低常驻动画成本 */
+@media (hover: none) {
+  .auth-cursor-glow { display: none; }
+  .aurora-ribbon { animation-duration: 28s !important; }
+  .launch-ambient { transition: none; }
+}
+
+/* 7) 系统「减少动态效果」开启时，关闭所有装饰性循环动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+#srLiveOnlineSlot.is-stale { opacity: 0.55; transition: opacity 0.15s ease; }

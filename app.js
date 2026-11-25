@@ -379,7 +379,7 @@
   async function fetchGoogleZhDict(enc, cleanLower) {
     const gData = await fetchWithTimeout(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&dt=bd&q=${enc}`,
-      5000
+      3800
     );
     if (!Array.isArray(gData)) return null;
     let primaryCn = "";
@@ -421,6 +421,26 @@
   }
 
   const inFlightLookups = new Map();
+
+  function peekWordLookup(rawTerm) {
+    const key = String(rawTerm || "").trim().replace(/\s+/g, " ").toLowerCase();
+    if (!key) return false;
+    if (findCoreWordAcrossDays(key)) return true;
+    const cached = getDictCache()[key];
+    return !!(cached && hasChineseChars(cached.cn));
+  }
+
+  function fetchMyMemoryCn(enc, key) {
+    return fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 3500).then((transData) => {
+      if (transData && transData.responseData && transData.responseData.translatedText) {
+        const rawCn = String(transData.responseData.translatedText).trim();
+        if (rawCn && rawCn.toLowerCase() !== key && hasChineseChars(rawCn) && !/MYMEMORY WARNING/i.test(rawCn)) {
+          return rawCn.replace(/[。.!！]+$/, "");
+        }
+      }
+      return "";
+    });
+  }
 
   async function lookupWordOnline(rawTerm, opts = {}) {
     const clean = String(rawTerm || "").trim().replace(/\s+/g, " ");
@@ -483,8 +503,21 @@
     };
 
     const run = async () => {
+      // Hedged backup: if Google is slow or unreachable, start MyMemory after 900ms instead of waiting for a full timeout
+      let gSettled = false;
+      let mmPromise = null;
+      const hedgeTimer = setTimeout(() => {
+        if (!gSettled) mmPromise = fetchMyMemoryCn(enc, key).then((mmCn) => {
+          if (mmCn && !flight.partial) {
+            emitPartial({ word: clean, phonetic: "", pos: "", cn: mmCn, enDef: "", senses: [], synonyms: [], example: "", noteText: "", source: "online-partial" });
+          }
+          return mmCn;
+        });
+      }, 900);
       // Launch fast Chinese dict + English dict + synonyms in parallel; stream Chinese immediately!
       const gZhPromise = fetchGoogleZhDict(enc, key).then((gZh) => {
+        gSettled = true;
+        clearTimeout(hedgeTimer);
         if (gZh && hasChineseChars(gZh.cn)) {
           emitPartial({
             word: clean,
@@ -550,13 +583,7 @@
 
       // Secondary Chinese fallback via MyMemory only if Google Translate didn't return Chinese
       if (!hasChineseChars(cn)) {
-        const transData = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 3500);
-        if (transData && transData.responseData && transData.responseData.translatedText) {
-          const rawCn = String(transData.responseData.translatedText).trim();
-          if (rawCn && rawCn.toLowerCase() !== key && hasChineseChars(rawCn) && !/MYMEMORY WARNING/i.test(rawCn)) {
-            cn = rawCn.replace(/[。.!！]+$/, "");
-          }
-        }
+        cn = (await (mmPromise || fetchMyMemoryCn(enc, key))) || cn;
       }
 
       const synonyms = Array.from(synSet).slice(0, 5);
@@ -3380,6 +3407,7 @@
     todayStr,
     addWord: addWordToVocabBook,
     lookupWordOnline,
+    peekWordLookup,
     findWordOccurrences,
     enrichVocabById,
     getWordEncounterStats,

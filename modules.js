@@ -964,18 +964,36 @@
       .join(" · ");
   }
 
-  function searchAll(q) {
-    const s = S();
-    const query = q.trim().toLowerCase();
-    const core = [];
-    s.days.forEach((d) => (d.words || []).forEach((w) => {
+  // Search index is built once and reused until the next save (typing no longer re-joins every word)
+  let searchIndexCache = null;
+  const occPillCache = new Map();
+  function invalidateSearchCache() {
+    searchIndexCache = null;
+    occPillCache.clear();
+  }
+
+  function getCoreSearchIndex() {
+    if (searchIndexCache) return searchIndexCache;
+    const list = [];
+    S().days.forEach((d) => (d.words || []).forEach((w) => {
       const synText = formatSynonymsInline(w);
       const antText = Array.isArray(w.antonyms)
         ? w.antonyms.map((a) => (typeof a === "string" ? a : `${a.en} ${a.cn || ""}`)).join(" ")
         : "";
       const hay = [w.word, ...(w.forms || []), w.cn, w.enDef || "", ...(w.senses || []), synText, antText, ...(w.collocations || []), w.tip].join(" ").toLowerCase();
-      if (!query || hay.includes(query)) core.push({ ...w, day: d, synText });
+      list.push({ item: { ...w, day: d, synText }, hay });
     }));
+    searchIndexCache = list;
+    return list;
+  }
+
+  function searchAll(q) {
+    const s = S();
+    const query = q.trim().toLowerCase();
+    const core = [];
+    getCoreSearchIndex().forEach((x) => {
+      if (!query || x.hay.includes(query)) core.push(x.item);
+    });
     const vocab = s.vocabBook.filter((v) => !query || [v.word, v.meaning, v.note].join(" ").toLowerCase().includes(query));
     const syn = [];
     s.practiceRecords.forEach((r) => (r.synonyms || "").split(/\n+/).forEach((line) => {
@@ -993,17 +1011,25 @@
   }
 
   let srLiveTimer = null;
+  let srLoadingTimer = null;
   let srLiveQueryId = 0;
+  let srInputRaf = 0;
 
   function renderOccPillsHtml(word, forms) {
     if (!App || typeof App.findWordOccurrences !== "function") return "";
+    const key = String(word || "").toLowerCase() + "|" + (forms || []).join(",");
+    if (occPillCache.has(key)) return occPillCache.get(key);
     const occ = App.findWordOccurrences(word, forms || []);
-    if (!occ.totalSources) return "";
-    const pills = [
-      ...occ.practices.map((p) => `<span class="sr-occ-pill is-pr">真题：${esc(p.source)} (${esc(p.typeLabel)})</span>`),
-      ...occ.days.map((d) => `<span class="sr-occ-pill">${esc(d.shortLabel)}</span>`)
-    ];
-    return `<div class="sr-occ-row">${pills.join("")}</div>`;
+    let html = "";
+    if (occ.totalSources) {
+      const pills = [
+        ...occ.practices.map((p) => `<span class="sr-occ-pill is-pr">真题：${esc(p.source)} (${esc(p.typeLabel)})</span>`),
+        ...occ.days.map((d) => `<span class="sr-occ-pill">${esc(d.shortLabel)}</span>`)
+      ];
+      html = `<div class="sr-occ-row">${pills.join("")}</div>`;
+    }
+    occPillCache.set(key, html);
+    return html;
   }
 
   function renderSearch() {
@@ -1059,19 +1085,35 @@
     html += syn.length ? syn.slice(0, lim * 2).map((x) => `
       <div class="sr-item syn"><span>${hl(x.line, q)}</span><span class="muted">${esc(x.rec.source)}</span></div>`).join("") : `<div class="sr-empty">在精听精读记录里填“同义替换”，这里会自动汇总成你的专属替换库</div>`;
     html += `</div>`;
+    const prevSlot = $("srLiveOnlineSlot");
+    const prevLive = prevSlot ? prevSlot.innerHTML : "";
     box.innerHTML = html;
 
     // Live debounced online dictionary lookup for unknown English words
     clearTimeout(srLiveTimer);
+    clearTimeout(srLoadingTimer);
     const slot = $("srLiveOnlineSlot");
     if (slot && isEn && q.length >= 2 && App && typeof App.lookupWordOnline === "function") {
       const myReq = ++srLiveQueryId;
-      slot.innerHTML = `<div class="sr-online-card"><span class="muted">正在联网查词「${esc(q)}」的音标、中文释义与同义词…</span></div>`;
+      const instant = typeof App.peekWordLookup === "function" && App.peekWordLookup(q);
+      // Keep the previous card on screen (dimmed) instead of flashing a loading line on every keystroke
+      if (prevLive) {
+        slot.innerHTML = prevLive;
+        slot.classList.add("is-stale");
+      }
+      if (!instant) {
+        srLoadingTimer = setTimeout(() => {
+          const cur = $("srLiveOnlineSlot");
+          if (myReq !== srLiveQueryId || !cur) return;
+          if (!cur.innerHTML.trim()) cur.innerHTML = `<div class="sr-online-card"><span class="muted">正在联网查词「${esc(q)}」的音标、中文释义与同义词…</span></div>`;
+        }, 260);
+      }
       srLiveTimer = setTimeout(async () => {
         const renderLiveCard = (res) => {
           if (myReq !== srLiveQueryId) return;
           const curSlot = $("srLiveOnlineSlot");
           if (!curSlot) return;
+          curSlot.classList.remove("is-stale");
           if (!res) {
             curSlot.innerHTML = "";
             return;
@@ -1101,7 +1143,9 @@
         };
         const res = await App.lookupWordOnline(q, { onPartial: renderLiveCard });
         renderLiveCard(res);
-      }, 120);
+      }, instant ? 0 : 220);
+    } else if (prevSlot && !slot) {
+      ++srLiveQueryId;
     }
   }
 
@@ -1121,7 +1165,13 @@
 
   function bindSearch() {
     $("btnGlobalSearch").addEventListener("click", () => openSearch());
-    $("globalSearchInput").addEventListener("input", renderSearch);
+    $("globalSearchInput").addEventListener("input", () => {
+      if (srInputRaf) return;
+      srInputRaf = requestAnimationFrame(() => {
+        srInputRaf = 0;
+        renderSearch();
+      });
+    });
     document.addEventListener("keydown", (e) => {
       const tag = (e.target.tagName || "").toLowerCase();
       const typing = tag === "input" || tag === "textarea" || tag === "select" || e.target.isContentEditable;
@@ -1573,7 +1623,7 @@
         cloudState.applyingCloud = true;
         try {
           App.applyCloudState(res.state);
-          renderAll();
+          renderAll(true);
         } finally {
           cloudState.applyingCloud = false;
         }
@@ -1778,7 +1828,7 @@
       gate.classList.add("hidden");
       gate.classList.remove("unlocking");
       document.body.classList.remove("auth-revealing");
-    }, 560);
+    }, 430);
   }
 
   const APPLE_ARROW_SVG = `<svg class="apple-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
@@ -1844,7 +1894,7 @@
       splash.classList.add("hidden");
       splash.classList.remove("is-leaving");
       document.documentElement.classList.remove("has-saved-session", "pre-dark");
-    }, 450);
+    }, 300);
   }
 
   function lockGate() {
@@ -1903,12 +1953,19 @@
     if (splash) {
       const amb = $("launchAmbient");
       if (amb && window.matchMedia && window.matchMedia("(hover: hover)").matches) {
+        let ambRaf = 0;
+        let ambX = 0;
+        let ambY = 0;
         splash.addEventListener("pointermove", (e) => {
           if (splash.classList.contains("hidden") || splash.classList.contains("is-leaving")) return;
-          const x = Math.round((e.clientX / window.innerWidth) * 100);
-          const y = Math.round((e.clientY / window.innerHeight) * 100);
-          amb.style.setProperty("--lx", `${x}%`);
-          amb.style.setProperty("--ly", `${y}%`);
+          ambX = e.clientX;
+          ambY = e.clientY;
+          if (ambRaf) return;
+          ambRaf = requestAnimationFrame(() => {
+            ambRaf = 0;
+            amb.style.setProperty("--lx", `${ambX}px`);
+            amb.style.setProperty("--ly", `${ambY}px`);
+          });
         }, { passive: true });
       }
 
@@ -2004,7 +2061,7 @@
             p_device_name: deviceName,
             p_kick_oldest: kickOldest
           }),
-          new Promise((r) => setTimeout(r, 420))
+          new Promise((r) => setTimeout(r, 160))
         ]);
 
         if (res && res.ok && res.token) {
@@ -2014,26 +2071,29 @@
           cloudState.devices = Array.isArray(res.devices) ? res.devices : [];
           renderOnlineDevices();
 
-          if (isMeaningfulCloudState(res.state)) {
-            cloudState.applyingCloud = true;
-            try {
-              App.applyCloudState(res.state);
-              renderAll();
-            } finally {
-              cloudState.applyingCloud = false;
-            }
-            cloudState.lastCloudUpdatedAt = res.updated_at || null;
-            setCloudUiStatus("synced", `已从云端同步 · ${fmtClockNow()}`);
-          } else {
-            cloudPush(true);
-          }
-
           if (card) card.classList.add("is-verified");
           if (submitBtn) {
             submitBtn.classList.remove("is-verifying");
             submitBtn.classList.add("is-success");
             submitBtn.innerHTML = APPLE_CHECK_SVG;
           }
+
+          // Let the success tick paint first, then merge cloud data behind the gate
+          requestAnimationFrame(() => setTimeout(() => {
+            if (isMeaningfulCloudState(res.state)) {
+              cloudState.applyingCloud = true;
+              try {
+                App.applyCloudState(res.state);
+                renderAll(true);
+              } finally {
+                cloudState.applyingCloud = false;
+              }
+              cloudState.lastCloudUpdatedAt = res.updated_at || null;
+              setCloudUiStatus("synced", `已从云端同步 · ${fmtClockNow()}`);
+            } else {
+              cloudPush(true);
+            }
+          }, 0));
 
           setTimeout(() => {
             unlockGate(false);
@@ -2042,7 +2102,7 @@
                 ? `Welcome back, Kai · 已替换最早设备 (${cloudState.devices.length}/${MAX_ONLINE_DEVICES})`
                 : `Welcome back, Kai · 云端已同步 (${cloudState.devices.length}/${MAX_ONLINE_DEVICES})`
             );
-          }, 420);
+          }, 280);
           return;
         }
 
@@ -2189,66 +2249,72 @@
       }
     }, 45000);
 
-    // Interactive Zero-Lag Core + Tapered Comet-Tail Aurora on Lock Screen
-    let targetX = -400, targetY = -400;
-    let tx1 = -400, ty1 = -400;
-    let tx2 = -400, ty2 = -400;
+    // Interactive Zero-Lag Core + Tapered Comet-Tail Aurora on Lock Screen (GPU transform only)
+    const glowEl = $("authCursorGlow");
+    const glowCore = glowEl && glowEl.querySelector(".acg-core");
+    const glowT1 = glowEl && glowEl.querySelector(".acg-t1");
+    const glowT2 = glowEl && glowEl.querySelector(".acg-t2");
+    let targetX = -600, targetY = -600;
+    let tx1 = -600, ty1 = -600;
+    let tx2 = -600, ty2 = -600;
     let trailActive = false;
     let trailRaf = null;
+    let cardRect = null;
+    let cardDirty = false;
+    const authCardEl = $("authCard");
 
     function stepTrail() {
-      if (gate.classList.contains("hidden")) {
-        trailRaf = null;
-        return;
-      }
+      trailRaf = null;
+      if (gate.classList.contains("hidden")) return;
       tx1 += (targetX - tx1) * 0.24;
       ty1 += (targetY - ty1) * 0.24;
       tx2 += (targetX - tx2) * 0.13;
       ty2 += (targetY - ty2) * 0.13;
-
-      gate.style.setProperty("--tx1", `${tx1.toFixed(1)}px`);
-      gate.style.setProperty("--ty1", `${ty1.toFixed(1)}px`);
-      gate.style.setProperty("--tx2", `${tx2.toFixed(1)}px`);
-      gate.style.setProperty("--ty2", `${ty2.toFixed(1)}px`);
-
-      const dist = Math.hypot(targetX - tx2, targetY - ty2);
-      if (dist > 0.5) {
-        trailRaf = requestAnimationFrame(stepTrail);
-      } else {
-        trailRaf = null;
+      if (glowCore) glowCore.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+      if (glowT1) glowT1.style.transform = `translate3d(${tx1.toFixed(1)}px, ${ty1.toFixed(1)}px, 0)`;
+      if (glowT2) glowT2.style.transform = `translate3d(${tx2.toFixed(1)}px, ${ty2.toFixed(1)}px, 0)`;
+      if (cardDirty && authCardEl && cardRect) {
+        cardDirty = false;
+        authCardEl.style.setProperty("--cx", `${Math.round(targetX - cardRect.left)}px`);
+        authCardEl.style.setProperty("--cy", `${Math.round(targetY - cardRect.top)}px`);
       }
+      if (Math.hypot(targetX - tx2, targetY - ty2) > 0.5) trailRaf = requestAnimationFrame(stepTrail);
     }
 
+    gate.addEventListener("mouseenter", () => {
+      cardRect = authCardEl ? authCardEl.getBoundingClientRect() : null;
+    });
+    window.addEventListener("resize", () => { cardRect = null; }, { passive: true });
     gate.addEventListener("mousemove", (e) => {
-      const rect = gate.getBoundingClientRect();
-      targetX = e.clientX - rect.left;
-      targetY = e.clientY - rect.top;
-      // Primary core glow updates instantaneously (zero lag even on fast cursor flicks)
-      gate.style.setProperty("--mx", `${targetX.toFixed(1)}px`);
-      gate.style.setProperty("--my", `${targetY.toFixed(1)}px`);
+      targetX = e.clientX;
+      targetY = e.clientY;
       if (!trailActive) {
         trailActive = true;
         tx1 = tx2 = targetX;
         ty1 = ty2 = targetY;
+        if (glowEl) glowEl.classList.add("is-live");
       }
+      if (!cardRect && authCardEl) cardRect = authCardEl.getBoundingClientRect();
+      cardDirty = true;
       if (!trailRaf) trailRaf = requestAnimationFrame(stepTrail);
-
-      const card = $("authCard");
-      if (card) {
-        const cr = card.getBoundingClientRect();
-        card.style.setProperty("--cx", `${e.clientX - cr.left}px`);
-        card.style.setProperty("--cy", `${e.clientY - cr.top}px`);
-      }
-    });
+    }, { passive: true });
 
     // Global Card Cursor Spotlight inside Workbench (Linear / Vercel style hover feedback)
+    let spotRaf = 0;
+    let spotEvt = null;
     document.addEventListener("mousemove", (e) => {
-      const card = e.target.closest(".card, .skill-card, .record-card");
-      if (!card) return;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--cx", `${e.clientX - r.left}px`);
-      card.style.setProperty("--cy", `${e.clientY - r.top}px`);
-    });
+      spotEvt = e;
+      if (spotRaf) return;
+      spotRaf = requestAnimationFrame(() => {
+        spotRaf = 0;
+        const ev = spotEvt;
+        const card = ev && ev.target && ev.target.closest ? ev.target.closest(".skill-card, .record-card") : null;
+        if (!card) return;
+        const r = card.getBoundingClientRect();
+        card.style.setProperty("--cx", `${Math.round(ev.clientX - r.left)}px`);
+        card.style.setProperty("--cy", `${Math.round(ev.clientY - r.top)}px`);
+      });
+    }, { passive: true });
   }
 
   // ==================== 5) 剑桥真题原文 · 熟词/生词智能雷达 ====================
@@ -3638,14 +3704,46 @@
     });
   }
 
-  function renderAll() {
+  // Only repaint tabs that are on screen; hidden tabs are marked dirty and refreshed when opened
+  const lazyDirty = { dashboard: false, writing: false };
+  const isTabVisible = (name) => {
+    const p = $("tab-" + name);
+    return !!(p && p.classList.contains("active"));
+  };
+
+  function renderAll(force = false) {
     ensureFields();
-    renderDashboard();
+    invalidateSearchCache();
+    if (force || isTabVisible("dashboard")) {
+      renderDashboard();
+      lazyDirty.dashboard = false;
+    } else {
+      lazyDirty.dashboard = true;
+    }
     renderRoute();
-    renderWritingList();
+    if (force || isTabVisible("writing")) {
+      renderWritingList();
+      lazyDirty.writing = false;
+    } else {
+      lazyDirty.writing = true;
+    }
     renderGuideChecklist();
     syncEmptyTabBadges();
   }
+
+  document.addEventListener("click", (e) => {
+    const tab = e.target.closest(".nav-tab");
+    if (!tab) return;
+    const name = tab.dataset.tab;
+    if (name === "dashboard" && lazyDirty.dashboard) {
+      renderDashboard();
+      renderRoute();
+      lazyDirty.dashboard = false;
+    } else if (name === "writing" && lazyDirty.writing) {
+      renderWritingList();
+      lazyDirty.writing = false;
+    }
+  });
 
   initAuthGate();
   ensureFields();
@@ -3657,7 +3755,7 @@
   bindGuide();
   bindRoute();
   bindFlashcards();
-  renderAll();
+  renderAll(true);
 
   let pending = false;
   document.addEventListener("ielts:saved", () => {
