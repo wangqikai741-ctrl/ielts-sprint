@@ -1070,7 +1070,10 @@
         }
         const synLine = Array.isArray(res.synonyms) && res.synonyms.length
           ? `<div class="sr-tip"><b>高频同义词：</b>${esc(res.synonyms.join(" / "))}</div>` : "";
+        const sensesLine = Array.isArray(res.senses) && res.senses.length > 1
+          ? `<div class="sr-tip" style="margin-top:3px;">${res.senses.map((s) => esc(s)).join(" · ")}</div>` : "";
         const occHtml = renderOccPillsHtml(res.word);
+        const cnDisplay = res.cn ? `${res.pos && !res.cn.startsWith(res.pos) ? res.pos + " " : ""}${res.cn}` : "（暂未获取到中文释义，可点击上方有道/剑桥查看）";
         curSlot.innerHTML = `
           <div class="sr-online-card">
             <div class="sr-online-head">
@@ -1080,8 +1083,10 @@
                 ${s_inVocab(res.word) ? `<span class="muted">✓ 已在生词本</span>` : `<button class="btn btn-sm btn-primary" data-s-add="${esc(res.word)}">+ 存入生词本</button>`}
               </div>
             </div>
-            <div class="sr-cn">${esc(res.cn || "")}</div>
-            ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:2px;">${esc(res.enDef)}</div>` : ""}
+            <div class="sr-cn" style="font-weight:600;color:var(--text);">${esc(cnDisplay)}</div>
+            ${sensesLine}
+            ${res.enDef && res.enDef !== res.cn ? `<div class="muted" style="font-size:11.5px;margin-top:3px;">${esc(res.enDef)}</div>` : ""}
+            ${res.example ? `<div class="muted" style="font-size:11.5px;margin-top:3px;font-style:italic;">e.g. ${esc(res.example)}</div>` : ""}
             ${synLine}
             ${occHtml}
           </div>`;

@@ -241,6 +241,67 @@
     return p ? p + "." : "";
   }
 
+  function mapGooglePosToShort(rawPos) {
+    const p = String(rawPos || "").trim().toLowerCase();
+    if (p === "noun" || p === "名词") return "n.";
+    if (p === "verb" || p === "动词") return "v.";
+    if (p === "adjective" || p === "形容词") return "adj.";
+    if (p === "adverb" || p === "副词") return "adv.";
+    if (p === "preposition" || p === "介词") return "prep.";
+    if (p === "conjunction" || p === "连词") return "conj.";
+    if (p === "pronoun" || p === "代词") return "pron.";
+    if (p === "interjection" || p === "感叹词") return "interj.";
+    return mapPosShort(p);
+  }
+
+  function hasChineseChars(str) {
+    return /[\u4e00-\u9fff]/.test(String(str || ""));
+  }
+
+  async function fetchGoogleZhDict(enc, cleanLower) {
+    const gData = await fetchWithTimeout(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&dt=bd&q=${enc}`,
+      5000
+    );
+    if (!Array.isArray(gData)) return null;
+    let primaryCn = "";
+    if (Array.isArray(gData[0])) {
+      primaryCn = gData[0]
+        .map((seg) => (Array.isArray(seg) && seg[0] ? String(seg[0]) : ""))
+        .join("")
+        .trim()
+        .replace(/[。.!！]+$/, "");
+      if (primaryCn.toLowerCase() === cleanLower) primaryCn = "";
+    }
+    const senses = [];
+    let firstPos = "";
+    let firstDictCn = "";
+    if (Array.isArray(gData[1])) {
+      gData[1].forEach((entry) => {
+        if (!Array.isArray(entry)) return;
+        const p = mapGooglePosToShort(entry[0]);
+        const terms = Array.isArray(entry[1])
+          ? entry[1].map((t) => String(t || "").trim()).filter((t) => t && hasChineseChars(t)).slice(0, 5)
+          : [];
+        if (terms.length) {
+          if (!firstPos && p) firstPos = p;
+          if (!firstDictCn) firstDictCn = terms.slice(0, 4).join("，");
+          senses.push(`${p ? p + " " : ""}${terms.join("，")}`);
+        }
+      });
+    }
+    let cn = "";
+    if (firstDictCn) {
+      cn = primaryCn && hasChineseChars(primaryCn) && !firstDictCn.includes(primaryCn)
+        ? `${primaryCn}；${firstDictCn}`
+        : firstDictCn;
+    } else if (hasChineseChars(primaryCn)) {
+      cn = primaryCn;
+    }
+    if (!cn && !senses.length) return null;
+    return { cn, pos: firstPos, senses };
+  }
+
   async function lookupWordOnline(rawTerm) {
     const clean = String(rawTerm || "").trim().replace(/\s+/g, " ");
     if (!clean) return null;
@@ -261,29 +322,31 @@
         pos: coreHit.pos || "",
         cn: coreHit.cn || "",
         enDef: coreHit.enDef || "",
+        senses: Array.isArray(coreHit.senses) ? coreHit.senses : [],
         synonyms: synList,
         example: coreHit.example || "",
+        exampleCn: coreHit.exampleCn || "",
         noteText: [synNote, coreHit.tip || ""].filter(Boolean).join(" · "),
         source: "ielts-core"
       };
     }
 
-    // 2) LocalStorage cache hit
+    // 2) LocalStorage cache hit (only trust cached results that actually contain Chinese meaning!)
     const cached = getDictCache()[key];
-    if (cached && (cached.cn || cached.enDef)) return cached;
+    if (cached && hasChineseChars(cached.cn)) return cached;
 
     const isSingleWord = /^[a-z][a-z'-]*$/i.test(clean);
     const enc = encodeURIComponent(clean);
 
-    // 3) Parallel free public dictionary + Datamuse synonyms + MyMemory EN->ZH
-    const [dictData, dmSyn, transData] = await Promise.all([
+    // 3) Parallel Google Bilingual Dict + Free Dictionary API + Datamuse Synonyms
+    const [gZh, dictData, dmSyn] = await Promise.all([
+      fetchGoogleZhDict(enc, key),
       isSingleWord ? fetchWithTimeout(`https://api.dictionaryapi.dev/api/v2/entries/en/${enc}`, 5500) : Promise.resolve(null),
-      isSingleWord ? fetchWithTimeout(`https://api.datamuse.com/words?rel_syn=${enc}&max=6`, 4500) : Promise.resolve(null),
-      fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 5500)
+      isSingleWord ? fetchWithTimeout(`https://api.datamuse.com/words?rel_syn=${enc}&max=6`, 4500) : Promise.resolve(null)
     ]);
 
     let phonetic = "";
-    let pos = "";
+    let pos = (gZh && gZh.pos) || "";
     let enDef = "";
     let example = "";
     const synSet = new Set();
@@ -295,7 +358,7 @@
       phonetic = (phObj && phObj.text) || entry.phonetic || "";
       const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
       if (meanings[0]) {
-        pos = mapPosShort(meanings[0].partOfSpeech);
+        if (!pos) pos = mapPosShort(meanings[0].partOfSpeech);
         const defObj = (meanings[0].definitions || [])[0];
         if (defObj) {
           enDef = defObj.definition || "";
@@ -317,23 +380,29 @@
       });
     }
 
+    let cn = (gZh && gZh.cn) || "";
+    const senses = (gZh && Array.isArray(gZh.senses)) ? gZh.senses : [];
+
+    // Secondary Chinese fallback via MyMemory if Google Translate didn't return Chinese
+    if (!hasChineseChars(cn)) {
+      const transData = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${enc}&langpair=en|zh-CN`, 5000);
+      if (transData && transData.responseData && transData.responseData.translatedText) {
+        const rawCn = String(transData.responseData.translatedText).trim();
+        if (rawCn && rawCn.toLowerCase() !== key && hasChineseChars(rawCn) && !/MYMEMORY WARNING/i.test(rawCn)) {
+          cn = rawCn.replace(/[。.!！]+$/, "");
+        }
+      }
+    }
+
     // Fallback Datamuse meaning-like words if direct synonyms are sparse
     if (isSingleWord && synSet.size < 3) {
-      const dmMl = await fetchWithTimeout(`https://api.datamuse.com/words?ml=${enc}&max=5`, 4000);
+      const dmMl = await fetchWithTimeout(`https://api.datamuse.com/words?ml=${enc}&max=5`, 3500);
       if (Array.isArray(dmMl)) {
         dmMl.forEach((item) => {
           if (item && item.word && item.word.toLowerCase() !== key && /^[a-z\s-]+$/i.test(item.word)) {
             synSet.add(item.word);
           }
         });
-      }
-    }
-
-    let cn = "";
-    if (transData && transData.responseData && transData.responseData.translatedText) {
-      const rawCn = String(transData.responseData.translatedText).trim();
-      if (rawCn && rawCn.toLowerCase() !== key && !/MYMEMORY WARNING/i.test(rawCn)) {
-        cn = rawCn.replace(/[。.!！]+$/, "");
       }
     }
 
@@ -348,14 +417,17 @@
       word: clean,
       phonetic,
       pos,
-      cn: cn || enDef,
+      cn: cn || "",
       enDef,
+      senses,
       synonyms,
       example,
       noteText: noteParts.join(" · "),
       source: "online"
     };
-    saveDictCache(key, result);
+    if (hasChineseChars(result.cn)) {
+      saveDictCache(key, result);
+    }
     return result;
   }
 
@@ -877,9 +949,93 @@
       .join("");
   }
 
+  let inspLookupSeq = 0;
+
+  function revealWordInspector() {
+    const inspCard = $("wordInspector");
+    const paneRight = $("paneRight") || document.querySelector(".pane-right");
+    if (window.innerWidth <= 980) {
+      if (inspCard) {
+        inspCard.classList.add("mobile-insp-sheet");
+        inspCard.scrollTop = 0;
+      }
+    } else {
+      if (paneRight) paneRight.scrollTop = 0;
+      if (inspCard) {
+        inspCard.classList.remove("insp-flash");
+        void inspCard.offsetWidth;
+        inspCard.classList.add("insp-flash");
+      }
+    }
+  }
+
   function inspectWord(wordKey) {
     const day = getCurrentDay();
     const wObj = findWordObjInDay(day, wordKey);
+    if (!wObj) return;
+    inspLookupSeq++;
+    renderInspectorWordObj(wObj);
+  }
+
+  async function inspectAnyWord(rawTerm) {
+    const clean = String(rawTerm || "").trim().replace(/\s+/g, " ");
+    if (!clean) return;
+    const day = getCurrentDay();
+    const localHit = findWordObjInDay(day, clean) || findCoreWordAcrossDays(clean);
+    if (localHit) {
+      inspLookupSeq++;
+      renderInspectorWordObj(localHit);
+      revealWordInspector();
+      return;
+    }
+
+    const reqId = ++inspLookupSeq;
+    // Show immediate loading card right inside #wordInspector (zero popup, zero redirect)
+    renderInspectorWordObj({
+      word: clean,
+      phonetic: "",
+      pos: "",
+      cn: "正在联网查询中文释义、音标与同义词…",
+      category: "划词查义",
+      enDef: "",
+      senses: [],
+      synonyms: [],
+      collocations: [],
+      example: "",
+      tip: ""
+    });
+    revealWordInspector();
+
+    const res = await lookupWordOnline(clean);
+    if (reqId !== inspLookupSeq) return;
+    if (!res) {
+      renderInspectorWordObj({
+        word: clean,
+        phonetic: "",
+        pos: "",
+        cn: "暂未查到该词释义，可点顶部搜索栏查看剑桥/有道词典。",
+        category: "划词查义"
+      });
+      return;
+    }
+    renderInspectorWordObj({
+      word: res.word || clean,
+      phonetic: res.phonetic || "",
+      pos: res.pos || "",
+      cn: res.cn || res.enDef || "（暂无中文释义）",
+      category: "雅思哥生词",
+      enDef: res.enDef || "",
+      senses: Array.isArray(res.senses) ? res.senses : [],
+      synonyms: Array.isArray(res.synonyms) ? res.synonyms : [],
+      collocations: [],
+      example: res.example || "",
+      exampleCn: res.exampleCn || "",
+      tip: ""
+    });
+    revealWordInspector();
+  }
+
+  function renderInspectorWordObj(wObj) {
     if (!wObj) return;
     currentInspectedWord = wObj;
 
@@ -895,7 +1051,8 @@
     catEl.classList.remove("hidden");
     updateInspectorMasteryUI(wObj);
 
-    $("inspMeaning").textContent = `${wObj.pos ? wObj.pos + " " : ""}${wObj.cn}`;
+    const posPrefix = wObj.pos && !(wObj.cn || "").startsWith(wObj.pos) ? `${wObj.pos} ` : "";
+    $("inspMeaning").textContent = `${posPrefix}${wObj.cn || ""}`;
 
     // English definition
     const enDefEl = $("inspEnDef");
@@ -1541,9 +1698,14 @@
       }
       if (e.target.closest("#hlSearchBtn")) {
         const text = savedSelectionRange ? savedSelectionRange.toString().trim() : "";
+        const inPassage = activeHighlightContainer && activeHighlightContainer.id === "passageContent";
         hideHlToolbar();
-        if (text && window.IELTSApp && window.IELTSApp.openSearch) {
-          window.IELTSApp.openSearch(text);
+        if (text) {
+          if (inPassage) {
+            inspectAnyWord(text);
+          } else if (window.IELTSApp && window.IELTSApp.openSearch) {
+            window.IELTSApp.openSearch(text);
+          }
         }
         return;
       }
@@ -1687,7 +1849,7 @@
     document.addEventListener("click", (e) => {
       const inspCard = $("wordInspector");
       if (!inspCard || !inspCard.classList.contains("mobile-insp-sheet")) return;
-      if (e.target.closest("#wordInspector") || e.target.closest(".core-word") || e.target.closest("[data-inspect-word]")) return;
+      if (e.target.closest("#wordInspector") || e.target.closest("#hlToolbar") || e.target.closest(".core-word") || e.target.closest("[data-inspect-word]")) return;
       closeMobileInspectorSheet();
     });
 
