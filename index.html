@@ -18,11 +18,11 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261126b" />
-  <link rel="stylesheet" href="modules.css?v=20261126b" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126b" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261126b" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261126b" />
+  <link rel="stylesheet" href="styles.css?v=20261126c" />
+  <link rel="stylesheet" href="modules.css?v=20261126c" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126c" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261126c" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261126c" />
   <script>
     (function () {
       try {
@@ -447,7 +447,9 @@
                 <option value="all">全部核心词</option>
               </select>
               <button class="btn btn-primary btn-sm" id="btnCheckCloze">核对拼写</button>
-              <button class="btn btn-outline btn-sm" id="btnRevealCloze">显示答案</button>
+              <button class="btn btn-outline btn-sm" id="btnRevealOneCloze" title="只看当前光标所在这一空的答案（该空不计入独立拼对分）">看当前空</button>
+              <button class="btn btn-outline btn-sm" id="btnRevealCloze" title="显示全部未填/拼错的答案（不计入通关分）">显示全部</button>
+              <button class="btn btn-ghost btn-sm" id="btnResetCloze" title="清空所有空格重新默写">重做</button>
             </div>
             <span class="cloze-score" id="clozeScore">填写后点击核对</span>
           </div>
@@ -508,8 +510,9 @@
               <div class="ca-actions">
                 <button type="button" class="btn btn-primary btn-sm ca-speak-btn" id="btnCaSpeak">
                   <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                  <span>盲听此空英音</span>
+                  <span>盲听英音</span>
                 </button>
+                <button type="button" class="btn btn-outline btn-sm" id="btnCaRevealOne" title="只看这一空答案（不剧透其他空，不计入独立拼对分）">看本空答案</button>
                 <label class="ca-auto-toggle" title="切换输入框时自动播放英音，模拟真实雅思听写">
                   <input type="checkbox" id="caAutoSpeak" />
                   <span>切空自动读</span>
@@ -1627,8 +1630,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261126b"></script>
-  <script src="app.js?v=20261126b"></script>
-  <script src="modules.js?v=20261126b"></script>
+  <script src="data.js?v=20261126c"></script>
+  <script src="app.js?v=20261126c"></script>
+  <script src="modules.js?v=20261126c"></script>
 </body>
 </html>

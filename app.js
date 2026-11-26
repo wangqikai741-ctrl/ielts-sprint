@@ -2442,7 +2442,7 @@
             <div class="ca-wrong-top">
               <div class="ca-wrong-words">
                 <span class="ca-wrong-num">#${it.idx + 1}</span>
-                ${it.userVal ? `<span class="ca-wrong-typed">${escapeHtml(it.userVal)}</span><span class="ca-wrong-arrow">→</span>` : `<span class="ca-wrong-empty">未填 →</span>`}
+                ${it.revealed ? `<span class="ca-wrong-empty">看过答案 →</span>` : it.userVal ? `<span class="ca-wrong-typed">${escapeHtml(it.userVal)}</span><span class="ca-wrong-arrow">→</span>` : `<span class="ca-wrong-empty">未填 →</span>`}
                 <strong class="ca-wrong-ans">${escapeHtml(it.ans)}</strong>
               </div>
               <button type="button" class="btn btn-ghost btn-sm" data-ca-speak="${escapeHtml(it.ans)}" title="听英音">${SF.speaker}</button>
@@ -2463,6 +2463,25 @@
       if (e.target.closest(".cloze-input") && clozeMode) updateClozeProgressPill();
     });
 
+    function revealSingleClozeBlank(inp) {
+      const target = inp || clozeActiveInput || document.querySelector("#passageContent .cloze-input");
+      if (!target) return;
+      const ans = String(target.dataset.ans || "").trim();
+      if (!ans) return;
+      const alreadyRight = target.value.trim().toLowerCase() === ans.toLowerCase() && target.dataset.revealed !== "1";
+      if (!alreadyRight) {
+        target.value = ans;
+        target.dataset.revealed = "1";
+        target.classList.remove("correct", "wrong");
+        target.classList.add("revealed");
+      }
+      updateClozeProgressPill();
+      if ($("caMask")) $("caMask").textContent = ans;
+      speakText(ans);
+      target.focus();
+      showToast(`已显示本空答案「${ans}」（本空不计入独立拼对分）`);
+    }
+
     if ($("btnCaSpeak")) {
       $("btnCaSpeak").addEventListener("click", () => {
         const target = clozeActiveInput || document.querySelector("#passageContent .cloze-input");
@@ -2470,6 +2489,23 @@
           speakText(target.dataset.ans);
           target.focus();
         }
+      });
+    }
+    if ($("btnCaRevealOne")) {
+      $("btnCaRevealOne").addEventListener("click", () => revealSingleClozeBlank());
+    }
+    if ($("btnRevealOneCloze")) {
+      $("btnRevealOneCloze").addEventListener("click", () => revealSingleClozeBlank());
+    }
+    if ($("btnResetCloze")) {
+      $("btnResetCloze").addEventListener("click", () => {
+        if (!clozeMode) return;
+        renderPassage();
+        if ($("caReviewBox")) $("caReviewBox").classList.add("hidden");
+        $("clozeScore").textContent = "已清空，请独立默写后点核对";
+        const firstInp = document.querySelector("#passageContent .cloze-input");
+        focusClozeBlank(firstInp, false);
+        if (firstInp) firstInp.focus();
       });
     }
     if ($("btnCaMarkAllWeak")) {
@@ -2591,12 +2627,18 @@
       const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
       const day = getCurrentDay();
       let correct = 0;
+      let revealedCount = 0;
       const wrongItems = [];
       inputs.forEach((inp, idx) => {
         const userVal = inp.value.trim();
         const ans = inp.dataset.ans.trim();
-        inp.classList.remove("correct", "wrong");
-        if (userVal.toLowerCase() === ans.toLowerCase()) {
+        const wasRevealed = inp.dataset.revealed === "1";
+        inp.classList.remove("correct", "wrong", "revealed");
+        if (wasRevealed) {
+          revealedCount++;
+          inp.classList.add("revealed");
+          wrongItems.push({ idx, userVal: "", ans, revealed: true, wObj: findWordObjInDay(day, ans) });
+        } else if (userVal.toLowerCase() === ans.toLowerCase()) {
           inp.classList.add("correct");
           correct++;
         } else {
@@ -2606,25 +2648,31 @@
       });
       renderClozeWrongReview(wrongItems);
       const pass = inputs.length > 0 && correct / inputs.length >= 0.8;
-      $("clozeScore").textContent = `拼写正确：${correct} / ${inputs.length}${pass ? " · 已达标" : inputs.length ? ` · 需 ≥ ${Math.ceil(inputs.length * 0.8)} 个才算完成第 2 步` : ""}`;
+      const revSuffix = revealedCount > 0 ? `（含看答案 ${revealedCount} 空不计分）` : "";
+      $("clozeScore").textContent = `独立拼对：${correct} / ${inputs.length}${revSuffix}${pass ? " · 已达标" : inputs.length ? ` · 需独立拼对 ≥ ${Math.ceil(inputs.length * 0.8)} 个才算通关` : ""}`;
       const active = getActiveSequentialDay();
       if (active && active.id === currentDayId && inputs.length) {
         if (!state.clozeBest || typeof state.clozeBest !== "object") state.clozeBest = {};
         const prev = String(state.clozeBest[active.id] || "0/1").split("/").map(Number);
         if (!prev[1] || correct / inputs.length >= prev[0] / prev[1]) state.clozeBest[active.id] = `${correct}/${inputs.length}`;
-        if (pass) setStepDone("2", true, `拼写挖空达标 ${correct}/${inputs.length}`);
+        if (pass) setStepDone("2", true, `独立拼写达标 ${correct}/${inputs.length}`);
         else saveState();
       }
     });
 
     $("btnRevealCloze").addEventListener("click", () => {
+      let count = 0;
       document.querySelectorAll("#passageContent .cloze-input").forEach((inp) => {
         if (inp.value.trim().toLowerCase() !== inp.dataset.ans.trim().toLowerCase()) {
           inp.value = inp.dataset.ans;
-          inp.classList.remove("wrong");
-          inp.classList.add("correct");
+          inp.dataset.revealed = "1";
+          inp.classList.remove("wrong", "correct");
+          inp.classList.add("revealed");
+          count++;
         }
       });
+      updateClozeProgressPill();
+      showToast(count ? `已显示剩余 ${count} 空答案（这些空不计入通关分，点「重做」可清零重默）` : "全部已填正确！");
     });
 
     // Word inspector buttons
