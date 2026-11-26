@@ -2232,6 +2232,7 @@
     $("prExcerpt").value = "";
     $("prDate").value = todayStr();
     $("btnCancelPracticeEdit").classList.add("hidden");
+    if ($("prLiveScorePreview")) $("prLiveScorePreview").classList.add("hidden");
     syncPracticeModeUI();
   }
 
@@ -3415,6 +3416,23 @@
 
     // TAB 3: Separated Listening & Reading Workspaces
     $("prDate").value = todayStr();
+
+    function updatePrLiveScorePreview() {
+      const el = $("prLiveScorePreview");
+      if (!el) return;
+      const c = Number($("prCorrect") ? $("prCorrect").value : "");
+      const t = Number($("prTotal") ? $("prTotal").value : "");
+      if ($("prCorrect") && $("prCorrect").value !== "" && t > 0 && c >= 0 && c <= t) {
+        const pct = Math.round((c / t) * 100);
+        const est = estimatePracticeBand([{ correct: c, total: t }], currentPracticeMode);
+        el.textContent = `首做 ${c}/${t} (${pct}%) · 约 ${est} 分`;
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    }
+    if ($("prCorrect")) $("prCorrect").addEventListener("input", updatePrLiveScorePreview);
+    if ($("prTotal")) $("prTotal").addEventListener("input", updatePrLiveScorePreview);
 
     function switchPracticeWorkspace(mode, forcePrefill = false) {
       const m = mode === "reading" ? "reading" : "listening";

@@ -18,11 +18,11 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261126f" />
-  <link rel="stylesheet" href="modules.css?v=20261126f" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126f" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261126f" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261126f" />
+  <link rel="stylesheet" href="styles.css?v=20261126g" />
+  <link rel="stylesheet" href="modules.css?v=20261126g" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126g" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261126g" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261126g" />
   <script>
     (function () {
       try {
@@ -748,13 +748,14 @@
       </div>
 
       <div class="practice-layout">
-        <!-- Left: 2-Stage Practice Form (Stage 1 Timed Raw Score -> Stage 2 Intensive Study & Import Excerpt) -->
+        <!-- Left (Primary 62%): Crisp 2-Stage Practice Workbench -->
         <div class="card practice-form-card">
           <div class="pr-form-head">
             <div>
               <h2 id="practiceFormTitle">记录今日听力训练</h2>
               <p class="muted" id="practiceFormSub">严格分两步：先填限时盲做原始对题数，再做错题精听并导入原文留档。</p>
             </div>
+            <span class="pr-live-score hidden" id="prLiveScorePreview"></span>
           </div>
 
           <input type="hidden" id="prEditId" value="" />
@@ -763,34 +764,34 @@
           <!-- STAGE 1: Timed First Attempt (Raw Score BEFORE Intensive Study) -->
           <div class="pr-stage-block">
             <div class="pr-stage-head">
-              <span class="pr-stage-num">1</span>
+              <span class="pr-stage-num">01</span>
               <span class="pr-stage-title" id="prStage1Title">第一步 · 限时盲做原始成绩（精听前第一遍）</span>
             </div>
             <p class="pr-stage-hint" id="prStage1Hint">先在雅思哥原速限时盲做一遍对答案，把<strong>还没精听前的真实首做对题数</strong>填在这里，用来准确估算雅思分数。</p>
 
-            <div class="form-row-2">
+            <div class="pr-grid-source">
               <div>
-                <label class="field-label" id="prSourceLabel">真题来源（听力）</label>
+                <label class="pr-field-lbl" id="prSourceLabel">真题来源（听力）</label>
                 <input type="text" id="prSource" class="text-input full-width" placeholder="例如：剑10 Test 1 Part 1 & Part 2" />
               </div>
               <div>
-                <label class="field-label">日期</label>
+                <label class="pr-field-lbl">练习日期</label>
                 <input type="date" id="prDate" class="text-input full-width" />
               </div>
             </div>
 
-            <div class="form-row-3">
+            <div class="form-row-3 pr-grid-scores">
               <div>
-                <label class="field-label" id="prCorrectLabel">首做对题数（非精听）</label>
-                <input type="number" id="prCorrect" class="text-input full-width" min="0" max="40" placeholder="如 15" />
+                <label class="pr-field-lbl" id="prCorrectLabel">首做对题数（非精听）</label>
+                <input type="number" id="prCorrect" class="text-input full-width pr-num-input" min="0" max="40" placeholder="如 15" />
               </div>
               <div>
-                <label class="field-label">总题数</label>
-                <input type="number" id="prTotal" class="text-input full-width" min="1" max="40" value="20" />
+                <label class="pr-field-lbl">总题数</label>
+                <input type="number" id="prTotal" class="text-input full-width pr-num-input" min="1" max="40" value="20" />
               </div>
               <div>
-                <label class="field-label">限时用时（分钟）</label>
-                <input type="number" id="prMinutes" class="text-input full-width" min="1" placeholder="如 15" />
+                <label class="pr-field-lbl">限时用时（分钟）</label>
+                <input type="number" id="prMinutes" class="text-input full-width pr-num-input" min="1" placeholder="如 15" />
               </div>
             </div>
           </div>
@@ -798,47 +799,51 @@
           <!-- STAGE 2: Intensive Review & Import Transcript / Passage -->
           <div class="pr-stage-block">
             <div class="pr-stage-head">
-              <span class="pr-stage-num is-s2">2</span>
+              <span class="pr-stage-num is-s2">02</span>
               <span class="pr-stage-title" id="prStage2Title">第二步 · 错题精听复盘 & 导入精听原文</span>
             </div>
 
-            <div class="form-group">
-              <label class="field-label" id="prSynLabel">同义替换积累（每行一组：题干词 = 录音原文词）</label>
-              <textarea id="prSynonyms" class="textarea-input full-width" rows="3" placeholder="mandatory = compulsory&#10;reserve = book&#10;expense = cost"></textarea>
+            <div class="pr-grid-notes">
+              <div class="form-group">
+                <label class="pr-field-lbl" id="prSynLabel">同义替换积累（每行：题干词 = 原文词）</label>
+                <textarea id="prSynonyms" class="textarea-input full-width" rows="3" placeholder="mandatory = compulsory&#10;reserve = book&#10;expense = cost"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="pr-field-lbl" id="prNotesLabel">错题复盘 / 精听卡壳点</label>
+                <textarea id="prNotes" class="textarea-input full-width" rows="3" placeholder="例：Q7 把 receipt 拼错了；Q14 没听出转折词 however 后的真正答案"></textarea>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="field-label" id="prNotesLabel">错题复盘 / 精听卡壳点（漏听词、连读弱读、单复数或干扰项）</label>
-              <textarea id="prNotes" class="textarea-input full-width" rows="3" placeholder="例：Q7 把 receipt 拼错了；Q14 没听出转折词 however 后的真正答案"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="field-label" id="prExcerptLabel">导入精听原文片段（保存后可在右侧像机考一样划词高亮 & 词频雷达扫生词）</label>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="pr-field-lbl" id="prExcerptLabel">导入精听原文片段（保存后可在右侧划词高亮 & 词频雷达扫生词）</label>
               <textarea id="prExcerpt" class="textarea-input full-width" rows="4" placeholder="把本篇精听的对话/独白原文或错题对应段落粘贴在这里（选填）..."></textarea>
             </div>
           </div>
 
-          <div class="form-actions">
+          <div class="form-actions pr-form-actions">
             <button class="btn btn-primary" id="btnSavePractice">保存听力记录</button>
             <button class="btn btn-ghost hidden" id="btnCancelPracticeEdit">取消编辑</button>
           </div>
         </div>
 
-        <!-- Right: Dedicated Single-Subject Stats & Saved Records -->
+        <!-- Right (Compact 38%): Sleek Metric Strip & Saved Archive Rail -->
         <div class="practice-list-col">
-          <div class="card practice-summary-card">
-            <div class="summary-stats summary-stats-3" id="practiceStats">
-              <div class="stat-box">
-                <span class="stat-label" id="prStatCountLabel">累计听力记录</span>
-                <strong id="prStatCount">0 篇</strong>
+          <div class="card practice-summary-card pr-compact-summary">
+            <div class="pr-compact-metrics" id="practiceStats">
+              <div class="pr-metric">
+                <span class="pr-metric-lbl" id="prStatCountLabel">累计听力</span>
+                <strong class="pr-metric-val" id="prStatCount">0 篇</strong>
               </div>
-              <div class="stat-box">
-                <span class="stat-label" id="prStatAccLabel">首做平均正确率</span>
-                <strong id="prStatAcc">--</strong>
+              <i class="pr-metric-div" aria-hidden="true"></i>
+              <div class="pr-metric">
+                <span class="pr-metric-lbl" id="prStatAccLabel">首做正确率</span>
+                <strong class="pr-metric-val" id="prStatAcc">--</strong>
               </div>
-              <div class="stat-box">
-                <span class="stat-label" id="prStatBandLabel">估算听力分数</span>
-                <strong id="prStatBand">--</strong>
+              <i class="pr-metric-div" aria-hidden="true"></i>
+              <div class="pr-metric">
+                <span class="pr-metric-lbl" id="prStatBandLabel">估算分数</span>
+                <strong class="pr-metric-val is-accent" id="prStatBand">--</strong>
               </div>
             </div>
             <!-- Hidden legacy stat hooks kept for backwards compatibility -->
@@ -1683,8 +1688,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261126f"></script>
-  <script src="app.js?v=20261126f"></script>
-  <script src="modules.js?v=20261126f"></script>
+  <script src="data.js?v=20261126g"></script>
+  <script src="app.js?v=20261126g"></script>
+  <script src="modules.js?v=20261126g"></script>
 </body>
 </html>
