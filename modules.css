@@ -6369,22 +6369,82 @@ body.auth-revealing .main-container {
 #srLiveOnlineSlot.is-stale { opacity: 0.55; transition: opacity 0.15s ease; }
 
 /* =========================================================
- * LAYOUT POLISH · 粘性右栏不再被顶栏遮挡、卡片边缘不再被裁切
+ * LAYOUT POLISH · 右侧词卡全程不遮挡 + 顶部导航稳重丝滑零卡顿
  * ========================================================= */
-:root { --sticky-top: 110px; }
-html { scroll-padding-top: calc(var(--sticky-top) + 14px); }
+:root { --sticky-top: 102px; }
+html { scroll-padding-top: calc(var(--sticky-top) + 12px); }
 
-/* 顶部分段导航收紧一点，给内容留更多高度 */
-.nav-tabs { padding: 2px 0 8px; }
+/* 顶部分段导航：轻量、紧凑、恒定常驻，去掉重度双层高斯模糊与滚动显隐抖动 */
+@media (min-width: 981px) {
+  .main-container {
+    padding: 18px 24px 36px !important;
+  }
+  .topbar {
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  body.dark .topbar {
+    background: rgba(12, 14, 20, 0.96) !important;
+  }
+  .nav-tabs {
+    top: 56px;
+    padding: 3px 0 8px;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
+  }
+  body.dark .nav-tabs {
+    background: rgba(12, 14, 20, 0.96) !important;
+    box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.5);
+  }
+  .nav-tabs-inner {
+    padding: 3px !important;
+    border-radius: 12px;
+  }
+  .nav-tab {
+    padding: 6px 14px !important;
+    border-radius: 9px !important;
+    transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease !important;
+  }
+}
+
+/* 切换大标签页使用极速纯透明度淡入（零 transform，不破坏 sticky 定位且杜绝卡顿） */
+.tab-panel.active {
+  animation: appleTabFadeClean 0.14s ease-out both !important;
+}
+@keyframes appleTabFadeClean {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+
+/* 左栏承载串文 + 底部核心词表，保证分屏容器延伸至页底 */
+.pane-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.pane-left-col .core-drawer-card {
+  margin-top: 0 !important;
+}
 
 @media (min-width: 981px) {
-  /* 右栏本身不再滚动（避免卡片阴影被裁、出现第二条滚动条），只让词卡内部滚动 */
+  /* 数学保证：top (stickyTop+12) + max-height (100dvh-stickyTop-52) = 100dvh-40 < 页底 100dvh-36，滚到最底绝不顶进顶栏！ */
   .pane-right {
-    top: calc(var(--sticky-top) + 14px);
-    max-height: calc(100vh - var(--sticky-top) - 28px);
-    max-height: calc(100dvh - var(--sticky-top) - 28px);
+    position: sticky;
+    top: calc(var(--sticky-top) + 12px);
+    max-height: calc(100vh - var(--sticky-top) - 52px);
+    max-height: calc(100dvh - var(--sticky-top) - 52px);
     overflow: visible;
     padding-right: 0;
+    align-self: start;
+    transition: none !important;
   }
   .pane-right > .quick-add-card { flex: none; }
   #wordInspector {
@@ -6401,7 +6461,7 @@ html { scroll-padding-top: calc(var(--sticky-top) + 14px); }
   #wordInspector::-webkit-scrollbar-thumb { background: rgba(120, 120, 128, 0.28); border-radius: 99px; }
   #wordInspector::-webkit-scrollbar-thumb:hover { background: rgba(120, 120, 128, 0.45); }
 
-  /* 词头（单词 + 发音 + 存生词本 + 熟/不熟）在词卡内吸顶，滚到下面也能操作 */
+  /* 词头（单词 + 发音 + 存生词本）在词卡内吸顶，滚到词卡下方例句也能随时操作 */
   #wordInspector .inspector-header {
     position: sticky;
     top: -18px;
@@ -6412,24 +6472,6 @@ html { scroll-padding-top: calc(var(--sticky-top) + 14px); }
     border-radius: var(--radius) var(--radius) 0 0;
   }
   body.dark #wordInspector .inspector-header { background: #171a24; }
-}
-
-/* 桌面端：向下滚动时分段导航收起到顶栏后面，向上滚 / 鼠标移到顶栏时再出现 */
-@media (min-width: 981px) {
-  .nav-tabs {
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
-    will-change: transform;
-  }
-  body.nav-hidden .nav-tabs {
-    transform: translate3d(0, -100%, 0);
-    opacity: 0;
-    pointer-events: none;
-  }
-  .pane-right { transition: top 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
-}
-@media (min-width: 981px) {
-  .topbar { transition: box-shadow 0.2s ease; }
-  body.nav-hidden .topbar { box-shadow: 0 1px 0 var(--border), 0 8px 24px -10px rgba(0, 0, 0, 0.08); }
 }
 
 /* 顶栏「导入」不常用：桌面端只留图标，减少顶栏噪音 */
