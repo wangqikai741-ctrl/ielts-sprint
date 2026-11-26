@@ -17,6 +17,8 @@
   let currentCoreFilter = "all";
   let currentInspectedWord = null;
   let clozeMode = false;
+  let clozeActiveInput = null;
+  let clozeLastWrongWords = [];
   let transMode = false;
   let hideVocabCn = false;
   let currentPracticeFilter = "all";
@@ -2200,6 +2202,7 @@
       clozeMode = false;
       $("clozeBar").classList.add("hidden");
       $("btnToggleCloze").classList.remove("active-toggle");
+      syncClozeAssistVisibility();
       renderDailyTasks();
       renderPassage();
       renderCoreWordList();
@@ -2350,10 +2353,161 @@
       closeMobileInspectorSheet();
     });
 
-    // Cloze mode keyboard flow: Enter / Tab moves to next input; Enter on last checks answers
+    // Cloze Dictation Assistant (spoiler-free right panel)
+    function syncClozeAssistVisibility() {
+      const caCard = $("clozeAssistCard");
+      const inspCard = $("wordInspector");
+      const quickAdd = $("quickAddDetails");
+      const drawer = $("coreWordDrawer");
+      if (caCard) caCard.classList.toggle("hidden", !clozeMode);
+      if (inspCard) inspCard.classList.toggle("hidden", clozeMode);
+      if (quickAdd) quickAdd.classList.toggle("hidden", clozeMode);
+      if (drawer) {
+        drawer.classList.toggle("hidden", clozeMode);
+        if (clozeMode) drawer.open = false;
+      }
+      if (!clozeMode) {
+        clozeActiveInput = null;
+        clozeLastWrongWords = [];
+        if ($("caReviewBox")) $("caReviewBox").classList.add("hidden");
+      }
+    }
+
+    function updateClozeProgressPill() {
+      const pill = $("caProgressPill");
+      if (!pill) return;
+      const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+      const filled = inputs.filter((i) => i.value.trim().length > 0).length;
+      pill.textContent = `已填 ${filled} / ${inputs.length}`;
+    }
+
+    function focusClozeBlank(inp, autoPlay = false) {
+      if (!clozeMode) return;
+      const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+      const target = inp || inputs[0] || null;
+      clozeActiveInput = target;
+      updateClozeProgressPill();
+      if (!target) return;
+
+      const idx = inputs.indexOf(target);
+      const ans = String(target.dataset.ans || "").trim();
+      const day = getCurrentDay();
+      const wObj = findWordObjInDay(day, ans);
+
+      preloadWordAudio(ans);
+      if (inputs[idx + 1] && inputs[idx + 1].dataset.ans) {
+        preloadWordAudio(inputs[idx + 1].dataset.ans);
+      }
+
+      if ($("caIdxBadge")) $("caIdxBadge").textContent = `第 ${idx + 1} / ${inputs.length} 空`;
+      if ($("caLenBadge")) $("caLenBadge").textContent = `${ans.length} 个字母 · ${wObj && wObj.category ? wObj.category : "听力拼写"}`;
+      if ($("caMask")) {
+        const masked = ans ? `${ans[0]} ${"_ ".repeat(Math.max(1, ans.length - 1)).trim()}` : "_ _ _";
+        $("caMask").textContent = masked;
+      }
+      if ($("caCn")) {
+        $("caCn").textContent = wObj ? `${wObj.pos ? wObj.pos + " " : ""}${wObj.cn}` : "请根据上下文与英音拼写该词";
+      }
+      if ($("caPhonetic")) {
+        if (wObj && wObj.phonetic) {
+          $("caPhonetic").textContent = wObj.phonetic;
+          $("caPhonetic").classList.remove("hidden");
+        } else {
+          $("caPhonetic").classList.add("hidden");
+        }
+      }
+      if (autoPlay && $("caAutoSpeak") && $("caAutoSpeak").checked && ans) {
+        speakText(ans);
+      }
+    }
+
+    function renderClozeWrongReview(wrongItems) {
+      const box = $("caReviewBox");
+      const list = $("caReviewList");
+      const title = $("caReviewTitle");
+      if (!box || !list) return;
+      clozeLastWrongWords = wrongItems.map((x) => x.wObj || x.ans).filter(Boolean);
+      if (!wrongItems.length) {
+        title.textContent = "全部拼写正确！";
+        list.innerHTML = `<div class="ca-all-right">本组核心词 100% 全对，听力拼写稳稳过关！</div>`;
+        if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.add("hidden");
+        box.classList.remove("hidden");
+        return;
+      }
+      title.textContent = `本次错词 / 漏填 (${wrongItems.length})`;
+      if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.remove("hidden");
+      list.innerHTML = wrongItems
+        .map((it) => `
+          <div class="ca-wrong-row" data-ca-jump="${it.idx}">
+            <div class="ca-wrong-top">
+              <div class="ca-wrong-words">
+                <span class="ca-wrong-num">#${it.idx + 1}</span>
+                ${it.userVal ? `<span class="ca-wrong-typed">${escapeHtml(it.userVal)}</span><span class="ca-wrong-arrow">→</span>` : `<span class="ca-wrong-empty">未填 →</span>`}
+                <strong class="ca-wrong-ans">${escapeHtml(it.ans)}</strong>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" data-ca-speak="${escapeHtml(it.ans)}" title="听英音">${SF.speaker}</button>
+            </div>
+            ${it.wObj && it.wObj.cn ? `<div class="ca-wrong-cn">${escapeHtml((it.wObj.pos ? it.wObj.pos + " " : "") + it.wObj.cn)}</div>` : ""}
+            ${it.wObj && it.wObj.tip ? `<div class="ca-wrong-tip">${escapeHtml(it.wObj.tip)}</div>` : ""}
+          </div>
+        `)
+        .join("");
+      box.classList.remove("hidden");
+    }
+
+    $("passageContent").addEventListener("focusin", (e) => {
+      const inp = e.target.closest(".cloze-input");
+      if (inp && clozeMode) focusClozeBlank(inp, true);
+    });
+    $("passageContent").addEventListener("input", (e) => {
+      if (e.target.closest(".cloze-input") && clozeMode) updateClozeProgressPill();
+    });
+
+    if ($("btnCaSpeak")) {
+      $("btnCaSpeak").addEventListener("click", () => {
+        const target = clozeActiveInput || document.querySelector("#passageContent .cloze-input");
+        if (target && target.dataset.ans) {
+          speakText(target.dataset.ans);
+          target.focus();
+        }
+      });
+    }
+    if ($("btnCaMarkAllWeak")) {
+      $("btnCaMarkAllWeak").addEventListener("click", () => {
+        if (!clozeLastWrongWords.length) return;
+        clozeLastWrongWords.forEach((w) => markWordWeak(w, { fromQuiz: true, silent: true }));
+        showToast(`已将 ${clozeLastWrongWords.length} 个错词标为不熟，加入闪卡与明日复现队列`);
+      });
+    }
+    if ($("caReviewList")) {
+      $("caReviewList").addEventListener("click", (e) => {
+        const sp = e.target.closest("[data-ca-speak]");
+        if (sp) {
+          e.stopPropagation();
+          speakText(sp.dataset.caSpeak);
+          return;
+        }
+        const row = e.target.closest("[data-ca-jump]");
+        if (row) {
+          const all = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+          const target = all[Number(row.dataset.caJump)];
+          if (target) {
+            target.focus();
+            target.select();
+          }
+        }
+      });
+    }
+
+    // Cloze mode keyboard flow: Enter moves to next input; Alt replays British audio; Enter on last checks answers
     $("passageContent").addEventListener("keydown", (e) => {
       const inp = e.target.closest(".cloze-input");
       if (!inp) return;
+      if (e.key === "Alt") {
+        e.preventDefault();
+        if (inp.dataset.ans) speakText(inp.dataset.ans);
+        return;
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         const all = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
@@ -2415,27 +2569,42 @@
       $("btnToggleCloze").classList.toggle("active-toggle", clozeMode);
       $("clozeBar").classList.toggle("hidden", !clozeMode);
       $("clozeScore").textContent = "填写后点击核对";
+      syncClozeAssistVisibility();
       renderPassage();
+      if (clozeMode) {
+        if ($("caReviewBox")) $("caReviewBox").classList.add("hidden");
+        const firstInp = document.querySelector("#passageContent .cloze-input");
+        focusClozeBlank(firstInp, false);
+        if (firstInp) setTimeout(() => firstInp.focus(), 60);
+      }
     });
 
     $("clozeScope").addEventListener("change", () => {
-      if (clozeMode) renderPassage();
+      if (clozeMode) {
+        renderPassage();
+        if ($("caReviewBox")) $("caReviewBox").classList.add("hidden");
+        focusClozeBlank(document.querySelector("#passageContent .cloze-input"), false);
+      }
     });
 
     $("btnCheckCloze").addEventListener("click", () => {
       const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+      const day = getCurrentDay();
       let correct = 0;
-      inputs.forEach((inp) => {
-        const userVal = inp.value.trim().toLowerCase();
-        const ans = inp.dataset.ans.trim().toLowerCase();
+      const wrongItems = [];
+      inputs.forEach((inp, idx) => {
+        const userVal = inp.value.trim();
+        const ans = inp.dataset.ans.trim();
         inp.classList.remove("correct", "wrong");
-        if (userVal === ans) {
+        if (userVal.toLowerCase() === ans.toLowerCase()) {
           inp.classList.add("correct");
           correct++;
         } else {
           inp.classList.add("wrong");
+          wrongItems.push({ idx, userVal, ans, wObj: findWordObjInDay(day, ans) });
         }
       });
+      renderClozeWrongReview(wrongItems);
       const pass = inputs.length > 0 && correct / inputs.length >= 0.8;
       $("clozeScore").textContent = `拼写正确：${correct} / ${inputs.length}${pass ? " · 已达标" : inputs.length ? ` · 需 ≥ ${Math.ceil(inputs.length * 0.8)} 个才算完成第 2 步` : ""}`;
       const active = getActiveSequentialDay();

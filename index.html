@@ -18,11 +18,11 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261126a" />
-  <link rel="stylesheet" href="modules.css?v=20261126a" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126a" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261126a" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261126a" />
+  <link rel="stylesheet" href="styles.css?v=20261126b" />
+  <link rel="stylesheet" href="modules.css?v=20261126b" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126b" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261126b" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261126b" />
   <script>
     (function () {
       try {
@@ -485,8 +485,48 @@
         </details>
         </div>
 
-        <!-- Right Pane: Sticky Word Inspector + Compact Quick Add -->
+        <!-- Right Pane: Sticky Word Inspector + Cloze Dictation Assistant + Compact Quick Add -->
         <aside class="pane-right" id="paneRight">
+          <!-- Spoiler-Free Cloze Dictation Assistant (Visible ONLY in Cloze Mode) -->
+          <div class="card cloze-assist-card hidden" id="clozeAssistCard">
+            <div class="ca-head">
+              <div>
+                <span class="ca-kicker">防剧透默写模式</span>
+                <h3 class="ca-title" id="caTitle">听音拼写辅助卡</h3>
+              </div>
+              <span class="ca-progress-pill" id="caProgressPill">已填 0 / 0</span>
+            </div>
+
+            <div class="ca-active-box" id="caActiveBox">
+              <div class="ca-meta-row">
+                <span class="ca-idx-badge" id="caIdxBadge">第 1 空</span>
+                <span class="ca-len-badge" id="caLenBadge">点击左侧任意空格开始</span>
+              </div>
+              <div class="ca-mask" id="caMask">_ _ _ _ _</div>
+              <div class="ca-cn" id="caCn">把光标点进左侧任意挖空输入框，这里会显示中文意思、音标与盲听发音（不剧透拼写）。</div>
+              <div class="ca-phonetic hidden" id="caPhonetic"></div>
+              <div class="ca-actions">
+                <button type="button" class="btn btn-primary btn-sm ca-speak-btn" id="btnCaSpeak">
+                  <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  <span>盲听此空英音</span>
+                </button>
+                <label class="ca-auto-toggle" title="切换输入框时自动播放英音，模拟真实雅思听写">
+                  <input type="checkbox" id="caAutoSpeak" />
+                  <span>切空自动读</span>
+                </label>
+              </div>
+              <div class="ca-kbd-tip">快捷键：<kbd>Enter</kbd> 跳下一空 · <kbd>Alt</kbd> 重听当前空英音</div>
+            </div>
+
+            <div class="ca-review-box hidden" id="caReviewBox">
+              <div class="ca-review-head">
+                <span id="caReviewTitle">本次错词纠错</span>
+                <button type="button" class="btn btn-outline btn-sm" id="btnCaMarkAllWeak">错词全标为不熟</button>
+              </div>
+              <div class="ca-review-list" id="caReviewList"></div>
+            </div>
+          </div>
+
           <!-- Selected Word Inspector -->
           <div class="card inspector-card" id="wordInspector">
             <div class="insp-sheet-handle" aria-hidden="true"></div>
@@ -1587,8 +1627,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261126a"></script>
-  <script src="app.js?v=20261126a"></script>
-  <script src="modules.js?v=20261126a"></script>
+  <script src="data.js?v=20261126b"></script>
+  <script src="app.js?v=20261126b"></script>
+  <script src="modules.js?v=20261126b"></script>
 </body>
 </html>
