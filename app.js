@@ -2751,11 +2751,13 @@
         title.textContent = "全部拼写正确！";
         list.innerHTML = `<div class="ca-all-right">本组核心词 100% 全对，听力拼写稳稳过关！</div>`;
         if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.add("hidden");
+        if ($("btnCaRetryWrong")) $("btnCaRetryWrong").classList.add("hidden");
         box.classList.remove("hidden");
         return;
       }
       title.textContent = `本次错词 / 漏填 (${wrongItems.length})`;
       if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.remove("hidden");
+      if ($("btnCaRetryWrong")) $("btnCaRetryWrong").classList.remove("hidden");
       list.innerHTML = wrongItems
         .map((it) => {
           const diff = it.userVal ? buildSpellingDiffHtml(it.userVal, it.ans) : null;
@@ -2827,6 +2829,20 @@
       showToast(typed ? `已标出「${typed}」与「${ans}」的逐字母差异（本空不计分）` : `已显示本空答案「${ans}」（本空不计分）`);
     }
 
+    function resetSingleClozeBlank(inp) {
+      const target = inp || clozeActiveInput || document.querySelector("#passageContent .cloze-input");
+      if (!target) return;
+      target.value = "";
+      delete target.dataset.revealed;
+      delete target.dataset.prevTyped;
+      target.classList.remove("correct", "wrong", "revealed");
+      updateClozeProgressPill();
+      renderLiveClozeSlots(target);
+      renderBlankDiffBox(target);
+      target.focus();
+      showToast("已清空当前空，可以独立重默这一词");
+    }
+
     if ($("btnCaSpeak")) {
       $("btnCaSpeak").addEventListener("click", () => {
         const target = clozeActiveInput || document.querySelector("#passageContent .cloze-input");
@@ -2838,6 +2854,34 @@
     }
     if ($("btnCaRevealOne")) {
       $("btnCaRevealOne").addEventListener("click", () => revealSingleClozeBlank());
+    }
+    if ($("btnCaResetOne")) {
+      $("btnCaResetOne").addEventListener("click", () => resetSingleClozeBlank());
+    }
+    if ($("btnCaRetryWrong")) {
+      $("btnCaRetryWrong").addEventListener("click", () => {
+        const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
+        let cleared = 0;
+        let firstCleared = null;
+        inputs.forEach((inp) => {
+          const isRight = inp.classList.contains("correct") && inp.dataset.revealed !== "1";
+          if (!isRight) {
+            inp.value = "";
+            delete inp.dataset.revealed;
+            delete inp.dataset.prevTyped;
+            inp.classList.remove("correct", "wrong", "revealed");
+            cleared++;
+            if (!firstCleared) firstCleared = inp;
+          }
+        });
+        if ($("caReviewBox")) $("caReviewBox").classList.add("hidden");
+        updateClozeProgressPill();
+        if (firstCleared) {
+          focusClozeBlank(firstCleared, false);
+          firstCleared.focus();
+          showToast(`已清空 ${cleared} 个错词空，已拼对的词已保留`);
+        }
+      });
     }
     if ($("btnRevealOneCloze")) {
       $("btnRevealOneCloze").addEventListener("click", () => revealSingleClozeBlank());
