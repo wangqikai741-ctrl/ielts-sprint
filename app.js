@@ -2381,6 +2381,119 @@
       pill.textContent = `已填 ${filled} / ${inputs.length}`;
     }
 
+    function buildSpellingDiffHtml(rawTyped, rawAns) {
+      const a = String(rawTyped || "").trim();
+      const b = String(rawAns || "").trim();
+      const aLow = a.toLowerCase();
+      const bLow = b.toLowerCase();
+      const m = aLow.length;
+      const n = bLow.length;
+      const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+      for (let i = m - 1; i >= 0; i--) {
+        for (let j = n - 1; j >= 0; j--) {
+          dp[i][j] = aLow[i] === bLow[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+      }
+      let typedHtml = "";
+      let ansHtml = "";
+      let i = 0;
+      let j = 0;
+      let wrongCnt = 0;
+      let missCnt = 0;
+      while (i < m || j < n) {
+        if (i < m && j < n && aLow[i] === bLow[j]) {
+          typedHtml += `<span class="cd-ok">${escapeHtml(a[i])}</span>`;
+          ansHtml += `<span class="cd-ok">${escapeHtml(b[j])}</span>`;
+          i++;
+          j++;
+        } else if (j < n && (i === m || dp[i][j + 1] >= dp[i + 1][j])) {
+          ansHtml += `<span class="cd-add">${escapeHtml(b[j])}</span>`;
+          missCnt++;
+          j++;
+        } else {
+          typedHtml += `<span class="cd-del">${escapeHtml(a[i])}</span>`;
+          wrongCnt++;
+          i++;
+        }
+      }
+      return { typedHtml, ansHtml, wrongCnt, missCnt };
+    }
+
+    function renderLiveClozeSlots(inp) {
+      if (!inp || !$("caMask")) return;
+      const ans = String(inp.dataset.ans || "").trim();
+      const val = inp.value.trim();
+      const total = ans.length;
+      const slots = [];
+      for (let k = 0; k < Math.max(total, val.length); k++) {
+        if (k < val.length) {
+          const over = k >= total ? " is-over" : "";
+          slots.push(`<span class="ca-slot is-filled${over}">${escapeHtml(val[k])}</span>`);
+        } else if (k === 0 && !val.length && ans[0]) {
+          slots.push(`<span class="ca-slot is-hint">${escapeHtml(ans[0])}</span>`);
+        } else {
+          slots.push(`<span class="ca-slot">_</span>`);
+        }
+      }
+      $("caMask").innerHTML = slots.join("");
+      if ($("caLenBadge")) {
+        const day = getCurrentDay();
+        const wObj = findWordObjInDay(day, ans);
+        const cat = wObj && wObj.category ? wObj.category : "听力拼写";
+        const diffLen = val.length - total;
+        const lenHint = !val.length
+          ? `${total} 个字母`
+          : diffLen === 0
+            ? `已输 ${val.length} / ${total} 字母（长度吻合）`
+            : diffLen < 0
+              ? `已输 ${val.length} / ${total} 字母（还差 ${-diffLen} 个）`
+              : `已输 ${val.length} / ${total} 字母（多出 ${diffLen} 个）`;
+        $("caLenBadge").textContent = `${lenHint} · ${cat}`;
+      }
+    }
+
+    function renderBlankDiffBox(inp) {
+      const box = $("caDiffBox");
+      if (!box) return;
+      if (!inp) {
+        box.classList.add("hidden");
+        box.innerHTML = "";
+        return;
+      }
+      const ans = String(inp.dataset.ans || "").trim();
+      const day = getCurrentDay();
+      const wObj = findWordObjInDay(day, ans);
+      const userVal = inp.dataset.revealed === "1" ? (inp.dataset.prevTyped || "") : inp.value.trim();
+
+      if (inp.classList.contains("correct") && inp.dataset.revealed !== "1") {
+        box.innerHTML = `<div class="ca-diff-ok">✓ 拼写完全正确：<strong>${escapeHtml(ans)}</strong></div>`;
+        box.classList.remove("hidden");
+        return;
+      }
+
+      if (inp.dataset.revealed === "1" || inp.classList.contains("wrong")) {
+        const diff = buildSpellingDiffHtml(userVal, ans);
+        const summaryParts = [];
+        if (userVal) {
+          if (diff.wrongCnt) summaryParts.push(`写错/多写 ${diff.wrongCnt} 处`);
+          if (diff.missCnt) summaryParts.push(`漏写/少写 ${diff.missCnt} 处`);
+        } else {
+          summaryParts.push("未填写，已显示标准拼写");
+        }
+        box.innerHTML = `
+          <div class="ca-diff-summary">${escapeHtml(summaryParts.join(" · "))}</div>
+          ${userVal ? `<div class="ca-diff-row"><span class="ca-diff-lbl">你填的</span><span class="ca-diff-word">${diff.typedHtml}</span></div>` : ""}
+          <div class="ca-diff-row"><span class="ca-diff-lbl">标准词</span><span class="ca-diff-word">${diff.ansHtml}</span></div>
+          ${wObj && wObj.tip ? `<div class="ca-diff-tip">${escapeHtml(wObj.tip)}</div>` : ""}
+        `;
+        box.classList.remove("hidden");
+        return;
+      }
+
+      box.classList.add("hidden");
+      box.innerHTML = "";
+    }
+
     function focusClozeBlank(inp, autoPlay = false) {
       if (!clozeMode) return;
       const inputs = Array.from(document.querySelectorAll("#passageContent .cloze-input"));
@@ -2400,11 +2513,8 @@
       }
 
       if ($("caIdxBadge")) $("caIdxBadge").textContent = `第 ${idx + 1} / ${inputs.length} 空`;
-      if ($("caLenBadge")) $("caLenBadge").textContent = `${ans.length} 个字母 · ${wObj && wObj.category ? wObj.category : "听力拼写"}`;
-      if ($("caMask")) {
-        const masked = ans ? `${ans[0]} ${"_ ".repeat(Math.max(1, ans.length - 1)).trim()}` : "_ _ _";
-        $("caMask").textContent = masked;
-      }
+      renderLiveClozeSlots(target);
+      renderBlankDiffBox(target);
       if ($("caCn")) {
         $("caCn").textContent = wObj ? `${wObj.pos ? wObj.pos + " " : ""}${wObj.cn}` : "请根据上下文与英音拼写该词";
       }
@@ -2437,20 +2547,22 @@
       title.textContent = `本次错词 / 漏填 (${wrongItems.length})`;
       if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.remove("hidden");
       list.innerHTML = wrongItems
-        .map((it) => `
+        .map((it) => {
+          const diff = it.userVal ? buildSpellingDiffHtml(it.userVal, it.ans) : null;
+          return `
           <div class="ca-wrong-row" data-ca-jump="${it.idx}">
             <div class="ca-wrong-top">
               <div class="ca-wrong-words">
                 <span class="ca-wrong-num">#${it.idx + 1}</span>
-                ${it.revealed ? `<span class="ca-wrong-empty">看过答案 →</span>` : it.userVal ? `<span class="ca-wrong-typed">${escapeHtml(it.userVal)}</span><span class="ca-wrong-arrow">→</span>` : `<span class="ca-wrong-empty">未填 →</span>`}
-                <strong class="ca-wrong-ans">${escapeHtml(it.ans)}</strong>
+                ${diff ? `<span class="ca-diff-inline">${diff.typedHtml}</span><span class="ca-wrong-arrow">→</span><span class="ca-diff-inline">${diff.ansHtml}</span>` : `<span class="ca-wrong-empty">${it.revealed ? "看过答案 →" : "未填 →"}</span><strong class="ca-wrong-ans">${escapeHtml(it.ans)}</strong>`}
               </div>
               <button type="button" class="btn btn-ghost btn-sm" data-ca-speak="${escapeHtml(it.ans)}" title="听英音">${SF.speaker}</button>
             </div>
             ${it.wObj && it.wObj.cn ? `<div class="ca-wrong-cn">${escapeHtml((it.wObj.pos ? it.wObj.pos + " " : "") + it.wObj.cn)}</div>` : ""}
             ${it.wObj && it.wObj.tip ? `<div class="ca-wrong-tip">${escapeHtml(it.wObj.tip)}</div>` : ""}
           </div>
-        `)
+        `;
+        })
         .join("");
       box.classList.remove("hidden");
     }
@@ -2460,7 +2572,16 @@
       if (inp && clozeMode) focusClozeBlank(inp, true);
     });
     $("passageContent").addEventListener("input", (e) => {
-      if (e.target.closest(".cloze-input") && clozeMode) updateClozeProgressPill();
+      const inp = e.target.closest(".cloze-input");
+      if (inp && clozeMode) {
+        clozeActiveInput = inp;
+        if (inp.dataset.revealed !== "1") {
+          inp.classList.remove("correct", "wrong");
+        }
+        updateClozeProgressPill();
+        renderLiveClozeSlots(inp);
+        renderBlankDiffBox(inp);
+      }
     });
 
     function revealSingleClozeBlank(inp) {
@@ -2468,18 +2589,32 @@
       if (!target) return;
       const ans = String(target.dataset.ans || "").trim();
       if (!ans) return;
-      const alreadyRight = target.value.trim().toLowerCase() === ans.toLowerCase() && target.dataset.revealed !== "1";
-      if (!alreadyRight) {
-        target.value = ans;
-        target.dataset.revealed = "1";
-        target.classList.remove("correct", "wrong");
-        target.classList.add("revealed");
+      const typed = target.value.trim();
+      const alreadyRight = typed.toLowerCase() === ans.toLowerCase() && target.dataset.revealed !== "1";
+      if (alreadyRight) {
+        target.classList.remove("wrong", "revealed");
+        target.classList.add("correct");
+        renderLiveClozeSlots(target);
+        renderBlankDiffBox(target);
+        speakText(ans);
+        target.focus();
+        showToast(`✓ 这一空完全拼对：${ans}！`);
+        return;
       }
+      // Preserve what the user typed BEFORE filling answer so we can show letter-by-letter diff!
+      if (target.dataset.revealed !== "1") {
+        target.dataset.prevTyped = typed;
+      }
+      target.value = ans;
+      target.dataset.revealed = "1";
+      target.classList.remove("correct", "wrong");
+      target.classList.add("revealed");
       updateClozeProgressPill();
-      if ($("caMask")) $("caMask").textContent = ans;
+      renderLiveClozeSlots(target);
+      renderBlankDiffBox(target);
       speakText(ans);
       target.focus();
-      showToast(`已显示本空答案「${ans}」（本空不计入独立拼对分）`);
+      showToast(typed ? `已标出「${typed}」与「${ans}」的逐字母差异（本空不计分）` : `已显示本空答案「${ans}」（本空不计分）`);
     }
 
     if ($("btnCaSpeak")) {
@@ -2637,7 +2772,7 @@
         if (wasRevealed) {
           revealedCount++;
           inp.classList.add("revealed");
-          wrongItems.push({ idx, userVal: "", ans, revealed: true, wObj: findWordObjInDay(day, ans) });
+          wrongItems.push({ idx, userVal: inp.dataset.prevTyped || "", ans, revealed: true, wObj: findWordObjInDay(day, ans) });
         } else if (userVal.toLowerCase() === ans.toLowerCase()) {
           inp.classList.add("correct");
           correct++;
@@ -2647,6 +2782,7 @@
         }
       });
       renderClozeWrongReview(wrongItems);
+      if (clozeActiveInput) renderBlankDiffBox(clozeActiveInput);
       const pass = inputs.length > 0 && correct / inputs.length >= 0.8;
       const revSuffix = revealedCount > 0 ? `（含看答案 ${revealedCount} 空不计分）` : "";
       $("clozeScore").textContent = `独立拼对：${correct} / ${inputs.length}${revSuffix}${pass ? " · 已达标" : inputs.length ? ` · 需独立拼对 ≥ ${Math.ceil(inputs.length * 0.8)} 个才算通关` : ""}`;

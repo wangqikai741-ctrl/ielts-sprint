@@ -6702,3 +6702,105 @@ body.dark .cloze-input.revealed {
   background: rgba(251, 191, 36, 0.16) !important;
   color: #fde68a !important;
 }
+
+/* Live Letter Slots & Letter-by-Letter Red/Green Diff */
+.ca-mask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-height: 28px;
+}
+.ca-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 26px;
+  padding: 0 2px;
+  border-bottom: 2px solid var(--border);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.ca-slot.is-hint {
+  color: var(--primary);
+  border-bottom-color: rgba(0, 113, 227, 0.45);
+}
+.ca-slot.is-filled {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+}
+.ca-slot.is-over {
+  color: #dc2626;
+  border-bottom-color: #dc2626;
+}
+.ca-diff-box {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ca-diff-ok {
+  font-size: 13px;
+  font-weight: 600;
+  color: #15803d;
+}
+body.dark .ca-diff-ok { color: #4ade80; }
+.ca-diff-summary {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b45309;
+}
+body.dark .ca-diff-summary { color: #fbbf24; }
+.ca-diff-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ca-diff-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 40px;
+  flex-shrink: 0;
+}
+.ca-diff-word,
+.ca-diff-inline {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.ca-diff-inline { font-size: 13px; }
+.cd-ok {
+  color: var(--text);
+}
+.cd-del {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.12);
+  border-radius: 4px;
+  padding: 0 2px;
+  text-decoration: line-through;
+}
+.cd-add {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.16);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+body.dark .cd-del { color: #fca5a5; background: rgba(248, 113, 113, 0.2); }
+body.dark .cd-add { color: #86efac; background: rgba(74, 222, 128, 0.22); }
+.ca-diff-tip {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  line-height: 1.45;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
