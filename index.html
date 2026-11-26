@@ -18,11 +18,11 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261126d" />
-  <link rel="stylesheet" href="modules.css?v=20261126d" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126d" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261126d" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261126d" />
+  <link rel="stylesheet" href="styles.css?v=20261126e" />
+  <link rel="stylesheet" href="modules.css?v=20261126e" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126e" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261126e" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261126e" />
   <script>
     (function () {
       try {
@@ -700,100 +700,148 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 3: INTENSIVE LISTENING & READING LOG ==================== -->
+    <!-- ==================== TAB 3: SEPARATED LISTENING & READING WORKSPACES ==================== -->
     <section class="tab-panel" id="tab-practice">
+      <!-- Dedicated Subject Switcher + Daily Cambridge Schedule Banner -->
+      <div class="card pr-mode-bar">
+        <div class="pr-mode-top">
+          <div class="pr-seg-switch" id="practiceModeSwitch" role="tablist">
+            <button type="button" class="pr-seg-btn active" data-pr-mode="listening" role="tab">
+              <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>
+              <span>听力工作台</span>
+              <span class="pr-seg-cnt" id="prSegListenCnt">0</span>
+            </button>
+            <button type="button" class="pr-seg-btn" data-pr-mode="reading" role="tab">
+              <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2H12v18H4.5A2.5 2.5 0 0 0 2 22.5v-18z"></path><path d="M22 4.5A2.5 2.5 0 0 0 19.5 2H12v18h7.5a2.5 2.5 0 0 1 2.5 2.5v-18z"></path></svg>
+              <span>阅读工作台</span>
+              <span class="pr-seg-cnt" id="prSegReadCnt">0</span>
+            </button>
+          </div>
+          <div class="pr-mode-actions">
+            <button class="btn btn-sm btn-primary" id="btnOpenAnalyzer" type="button">
+              <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>
+              <span>真题原文词频雷达</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Daily Assigned Cambridge Test & Next-Day Preview -->
+        <div class="pr-plan-banner" id="prPlanBanner">
+          <div class="pr-plan-main">
+            <div class="pr-plan-row">
+              <span class="pr-plan-tag" id="prPlanDayTag">DAY 1 今日指定听力</span>
+              <strong class="pr-plan-title" id="prPlanTodayTitle">剑10 Test 1 Part 1 & Part 2</strong>
+              <span class="pr-plan-meta" id="prPlanTodayMeta">20 题 · 建议限时 15 分钟</span>
+            </div>
+            <div class="pr-plan-sub" id="prPlanNextLine">下一篇预告（Day 2）：剑10 Test 2 Part 1 & Part 2</div>
+          </div>
+          <div class="pr-plan-btns">
+            <button type="button" class="btn btn-outline btn-sm" id="btnApplyTodayPlan">一键填入今日真题</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btnToggleSchedule">排期预览 ▾</button>
+          </div>
+        </div>
+        <div class="pr-schedule-drawer hidden" id="prScheduleDrawer"></div>
+      </div>
+
       <div class="practice-layout">
-        <!-- Left: Add / Edit Practice Record -->
+        <!-- Left: 2-Stage Practice Form (Stage 1 Timed Raw Score -> Stage 2 Intensive Study & Import Excerpt) -->
         <div class="card practice-form-card">
-          <h2 id="practiceFormTitle">新增精听 / 精读记录</h2>
-          <p class="muted">把每天在雅思哥刷完的剑雅真题记在这里：对题数、同义替换、错因和原文高亮全留档。</p>
+          <div class="pr-form-head">
+            <div>
+              <h2 id="practiceFormTitle">记录今日听力训练</h2>
+              <p class="muted" id="practiceFormSub">严格分两步：先填限时盲做原始对题数，再做错题精听并导入原文留档。</p>
+            </div>
+          </div>
 
           <input type="hidden" id="prEditId" value="" />
-          <div class="form-row-2">
-            <div>
-              <label class="field-label">科目类型</label>
-              <select id="prType" class="select-input full-width">
-                <option value="listening">听力精听</option>
-                <option value="reading">阅读精读</option>
-              </select>
+          <input type="hidden" id="prType" value="listening" />
+
+          <!-- STAGE 1: Timed First Attempt (Raw Score BEFORE Intensive Study) -->
+          <div class="pr-stage-block">
+            <div class="pr-stage-head">
+              <span class="pr-stage-num">1</span>
+              <span class="pr-stage-title" id="prStage1Title">第一步 · 限时盲做原始成绩（精听前第一遍）</span>
             </div>
-            <div>
-              <label class="field-label">日期</label>
-              <input type="date" id="prDate" class="text-input full-width" />
+            <p class="pr-stage-hint" id="prStage1Hint">先在雅思哥原速限时盲做一遍对答案，把<strong>还没精听前的真实首做对题数</strong>填在这里，用来准确估算雅思分数。</p>
+
+            <div class="form-row-2">
+              <div>
+                <label class="field-label" id="prSourceLabel">真题来源（听力）</label>
+                <input type="text" id="prSource" class="text-input full-width" placeholder="例如：剑10 Test 1 Part 1 & Part 2" />
+              </div>
+              <div>
+                <label class="field-label">日期</label>
+                <input type="date" id="prDate" class="text-input full-width" />
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div>
+                <label class="field-label" id="prCorrectLabel">首做对题数（非精听）</label>
+                <input type="number" id="prCorrect" class="text-input full-width" min="0" max="40" placeholder="如 15" />
+              </div>
+              <div>
+                <label class="field-label">总题数</label>
+                <input type="number" id="prTotal" class="text-input full-width" min="1" max="40" value="20" />
+              </div>
+              <div>
+                <label class="field-label">限时用时（分钟）</label>
+                <input type="number" id="prMinutes" class="text-input full-width" min="1" placeholder="如 15" />
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="field-label">真题来源（如：剑10 Test 1 Part 1–2 / Passage 1）</label>
-            <input type="text" id="prSource" class="text-input full-width" placeholder="例如：剑10 Test 1 Passage 1" />
-          </div>
-
-          <div class="form-row-3">
-            <div>
-              <label class="field-label">做对题数</label>
-              <input type="number" id="prCorrect" class="text-input full-width" min="0" max="40" placeholder="如 16" />
+          <!-- STAGE 2: Intensive Review & Import Transcript / Passage -->
+          <div class="pr-stage-block">
+            <div class="pr-stage-head">
+              <span class="pr-stage-num is-s2">2</span>
+              <span class="pr-stage-title" id="prStage2Title">第二步 · 错题精听复盘 & 导入精听原文</span>
             </div>
-            <div>
-              <label class="field-label">总题数</label>
-              <input type="number" id="prTotal" class="text-input full-width" min="1" max="40" value="20" />
+
+            <div class="form-group">
+              <label class="field-label" id="prSynLabel">同义替换积累（每行一组：题干词 = 录音原文词）</label>
+              <textarea id="prSynonyms" class="textarea-input full-width" rows="3" placeholder="mandatory = compulsory&#10;reserve = book&#10;expense = cost"></textarea>
             </div>
-            <div>
-              <label class="field-label">耗时（分钟）</label>
-              <input type="number" id="prMinutes" class="text-input full-width" min="1" placeholder="如 20" />
+
+            <div class="form-group">
+              <label class="field-label" id="prNotesLabel">错题复盘 / 精听卡壳点（漏听词、连读弱读、单复数或干扰项）</label>
+              <textarea id="prNotes" class="textarea-input full-width" rows="3" placeholder="例：Q7 把 receipt 拼错了；Q14 没听出转折词 however 后的真正答案"></textarea>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="field-label">同义替换积累（每行一组，格式：题干词 = 原文词）</label>
-            <textarea id="prSynonyms" class="textarea-input full-width" rows="3" placeholder="mandatory = compulsory&#10;reserve = book&#10;expense = cost"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label">错题复盘 / 精听漏词（漏听哪个词、被什么干扰项骗了）</label>
-            <textarea id="prNotes" class="textarea-input full-width" rows="3" placeholder="例：Q7 把 receipt 拼错了；Q14 没听出转折词 however 后的真正答案"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label">精读长难句 / 听力原文片段（保存后可在右侧像机考一样划词高亮！）</label>
-            <textarea id="prExcerpt" class="textarea-input full-width" rows="4" placeholder="把你精读的难段或精听的对话原文粘贴在这里（选填）..."></textarea>
+            <div class="form-group">
+              <label class="field-label" id="prExcerptLabel">导入精听原文片段（保存后可在右侧像机考一样划词高亮 & 词频雷达扫生词）</label>
+              <textarea id="prExcerpt" class="textarea-input full-width" rows="4" placeholder="把本篇精听的对话/独白原文或错题对应段落粘贴在这里（选填）..."></textarea>
+            </div>
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" id="btnSavePractice">保存精听/精读记录</button>
+            <button class="btn btn-primary" id="btnSavePractice">保存听力记录</button>
             <button class="btn btn-ghost hidden" id="btnCancelPracticeEdit">取消编辑</button>
           </div>
         </div>
 
-        <!-- Right: Saved Records & Interactive Highlighter -->
+        <!-- Right: Dedicated Single-Subject Stats & Saved Records -->
         <div class="practice-list-col">
           <div class="card practice-summary-card">
-            <div class="summary-stats" id="practiceStats">
+            <div class="summary-stats summary-stats-3" id="practiceStats">
               <div class="stat-box">
-                <span class="stat-label">累计精听</span>
-                <strong id="statListenCount">0 篇</strong>
+                <span class="stat-label" id="prStatCountLabel">累计听力记录</span>
+                <strong id="prStatCount">0 篇</strong>
               </div>
               <div class="stat-box">
-                <span class="stat-label">听力均正确率</span>
-                <strong id="statListenAcc">--</strong>
+                <span class="stat-label" id="prStatAccLabel">首做平均正确率</span>
+                <strong id="prStatAcc">--</strong>
               </div>
               <div class="stat-box">
-                <span class="stat-label">累计精读</span>
-                <strong id="statReadCount">0 篇</strong>
-              </div>
-              <div class="stat-box">
-                <span class="stat-label">阅读均正确率</span>
-                <strong id="statReadAcc">--</strong>
+                <span class="stat-label" id="prStatBandLabel">估算听力分数</span>
+                <strong id="prStatBand">--</strong>
               </div>
             </div>
-            <div class="filter-pills" id="practiceFilterPills">
-              <button class="pill active" data-type="all">全部记录</button>
-              <button class="pill" data-type="listening">仅听力</button>
-              <button class="pill" data-type="reading">仅阅读</button>
-              <button class="btn btn-sm btn-primary" id="btnOpenAnalyzer" style="margin-left:auto;">
-                <svg class="sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>
-                <span>真题原文词频雷达</span>
-              </button>
-            </div>
+            <!-- Hidden legacy stat hooks kept for backwards compatibility -->
+            <span class="hidden" id="statListenCount"></span>
+            <span class="hidden" id="statListenAcc"></span>
+            <span class="hidden" id="statReadCount"></span>
+            <span class="hidden" id="statReadAcc"></span>
           </div>
 
           <div id="practiceRecordsList" class="records-stack"></div>
@@ -1631,8 +1679,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261126d"></script>
-  <script src="app.js?v=20261126d"></script>
-  <script src="modules.js?v=20261126d"></script>
+  <script src="data.js?v=20261126e"></script>
+  <script src="app.js?v=20261126e"></script>
+  <script src="modules.js?v=20261126e"></script>
 </body>
 </html>

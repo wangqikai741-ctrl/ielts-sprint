@@ -21,7 +21,8 @@
   let clozeLastWrongWords = [];
   let transMode = false;
   let hideVocabCn = false;
-  let currentPracticeFilter = "all";
+  let currentPracticeFilter = "listening";
+  let currentPracticeMode = "listening";
   let currentSpFilter = "all";
   let activeHighlightContainer = null;
   let savedSelectionRange = null;
@@ -1937,13 +1938,214 @@
   }
 
   // ==================== TAB 3: PRACTICE LOG ====================
+  // ==================== 58-DAY CAMBRIDGE 10-19 LISTENING & READING SCHEDULE ====================
+  function getActiveDaySeqNumber() {
+    const active = getActiveSequentialDay();
+    if (!active) return 1;
+    const n = parseInt(String(active.id || "").replace(/\D+/g, ""), 10);
+    return n > 0 ? n : 1;
+  }
+
+  function getCambridgePlanForDay(daySeq, mode) {
+    const d = Math.max(1, Math.min(58, Number(daySeq) || 1));
+    if (mode === "listening") {
+      if (d <= 18) {
+        // Stage 1 (Day 1-18): 剑10-12 夯实 Part 1 & 2 为主，每 3 天穿插 1 次 Part 3 & 4
+        const stage1 = [
+          { src: "剑10 Test 1 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 保分基石（冲 17/20）" },
+          { src: "剑10 Test 2 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 保分基石（冲 17/20）" },
+          { src: "剑10 Test 1 Part 3 & Part 4", total: 20, min: 18, note: "阶段一 · 学术段初适应" },
+          { src: "剑10 Test 3 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 地图/信息填空稳准" },
+          { src: "剑10 Test 4 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 拼写与单复数零失误" },
+          { src: "剑10 Test 2 Part 3 & Part 4", total: 20, min: 18, note: "阶段一 · 学术替换词精听" },
+          { src: "剑11 Test 1 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 剑11 生活场景" },
+          { src: "剑11 Test 2 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 干扰项改口识别" },
+          { src: "剑11 Test 1 Part 3 & Part 4", total: 20, min: 18, note: "阶段一 · 讨论题态度抓取" },
+          { src: "剑11 Test 3 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 冲 18/20" },
+          { src: "剑11 Test 4 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 冲 18/20" },
+          { src: "剑11 Test 2 Part 3 & Part 4", total: 20, min: 18, note: "阶段一 · Part 4 笔记填空" },
+          { src: "剑12 Test 5 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 剑12 实战提速" },
+          { src: "剑12 Test 6 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 剑12 实战提速" },
+          { src: "剑12 Test 5 Part 3 & Part 4", total: 20, min: 18, note: "阶段一 · 学术长难句精听" },
+          { src: "剑12 Test 7 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 冲 18/20" },
+          { src: "剑12 Test 8 Part 1 & Part 2", total: 20, min: 15, note: "阶段一 · 阶段一收官" },
+          { src: "剑13 Test 1 全套 Part 1–4", total: 40, min: 30, note: "阶段一验收 · 首次 40 题整套模考" }
+        ];
+        return stage1[d - 1];
+      }
+      if (d <= 42) {
+        // Stage 2 (Day 19-42): 剑13-16 整套 40 题限时与错题段精听交替
+        const idx = d - 19;
+        const books = [13, 14, 15, 16];
+        const testIdx = Math.floor(idx / 2);
+        const book = books[Math.min(3, Math.floor(testIdx / 4))];
+        const tNum = (testIdx % 4) + 1;
+        if (idx % 2 === 0) {
+          return { src: `剑${book} Test ${tNum} 全套 Part 1–4`, total: 40, min: 30, note: "阶段二 · 整套原速限时盲做（冲 23+/40）" };
+        }
+        return { src: `剑${book} Test ${tNum} Part 3 & Part 4 精听复刷`, total: 20, min: 20, note: "阶段二 · 错题段盲听 + 拆解同义替换" };
+      }
+      // Stage 3 (Day 43-58): 剑17-19 全真机考 40 题连考
+      const idx = d - 43;
+      if (idx < 12) {
+        const book = 17 + Math.floor(idx / 4);
+        const tNum = (idx % 4) + 1;
+        return { src: `剑${book} Test ${tNum} 全套 Part 1–4`, total: 40, min: 30, note: "阶段三 · 全真机考模考（稳 23+ 冲 26/40）" };
+      }
+      return { src: `考前错题复盘套卷 #${idx - 11}（剑17–19 错题回听）`, total: 40, min: 30, note: "阶段三 · 考前保温防失误" };
+    }
+
+    // READING SCHEDULE (Day 1-58)
+    if (d <= 18) {
+      // Stage 1 (Day 1-18): 剑10-12 逐篇限时 20 分钟精研
+      const pIdx = d - 1;
+      const pNum = (pIdx % 3) + 1;
+      const tAbs = Math.floor(pIdx / 3); // 0..5 -> 剑10 T1-T4, 剑11 T1-T2
+      const book = tAbs < 4 ? 10 : 11;
+      const tNum = tAbs < 4 ? tAbs + 1 : (tAbs - 4) + 1;
+      const total = pNum === 3 ? 14 : 13;
+      return {
+        src: `剑${book} Test ${tNum} Passage ${pNum}`,
+        total,
+        min: 20,
+        note: pNum === 1 ? "阶段一 · Passage 1 冲 10+/13" : pNum === 2 ? "阶段一 · Passage 2 抓同义替换" : "阶段一 · Passage 3 练定位取舍"
+      };
+    }
+    if (d <= 42) {
+      // Stage 2 (Day 19-42): 剑13-16 过渡到整套 60 分钟限时
+      const idx = d - 19;
+      const books = [13, 14, 15, 16];
+      const testIdx = Math.floor(idx / 2);
+      const book = books[Math.min(3, Math.floor(testIdx / 4))];
+      const tNum = (testIdx % 4) + 1;
+      if (idx % 2 === 0) {
+        return { src: `剑${book} Test ${tNum} Passage 1 & Passage 2`, total: 26, min: 38, note: "阶段二 · 双篇连做控速（保 18+/26）" };
+      }
+      return { src: `剑${book} Test ${tNum} Passage 3（含全套同义复盘）`, total: 14, min: 22, note: "阶段二 · 难题突破 + 真题雷达扫词" };
+    }
+    const idx = d - 43;
+    if (idx < 12) {
+      const book = 17 + Math.floor(idx / 4);
+      const tNum = (idx % 4) + 1;
+      return { src: `剑${book} Test ${tNum} 全套 Passage 1–3`, total: 40, min: 60, note: "阶段三 · 60 分钟全真机考模考（稳 23+ 冲 27/40）" };
+    }
+    return { src: `考前高频题型回刷 #${idx - 11}（TFNG / 配对题复盘）`, total: 40, min: 60, note: "阶段三 · 保持手感稳 6.0+" };
+  }
+
+  function estimatePracticeBand(records, type) {
+    const valid = records.filter((r) => Number(r.total) > 0 && r.correct !== "" && r.correct !== null);
+    if (!valid.length) return "--";
+    const recent = valid.slice(0, 6);
+    const avgRatio = recent.reduce((s, r) => s + Number(r.correct) / Number(r.total), 0) / recent.length;
+    const eq40 = Math.round(avgRatio * 40);
+    const table = type === "listening"
+      ? [[39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6], [18, 5.5], [16, 5], [13, 4.5], [10, 4]]
+      : [[39, 9], [37, 8.5], [35, 8], [33, 7.5], [30, 7], [27, 6.5], [23, 6], [19, 5.5], [15, 5], [13, 4.5], [10, 4]];
+    for (const [minScore, band] of table) {
+      if (eq40 >= minScore) return `${band.toFixed(1)}`;
+    }
+    return "3.5";
+  }
+
+  function syncPracticeModeUI() {
+    const isListen = currentPracticeMode === "listening";
+    currentPracticeFilter = currentPracticeMode;
+    if ($("prType")) $("prType").value = currentPracticeMode;
+
+    document.querySelectorAll("#practiceModeSwitch .pr-seg-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.prMode === currentPracticeMode);
+    });
+
+    const isEditing = !!($("prEditId") && $("prEditId").value);
+    if (!isEditing) {
+      if ($("practiceFormTitle")) $("practiceFormTitle").textContent = isListen ? "记录今日听力训练" : "记录今日阅读训练";
+      if ($("practiceFormSub")) {
+        $("practiceFormSub").textContent = isListen
+          ? "严格分两步：先填限时盲做原始对题数（非精听），再精听错题并导入精听原文。"
+          : "严格分两步：先填 20 分钟限时首做对题数（非精读），再拆解同义替换并导入精读文章。";
+      }
+      if ($("btnSavePractice")) $("btnSavePractice").textContent = isListen ? "保存听力记录" : "保存阅读记录";
+    }
+
+    if ($("prStage1Title")) $("prStage1Title").textContent = isListen ? "第一步 · 限时盲做原始成绩（精听前第一遍）" : "第一步 · 限时首做原始成绩（精读前第一遍）";
+    if ($("prStage1Hint")) {
+      $("prStage1Hint").innerHTML = isListen
+        ? "先去雅思哥<strong>原速限时盲做第一遍（不要暂停、不要看原文）</strong>，把真实裸做对题数填在这里，用来准确估算听力分数。"
+        : "先去雅思哥<strong>限时首做（单篇 20 分钟 / 整套 60 分钟）</strong>，把还没查词精读前的真实首做对题数填在这里，用来准确估算阅读分数。";
+    }
+    if ($("prSourceLabel")) $("prSourceLabel").textContent = isListen ? "听力真题来源" : "阅读真题来源";
+    if ($("prSource")) $("prSource").placeholder = isListen ? "例如：剑10 Test 1 Part 1 & Part 2" : "例如：剑10 Test 1 Passage 1";
+    if ($("prCorrectLabel")) $("prCorrectLabel").textContent = isListen ? "首做对题数（非精听）" : "首做对题数（非精读）";
+    if ($("prStage2Title")) $("prStage2Title").textContent = isListen ? "第二步 · 错题精听复盘 & 导入精听原文" : "第二步 · 同义替换拆解 & 导入精读文章";
+    if ($("prSynLabel")) $("prSynLabel").textContent = isListen ? "同义替换积累（每行一组：题干词 = 录音原文词）" : "同义替换积累（每行一组：题干词 = 文章原文词）";
+    if ($("prNotesLabel")) {
+      $("prNotesLabel").textContent = isListen
+        ? "错题复盘 / 精听卡壳点（漏听词、连读弱读、单复数拼写、干扰项）"
+        : "错题复盘 / 精读卡壳点（定位偏了、同义替换没认出、TFNG 逻辑混淆）";
+    }
+    if ($("prNotes")) {
+      $("prNotes").placeholder = isListen
+        ? "例：Q7 把 receipt 拼错了；Q14 没听出 however 后的改口答案"
+        : "例：Q5 把 Not Given 选成 False；Q11 没认出 mandatory = compulsory";
+    }
+    if ($("prExcerptLabel")) {
+      $("prExcerptLabel").textContent = isListen
+        ? "导入精听原文片段（保存后可在右侧划词高亮，并一键「词频雷达」扫生词）"
+        : "导入精读文章 / 长难句段落（保存后可在右侧划词高亮，并一键「词频雷达」扫生词）";
+    }
+    if ($("prExcerpt")) {
+      $("prExcerpt").placeholder = isListen
+        ? "把本篇精听的对话 / 独白原文粘贴在这里（选填）..."
+        : "把本篇精读的英文段落或整篇文章粘贴在这里（选填）...";
+    }
+
+    // Update Daily Cambridge Schedule Banner & Next-Day Preview
+    const daySeq = getActiveDaySeqNumber();
+    const todayPlan = getCambridgePlanForDay(daySeq, currentPracticeMode);
+    const nextPlan = daySeq < 58 ? getCambridgePlanForDay(daySeq + 1, currentPracticeMode) : null;
+    if ($("prPlanDayTag")) $("prPlanDayTag").textContent = `DAY ${daySeq} · 今日指定${isListen ? "听力" : "阅读"}`;
+    if ($("prPlanTodayTitle")) $("prPlanTodayTitle").textContent = todayPlan.src;
+    if ($("prPlanTodayMeta")) $("prPlanTodayMeta").textContent = `${todayPlan.total} 题 · 建议限时 ${todayPlan.min} 分钟 · ${todayPlan.note}`;
+    if ($("prPlanNextLine")) {
+      $("prPlanNextLine").textContent = nextPlan
+        ? `明日预告（Day ${daySeq + 1}）：${nextPlan.src}（${nextPlan.total} 题 · ${nextPlan.min} 分钟）`
+        : "已是考前冲刺收官日，稳住心态！";
+    }
+    if ($("prScheduleDrawer")) {
+      const rows = [];
+      for (let d = daySeq; d <= Math.min(58, daySeq + 6); d++) {
+        const p = getCambridgePlanForDay(d, currentPracticeMode);
+        rows.push(`
+          <div class="pr-sched-row ${d === daySeq ? "is-today" : ""}" data-apply-sched="${escapeHtml(p.src)}" data-apply-total="${p.total}" data-apply-min="${p.min}">
+            <span class="pr-sched-day">Day ${d}${d === daySeq ? " · 今日" : ""}</span>
+            <strong class="pr-sched-src">${escapeHtml(p.src)}</strong>
+            <span class="pr-sched-meta">${p.total} 题 · ${p.min}m · ${escapeHtml(p.note)}</span>
+            <button type="button" class="btn btn-ghost btn-sm">填入</button>
+          </div>
+        `);
+      }
+      $("prScheduleDrawer").innerHTML = `<div class="pr-sched-head">未来 7 天${isListen ? "听力" : "阅读"}剑雅推进排期（点击任意一天可一键填入左侧）</div>${rows.join("")}`;
+    }
+
+    // Auto-prefill empty source & total when not editing
+    if (!isEditing && $("prSource") && !$("prSource").value.trim()) {
+      $("prSource").value = todayPlan.src;
+      if ($("prTotal")) $("prTotal").value = String(todayPlan.total);
+    }
+
+    if ($("prStatCountLabel")) $("prStatCountLabel").textContent = isListen ? "累计听力记录" : "累计阅读记录";
+    if ($("prStatBandLabel")) $("prStatBandLabel").textContent = isListen ? "估算听力分数" : "估算阅读分数";
+  }
+
   function renderPracticeRecords() {
     const all = state.practiceRecords;
     const listen = all.filter((r) => r.type === "listening");
     const read = all.filter((r) => r.type === "reading");
 
-    $("statListenCount").textContent = `${listen.length} 篇`;
-    $("statReadCount").textContent = `${read.length} 篇`;
+    if ($("prSegListenCnt")) $("prSegListenCnt").textContent = listen.length;
+    if ($("prSegReadCnt")) $("prSegReadCnt").textContent = read.length;
+    if ($("statListenCount")) $("statListenCount").textContent = `${listen.length} 篇`;
+    if ($("statReadCount")) $("statReadCount").textContent = `${read.length} 篇`;
 
     const calcAcc = (arr) => {
       const valid = arr.filter((r) => Number(r.total) > 0 && r.correct !== "" && r.correct !== null);
@@ -1951,17 +2153,24 @@
       const avg = valid.reduce((s, r) => s + (Number(r.correct) / Number(r.total)) * 100, 0) / valid.length;
       return `${Math.round(avg)}%`;
     };
-    $("statListenAcc").textContent = calcAcc(listen);
-    $("statReadAcc").textContent = calcAcc(read);
+    if ($("statListenAcc")) $("statListenAcc").textContent = calcAcc(listen);
+    if ($("statReadAcc")) $("statReadAcc").textContent = calcAcc(read);
 
-    const filtered = all.filter((r) => currentPracticeFilter === "all" || r.type === currentPracticeFilter);
+    const activeList = currentPracticeMode === "listening" ? listen : read;
+    if ($("prStatCount")) $("prStatCount").textContent = `${activeList.length} 篇`;
+    if ($("prStatAcc")) $("prStatAcc").textContent = calcAcc(activeList);
+    if ($("prStatBand")) $("prStatBand").textContent = estimatePracticeBand(activeList, currentPracticeMode);
+
+    const isListen = currentPracticeMode === "listening";
     const list = $("practiceRecordsList");
-    if (!filtered.length) {
-      list.innerHTML = `<div class="card empty-state">还没有精听/精读记录。做完剑10 Test 1 后，在左侧记下你的正确数、同义替换和错因吧！</div>`;
+    if (!activeList.length) {
+      const daySeq = getActiveDaySeqNumber();
+      const plan = getCambridgePlanForDay(daySeq, currentPracticeMode);
+      list.innerHTML = `<div class="card empty-state">还没有${isListen ? "听力" : "阅读"}记录。先去雅思哥限时盲做 <b>${escapeHtml(plan.src)}</b>，在左侧第一步记下真实首做对题数，第二步导入${isListen ? "精听原文" : "精读文章"}与错题复盘吧！</div>`;
       return;
     }
 
-    list.innerHTML = filtered
+    list.innerHTML = activeList
       .map((r) => {
         const typeLabel = r.type === "listening" ? "听力精听" : "阅读精读";
         const pct = r.total > 0 && r.correct !== "" ? Math.round((Number(r.correct) / Number(r.total)) * 100) : null;
@@ -1975,11 +2184,11 @@
             <div class="record-top">
               <div>
                 <span class="pill-tag">${typeLabel}</span>
-                <span class="muted">${escapeHtml(r.date || "")} ${r.minutes ? `· ${escapeHtml(r.minutes)}分钟` : ""}</span>
+                <span class="muted">${escapeHtml(r.date || "")} ${r.minutes ? `· 限时 ${escapeHtml(r.minutes)} 分钟` : ""}</span>
                 <h3 style="margin-top:4px;font-size:16px;">${escapeHtml(r.source)}</h3>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                ${r.correct !== "" ? `<span class="record-score-badge">${escapeHtml(r.correct)} / ${escapeHtml(r.total)}${pct !== null ? ` (${pct}%)` : ""}</span>` : ""}
+                ${r.correct !== "" ? `<span class="record-score-badge">首做 ${escapeHtml(r.correct)} / ${escapeHtml(r.total)}${pct !== null ? ` (${pct}%)` : ""}</span>` : ""}
                 ${r.excerpt ? `<button class="btn btn-outline btn-sm" data-pr-analyze="${escapeHtml(r.id)}">${SF.spark} <span>词频雷达</span></button>` : ""}
                 <button class="btn btn-ghost btn-sm" data-pr-edit="${escapeHtml(r.id)}">编辑</button>
                 <button class="btn btn-danger-ghost btn-sm" data-pr-del="${escapeHtml(r.id)}">删</button>
@@ -1995,13 +2204,13 @@
             ` : ""}
             ${r.notes ? `
               <div style="margin-top:8px;">
-                <span class="field-label">错题复盘 / 漏听词：</span>
+                <span class="field-label">${r.type === "listening" ? "错题复盘 / 精听漏听点：" : "错题复盘 / 精读错因："}</span>
                 <div class="record-notes">${escapeHtml(r.notes)}</div>
               </div>
             ` : ""}
             ${(r.excerptHtml || r.excerpt) ? `
               <div style="margin-top:10px;">
-                <span class="field-label">原文精读片段（选中英文可黄 / 红高亮或收录生词）：</span>
+                <span class="field-label">${r.type === "listening" ? "导入的精听原文（选中英文可黄/红高亮或查词记生词）：" : "导入的精读文章（选中英文可黄/红高亮或查词记生词）："}</span>
                 <div class="record-excerpt" data-pr-id="${escapeHtml(r.id)}">${r.excerptHtml || escapeHtml(r.excerpt)}</div>
               </div>
             ` : ""}
@@ -2012,17 +2221,18 @@
   }
 
   function resetPracticeForm() {
+    const plan = getCambridgePlanForDay(getActiveDaySeqNumber(), currentPracticeMode);
     $("prEditId").value = "";
-    $("practiceFormTitle").textContent = "新增精听 / 精读记录";
-    $("prSource").value = "";
+    $("prSource").value = plan ? plan.src : "";
     $("prCorrect").value = "";
-    $("prTotal").value = "20";
+    $("prTotal").value = plan ? String(plan.total) : (currentPracticeMode === "listening" ? "20" : "13");
     $("prMinutes").value = "";
     $("prSynonyms").value = "";
     $("prNotes").value = "";
     $("prExcerpt").value = "";
     $("prDate").value = todayStr();
     $("btnCancelPracticeEdit").classList.add("hidden");
+    syncPracticeModeUI();
   }
 
   // ==================== TAB 4: SPEAKING BANK ====================
@@ -2862,10 +3072,16 @@
         }
         const prBtn = e.target.closest("[data-occ-practice]");
         if (prBtn) {
+          const rec = state.practiceRecords.find((r) => r.id === prBtn.dataset.occPractice);
+          if (rec && (rec.type === "listening" || rec.type === "reading")) {
+            currentPracticeMode = rec.type;
+            syncPracticeModeUI();
+            renderPracticeRecords();
+          }
           goTab("practice");
           setTimeout(() => {
             const target = document.querySelector(`[data-pr-id="${CSS.escape(prBtn.dataset.occPractice)}"]`);
-            if (target) smartScrollToEl(target.closest(".card") || target, 16);
+            if (target) smartScrollToEl(target.closest(".record-card") || target, 16);
           }, 80);
         }
       });
@@ -3071,10 +3287,16 @@
 
       const prChip = e.target.closest("[data-occ-practice]");
       if (prChip) {
+        const rec = state.practiceRecords.find((r) => r.id === prChip.dataset.occPractice);
+        if (rec && (rec.type === "listening" || rec.type === "reading")) {
+          currentPracticeMode = rec.type;
+          syncPracticeModeUI();
+          renderPracticeRecords();
+        }
         goTab("practice");
         setTimeout(() => {
           const target = document.querySelector(`[data-pr-id="${CSS.escape(prChip.dataset.occPractice)}"]`);
-          if (target) smartScrollToEl(target.closest(".card") || target, 16);
+          if (target) smartScrollToEl(target.closest(".record-card") || target, 16);
         }, 80);
         return;
       }
@@ -3147,20 +3369,76 @@
       showToast(`成功导入 ${count} 个生词！`);
     });
 
-    // TAB 3: Practice Log
+    // TAB 3: Separated Listening & Reading Workspaces
     $("prDate").value = todayStr();
+
+    function switchPracticeWorkspace(mode, forcePrefill = false) {
+      const m = mode === "reading" ? "reading" : "listening";
+      const changed = currentPracticeMode !== m;
+      currentPracticeMode = m;
+      const isEditing = !!($("prEditId") && $("prEditId").value);
+      if ((changed || forcePrefill) && !isEditing) {
+        const plan = getCambridgePlanForDay(getActiveDaySeqNumber(), m);
+        if ($("prSource")) $("prSource").value = plan.src;
+        if ($("prTotal")) $("prTotal").value = String(plan.total);
+      }
+      syncPracticeModeUI();
+      renderPracticeRecords();
+    }
+
+    if ($("practiceModeSwitch")) {
+      $("practiceModeSwitch").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-pr-mode]");
+        if (!btn) return;
+        switchPracticeWorkspace(btn.dataset.prMode, true);
+      });
+    }
+    if ($("prType")) {
+      $("prType").addEventListener("change", () => {
+        const v = $("prType").value;
+        if (v === "listening" || v === "reading") {
+          switchPracticeWorkspace(v, false);
+        }
+      });
+    }
+    if ($("btnApplyTodayPlan")) {
+      $("btnApplyTodayPlan").addEventListener("click", () => {
+        const plan = getCambridgePlanForDay(getActiveDaySeqNumber(), currentPracticeMode);
+        if ($("prSource")) $("prSource").value = plan.src;
+        if ($("prTotal")) $("prTotal").value = String(plan.total);
+        if ($("prMinutes") && !$("prMinutes").value) $("prMinutes").placeholder = `建议 ${plan.min}`;
+        showToast(`已填入今日指定真题：${plan.src}`);
+        if ($("prCorrect")) $("prCorrect").focus();
+      });
+    }
+    if ($("btnToggleSchedule") && $("prScheduleDrawer")) {
+      $("btnToggleSchedule").addEventListener("click", () => {
+        const open = !$("prScheduleDrawer").classList.toggle("hidden");
+        $("btnToggleSchedule").textContent = open ? "收起排期 ▴" : "排期预览 ▾";
+      });
+      $("prScheduleDrawer").addEventListener("click", (e) => {
+        const row = e.target.closest("[data-apply-sched]");
+        if (!row) return;
+        if ($("prSource")) $("prSource").value = row.dataset.applySched;
+        if ($("prTotal")) $("prTotal").value = row.dataset.applyTotal || "20";
+        $("prScheduleDrawer").classList.add("hidden");
+        $("btnToggleSchedule").textContent = "排期预览 ▾";
+        showToast(`已填入：${row.dataset.applySched}`);
+      });
+    }
+
     $("btnSavePractice").addEventListener("click", () => {
       const source = $("prSource").value.trim();
-      if (!source) return showToast("请填写真题来源（如：剑10 Test 1 Part 1-2）");
+      if (!source) return showToast("请填写真题来源（如：剑10 Test 1 Part 1 & Part 2）");
 
       const editId = $("prEditId").value;
       const payload = {
         id: editId || "pr-" + Date.now(),
-        type: $("prType").value,
+        type: currentPracticeMode,
         date: $("prDate").value || todayStr(),
         source,
         correct: $("prCorrect").value,
-        total: $("prTotal").value || 20,
+        total: $("prTotal").value || (currentPracticeMode === "listening" ? 20 : 13),
         minutes: $("prMinutes").value,
         synonyms: $("prSynonyms").value.trim(),
         notes: $("prNotes").value.trim(),
@@ -3186,29 +3464,21 @@
       updateBadges();
       const stepNo = payload.type === "listening" ? "3" : "4";
       if (!markStepDone(stepNo, `已保存${payload.type === "listening" ? "听力" : "阅读"}复盘`)) {
-        showToast("精听/精读记录已保存！");
+        showToast(`${payload.type === "listening" ? "听力" : "阅读"}记录已保存！`);
       }
     });
 
     $("btnCancelPracticeEdit").addEventListener("click", resetPracticeForm);
-
-    $("practiceFilterPills").addEventListener("click", (e) => {
-      const pill = e.target.closest(".pill");
-      if (!pill) return;
-      $("practiceFilterPills").querySelectorAll(".pill").forEach((p) => p.classList.remove("active"));
-      pill.classList.add("active");
-      currentPracticeFilter = pill.dataset.type;
-      renderPracticeRecords();
-    });
 
     $("practiceRecordsList").addEventListener("click", (e) => {
       const edt = e.target.closest("[data-pr-edit]");
       if (edt) {
         const rec = state.practiceRecords.find((r) => r.id === edt.dataset.prEdit);
         if (!rec) return;
+        currentPracticeMode = rec.type === "reading" ? "reading" : "listening";
         $("prEditId").value = rec.id;
-        $("practiceFormTitle").textContent = "编辑精听 / 精读记录";
-        $("prType").value = rec.type;
+        $("practiceFormTitle").textContent = rec.type === "reading" ? "编辑阅读记录" : "编辑听力记录";
+        $("prType").value = currentPracticeMode;
         $("prDate").value = rec.date || todayStr();
         $("prSource").value = rec.source || "";
         $("prCorrect").value = rec.correct ?? "";
@@ -3218,12 +3488,14 @@
         $("prNotes").value = rec.notes || "";
         $("prExcerpt").value = rec.excerpt || "";
         $("btnCancelPracticeEdit").classList.remove("hidden");
+        syncPracticeModeUI();
+        renderPracticeRecords();
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
       const del = e.target.closest("[data-pr-del]");
       if (del) {
-        if (!confirm("确定删除这条精听/精读记录吗？")) return;
+        if (!confirm("确定删除这条记录吗？")) return;
         state.practiceRecords = state.practiceRecords.filter((r) => r.id !== del.dataset.prDel);
         saveState();
         renderPracticeRecords();
@@ -3520,6 +3792,7 @@
     renderPassage();
     renderCoreWordList();
     renderVocabBook();
+    syncPracticeModeUI();
     renderPracticeRecords();
     renderSpeakingList();
     updateTimerDisplay();
