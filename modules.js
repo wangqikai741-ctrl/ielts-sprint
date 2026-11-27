@@ -1240,7 +1240,8 @@
   }
 
   const DEVICE_LABEL_KEY = "bandup_device_label_v1";
-  const DEVICE_REGION_CACHE_KEY = "bandup_device_region_v1";
+  const DEVICE_NET_CACHE_KEY = "bandup_device_net_v2";
+  const DEVICE_NET_TTL_MS = 5 * 60 * 1000;
 
   function isCurrentDeviceDesktop() {
     const ua = navigator.userAgent || "";
@@ -1255,70 +1256,444 @@
     return false;
   }
 
-  function inferRegionFromTimezone() {
+  const TZ_CITY_MAP = {
+    "Europe/Minsk": { city: "明斯克", cc: "BY" },
+    "Asia/Shanghai": { city: "中国", cc: "CN" },
+    "Asia/Chongqing": { city: "重庆", cc: "CN" },
+    "Asia/Urumqi": { city: "乌鲁木齐", cc: "CN" },
+    "Asia/Hong_Kong": { city: "香港", cc: "HK" },
+    "Asia/Macau": { city: "澳门", cc: "MO" },
+    "Asia/Taipei": { city: "台北", cc: "TW" },
+    "Asia/Singapore": { city: "新加坡", cc: "SG" },
+    "Asia/Tokyo": { city: "东京", cc: "JP" },
+    "Asia/Seoul": { city: "首尔", cc: "KR" },
+    "Europe/London": { city: "伦敦", cc: "GB" },
+    "Europe/Moscow": { city: "莫斯科", cc: "RU" },
+    "Europe/Berlin": { city: "柏林", cc: "DE" },
+    "Europe/Paris": { city: "巴黎", cc: "FR" },
+    "Europe/Warsaw": { city: "华沙", cc: "PL" },
+    "Europe/Amsterdam": { city: "阿姆斯特丹", cc: "NL" },
+    "America/New_York": { city: "纽约", cc: "US" },
+    "America/Los_Angeles": { city: "洛杉矶", cc: "US" },
+    "America/Chicago": { city: "芝加哥", cc: "US" },
+    "America/Toronto": { city: "多伦多", cc: "CA" },
+    "America/Vancouver": { city: "温哥华", cc: "CA" },
+    "Australia/Sydney": { city: "悉尼", cc: "AU" },
+    "Australia/Melbourne": { city: "墨尔本", cc: "AU" }
+  };
+
+  function getUtcOffsetLabel() {
+    const mins = -new Date().getTimezoneOffset();
+    const sign = mins >= 0 ? "+" : "-";
+    const abs = Math.abs(mins);
+    const h = Math.floor(abs / 60);
+    const m = abs % 60;
+    return m ? `UTC${sign}${h}:${String(m).padStart(2, "0")}` : `UTC${sign}${h}`;
+  }
+
+  function getLocalTimezoneInfo() {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      const MAP = {
-        "Europe/Minsk": "明斯克 · BY",
-        "Asia/Shanghai": "中国 · CN",
-        "Asia/Chongqing": "中国 · CN",
-        "Asia/Hong_Kong": "香港 · HK",
-        "Asia/Taipei": "台北 · TW",
-        "Asia/Singapore": "新加坡 · SG",
-        "Asia/Tokyo": "东京 · JP",
-        "Europe/London": "伦敦 · GB",
-        "Europe/Moscow": "莫斯科 · RU",
-        "America/New_York": "纽约 · US",
-        "America/Los_Angeles": "洛杉矶 · US"
+      const offset = getUtcOffsetLabel();
+      const hit = TZ_CITY_MAP[tz];
+      if (hit) {
+        return {
+          tz,
+          city: hit.city,
+          cc: hit.cc,
+          offset,
+          label: `${hit.city} (${offset})`,
+          regionFallback: `${hit.city} · ${hit.cc}`
+        };
+      }
+      const tail = tz.includes("/") ? tz.split("/").pop().replace(/_/g, " ") : "";
+      return {
+        tz,
+        city: tail,
+        cc: "",
+        offset,
+        label: tail ? `${tail} (${offset})` : offset,
+        regionFallback: tail || ""
       };
-      if (MAP[tz]) return MAP[tz];
-      if (tz.includes("/")) return tz.split("/").pop().replace(/_/g, " ");
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      return { tz: "", city: "", cc: "", offset: "", label: "", regionFallback: "" };
+    }
+  }
+
+  function inferRegionFromTimezone() {
+    return getLocalTimezoneInfo().regionFallback || "";
+  }
+
+  function maskIpAddress(ip = "") {
+    const s = String(ip || "").trim();
+    if (!s) return "";
+    if (s.includes(".")) {
+      const parts = s.split(".");
+      if (parts.length === 4) return `${parts[0]}.${parts[1]}.*.*`;
+    }
+    if (s.includes(":")) {
+      const parts = s.split(":").filter(Boolean);
+      if (parts.length >= 2) return `${parts.slice(0, 2).join(":")}:…`;
+    }
     return "";
   }
 
-  let cachedDeviceRegion = null;
-  function getDeviceRegionSync() {
-    if (cachedDeviceRegion) return cachedDeviceRegion;
-    try {
-      const s = sessionStorage.getItem(DEVICE_REGION_CACHE_KEY);
-      if (s) { cachedDeviceRegion = s; return s; }
-    } catch (e) { /* ignore */ }
-    cachedDeviceRegion = inferRegionFromTimezone() || "未知地区";
-    return cachedDeviceRegion;
+  function cleanIspName(org = "") {
+    return String(org || "")
+      .replace(/^AS\d+\s+/i, "")
+      .replace(/\s+(LLC|Inc\.?|Ltd\.?|Corp\.?|Limited|Co\.?,?\s*Ltd\.?)$/i, "")
+      .trim()
+      .slice(0, 28);
   }
 
-  async function detectDeviceRegionAsync() {
+  function computeProxyMismatch(net) {
+    if (!net || !net.label) return false;
+    const local = getLocalTimezoneInfo();
+    if (local.cc && net.countryCode) {
+      return local.cc.toUpperCase() !== net.countryCode.toUpperCase();
+    }
+    if (local.tz && net.timezone && local.tz !== net.timezone) {
+      const lCont = local.tz.split("/")[0];
+      const gCont = net.timezone.split("/")[0];
+      if (lCont !== gCont) return true;
+    }
+    return false;
+  }
+
+  let cachedDeviceNet = null;
+  function getDeviceNetworkSync() {
+    if (cachedDeviceNet) return cachedDeviceNet;
     try {
-      const existing = sessionStorage.getItem(DEVICE_REGION_CACHE_KEY);
-      if (existing) { cachedDeviceRegion = existing; return existing; }
+      const raw = sessionStorage.getItem(DEVICE_NET_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && parsed.label) {
+          cachedDeviceNet = parsed;
+          return parsed;
+        }
+      }
     } catch (e) { /* ignore */ }
+    const local = getLocalTimezoneInfo();
+    return {
+      city: local.city,
+      countryCode: local.cc,
+      label: local.regionFallback || "未知地区",
+      ipMasked: "",
+      isp: "",
+      timezone: local.tz,
+      proxyMismatch: false,
+      fromGeo: false,
+      fetchedAt: 0
+    };
+  }
+
+  function getDeviceRegionSync() {
+    return getDeviceNetworkSync().label || "未知地区";
+  }
+
+  async function detectDeviceRegionAsync(forceRefresh = false) {
+    if (!forceRefresh) {
+      try {
+        const raw = sessionStorage.getItem(DEVICE_NET_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.fromGeo && parsed.fetchedAt && Date.now() - parsed.fetchedAt < DEVICE_NET_TTL_MS) {
+            parsed.proxyMismatch = computeProxyMismatch(parsed);
+            cachedDeviceNet = parsed;
+            return parsed.label;
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
 
     const tryFetch = (url) => {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 3800);
-      return fetch(url, { signal: ctrl.signal })
+      return fetch(url, { signal: ctrl.signal, cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)
         .finally(() => clearTimeout(t));
     };
 
-    let region = "";
+    let net = null;
     const g1 = await tryFetch("https://get.geojs.io/v1/ip/geo.json");
     if (g1 && (g1.city || g1.country)) {
       const city = g1.city || g1.region || "";
       const cc = g1.country_code || g1.country || "";
-      region = [city, cc].filter(Boolean).join(" · ");
+      net = {
+        city,
+        countryCode: cc,
+        label: [city, cc].filter(Boolean).join(" · "),
+        ipMasked: maskIpAddress(g1.ip),
+        isp: cleanIspName(g1.organization_name || g1.organization || ""),
+        timezone: g1.timezone || "",
+        fromGeo: true,
+        fetchedAt: Date.now()
+      };
     } else {
       const g2 = await tryFetch("https://ipwho.is/");
       if (g2 && g2.success !== false && (g2.city || g2.country)) {
-        region = [g2.city || g2.region || "", g2.country_code || g2.country || ""].filter(Boolean).join(" · ");
+        const city = g2.city || g2.region || "";
+        const cc = g2.country_code || g2.country || "";
+        net = {
+          city,
+          countryCode: cc,
+          label: [city, cc].filter(Boolean).join(" · "),
+          ipMasked: maskIpAddress(g2.ip),
+          isp: cleanIspName((g2.connection && (g2.connection.isp || g2.connection.org)) || ""),
+          timezone: (g2.timezone && g2.timezone.id) || "",
+          fromGeo: true,
+          fetchedAt: Date.now()
+        };
       }
     }
-    if (!region) region = inferRegionFromTimezone() || "未知地区";
-    cachedDeviceRegion = region;
-    try { sessionStorage.setItem(DEVICE_REGION_CACHE_KEY, region); } catch (e) { /* ignore */ }
-    return region;
+
+    if (!net || !net.label) {
+      const local = getLocalTimezoneInfo();
+      net = {
+        city: local.city,
+        countryCode: local.cc,
+        label: local.regionFallback || "未知地区",
+        ipMasked: "",
+        isp: "",
+        timezone: local.tz,
+        fromGeo: false,
+        fetchedAt: Date.now()
+      };
+    }
+    net.proxyMismatch = computeProxyMismatch(net);
+    cachedDeviceNet = net;
+    try { sessionStorage.setItem(DEVICE_NET_CACHE_KEY, JSON.stringify(net)); } catch (e) { /* ignore */ }
+    return net.label;
+  }
+
+  function detectGpuChip() {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) return "";
+      const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+      const raw = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || "") : "";
+      const lose = gl.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+      if (!raw) return "";
+      const mChip = raw.match(/Apple\s+M\d+(?:\s+(?:Pro|Max|Ultra))?/i);
+      if (mChip) return mChip[0].replace(/\s+/g, " ");
+      if (/Apple\s+GPU/i.test(raw)) return "Apple Silicon";
+      const nv = raw.match(/(?:NVIDIA\s+)?(GeForce\s+(?:RTX|GTX)\s+\d{3,4}(?:\s+(?:Ti|SUPER|Laptop))?)/i);
+      if (nv) return nv[1].replace(/\s+/g, " ");
+      const amd = raw.match(/(Radeon\s+(?:RX\s+)?[A-Z0-9]+(?:\s+[A-Z0-9]+)?)/i);
+      if (amd) return amd[1].replace(/\s+/g, " ");
+      const intel = raw.match(/(Intel(?:\(R\))?\s+(?:Iris|UHD|Arc)[^,)/]*)/i);
+      if (intel) return intel[1].replace(/\(R\)/gi, "").replace(/\s+/g, " ").trim().slice(0, 24);
+    } catch (e) { /* ignore */ }
+    return "";
+  }
+
+  function detectDisplaySpec(isApple) {
+    try {
+      const w = Math.round(window.screen && window.screen.width ? window.screen.width : 0);
+      const h = Math.round(window.screen && window.screen.height ? window.screen.height : 0);
+      if (!w || !h) return "";
+      const dpr = Number(window.devicePixelRatio || 1);
+      const dprTag = dpr >= 2
+        ? (isApple && w >= 1024 ? "Retina" : `@${Number.isInteger(dpr) ? dpr : dpr.toFixed(1)}x`)
+        : (dpr > 1.05 ? `@${dpr.toFixed(1)}x` : "");
+      return dprTag ? `${w}×${h} ${dprTag}` : `${w}×${h}`;
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function trimVersion(ver = "", maxParts = 2) {
+    const parts = String(ver || "").split(/[._]/).filter((x) => /^\d+$/.test(x));
+    while (parts.length > maxParts) parts.pop();
+    while (parts.length > 1 && parts[parts.length - 1] === "0") parts.pop();
+    return parts.join(".");
+  }
+
+  function isStandalonePwa() {
+    try {
+      return Boolean(
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+        window.navigator.standalone === true
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  let cachedDeviceSpecs = null;
+  let deviceSpecsPromise = null;
+
+  function buildDeviceSpecsSync(highEntropy = null, isBrave = false) {
+    const ua = navigator.userAgent || "";
+    const plat = navigator.platform || "";
+    const isIpad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    const isIphone = /iPhone/i.test(ua);
+    const isAndroid = /Android/i.test(ua);
+    const isMac = !isIpad && !isIphone && (/Mac/i.test(plat) || /Macintosh/i.test(ua));
+    const isWin = /Win/i.test(plat) || /Windows/i.test(ua);
+    const isLinux = !isAndroid && /Linux/i.test(ua);
+    const isApple = isIphone || isIpad || isMac;
+
+    const hePlat = (highEntropy && highEntropy.platform) || "";
+    const heVer = (highEntropy && highEntropy.platformVersion) || "";
+    const heArch = (highEntropy && highEntropy.architecture) || "";
+    const heBitness = (highEntropy && highEntropy.bitness) || "";
+    const heModel = ((highEntropy && highEntropy.model) || "").trim();
+
+    let deviceType = "Desktop";
+    let os = "";
+
+    if (isIphone) {
+      deviceType = "iPhone";
+      const m = ua.match(/OS\s+(\d+[_.]\d+(?:[_.]\d+)?)\s+like Mac OS X/i);
+      const v = m ? trimVersion(m[1], 2) : "";
+      os = v ? `iOS ${v}` : "iOS";
+    } else if (isIpad) {
+      deviceType = "iPad";
+      const m = ua.match(/OS\s+(\d+[_.]\d+(?:[_.]\d+)?)\s+like Mac OS X/i);
+      const v = m ? trimVersion(m[1], 2) : "";
+      os = v ? `iPadOS ${v}` : "iPadOS";
+    } else if (isAndroid) {
+      const uaModel = (ua.match(/;\s*([^;)]+?)\s+Build\//i) || [])[1] || "";
+      const model = heModel || (uaModel && !/^K$/i.test(uaModel.trim()) ? uaModel.trim() : "");
+      deviceType = model || "Android";
+      const v = trimVersion(heVer || (ua.match(/Android\s+(\d+(?:\.\d+)?)/i) || [])[1] || "", 2);
+      os = v ? `Android ${v}` : "Android";
+    } else if (isMac) {
+      const sw = window.screen ? window.screen.width : 0;
+      const sh = window.screen ? window.screen.height : 0;
+      const ratio = sh ? sw / sh : 0;
+      const dpr = Number(window.devicePixelRatio || 1);
+      const looksLaptop = dpr >= 2 && sw <= 2056 && ratio >= 1.5 && ratio <= 1.65;
+      deviceType = looksLaptop ? "MacBook" : "Mac";
+      if (/mac/i.test(hePlat) && heVer) {
+        const v = trimVersion(heVer, 2);
+        os = v ? `macOS ${v}` : "macOS";
+      } else {
+        const m = ua.match(/Mac OS X\s+(\d+)[_.](\d+)(?:[_.](\d+))?/i);
+        if (m) {
+          const major = parseInt(m[1], 10);
+          const minor = parseInt(m[2], 10);
+          // Modern Safari/Chrome freeze UA at 10_15_7; avoid misreporting Catalina on modern macOS
+          if (major >= 11) os = `macOS ${major}.${minor}`;
+          else os = "macOS";
+        } else {
+          os = "macOS";
+        }
+      }
+    } else if (isWin) {
+      deviceType = "Windows PC";
+      if (/win/i.test(hePlat) && heVer) {
+        const major = parseInt(String(heVer).split(".")[0], 10);
+        if (!isNaN(major) && major >= 13) os = "Windows 11";
+        else if (!isNaN(major) && major >= 1) os = "Windows 10";
+        else os = "Windows";
+      } else {
+        os = /Windows NT 10\.0/i.test(ua) ? "Windows 10/11" : "Windows";
+      }
+    } else if (isLinux) {
+      deviceType = "Linux PC";
+      os = "Linux";
+    }
+
+    let browser = "Browser";
+    let browserVer = "";
+    const brands = (highEntropy && Array.isArray(highEntropy.fullVersionList) ? highEntropy.fullVersionList : [])
+      .filter((b) => b && b.brand && !/Not[^a-z]*A[^a-z]*Brand|Chromium/i.test(b.brand));
+
+    if (/MicroMessenger/i.test(ua)) {
+      browser = "微信";
+      browserVer = trimVersion((ua.match(/MicroMessenger\/([\d.]+)/i) || [])[1] || "", 2);
+    } else if (isBrave || /Brave/i.test(ua)) {
+      browser = "Brave";
+      const br = brands.find((b) => /Brave/i.test(b.brand)) || brands.find((b) => /Chrome/i.test(b.brand));
+      browserVer = trimVersion((br && br.version) || (ua.match(/Chrome\/([\d.]+)/i) || [])[1] || "", 1);
+    } else if (/Edg\//i.test(ua) || /EdgiOS/i.test(ua)) {
+      browser = "Edge";
+      const br = brands.find((b) => /Edge/i.test(b.brand));
+      browserVer = trimVersion((br && br.version) || (ua.match(/Edg(?:iOS)?\/([\d.]+)/i) || [])[1] || "", 1);
+    } else if (/OPR\//i.test(ua)) {
+      browser = "Opera";
+      browserVer = trimVersion((ua.match(/OPR\/([\d.]+)/i) || [])[1] || "", 1);
+    } else if (/CriOS\//i.test(ua) || (/Chrome\//i.test(ua) && !/Edg\//i.test(ua))) {
+      browser = "Chrome";
+      const br = brands.find((b) => /Google Chrome/i.test(b.brand));
+      browserVer = trimVersion((br && br.version) || (ua.match(/(?:CriOS|Chrome)\/([\d.]+)/i) || [])[1] || "", 1);
+    } else if (/FxiOS\//i.test(ua) || /Firefox\//i.test(ua)) {
+      browser = "Firefox";
+      browserVer = trimVersion((ua.match(/(?:FxiOS|Firefox)\/([\d.]+)/i) || [])[1] || "", 1);
+    } else if (/Safari\//i.test(ua)) {
+      browser = "Safari";
+      browserVer = trimVersion((ua.match(/Version\/([\d.]+)/i) || [])[1] || "", 2);
+    }
+
+    const browserLabel = browserVer ? `${browser} ${browserVer}` : browser;
+    const isPwa = isStandalonePwa();
+
+    let chip = detectGpuChip();
+    if (isMac) {
+      if (!chip && /arm/i.test(heArch)) chip = "Apple Silicon";
+      else if (!chip && /x86/i.test(heArch)) chip = "Intel";
+    } else if (!chip && !isIphone && !isIpad) {
+      if (/arm/i.test(heArch)) chip = heBitness === "64" ? "ARM64" : "ARM";
+      else if (/x86/i.test(heArch)) chip = heBitness === "64" ? "x64" : "x86";
+    }
+    if (isIphone || isIpad) chip = "";
+
+    const screen = detectDisplaySpec(isApple);
+
+    return {
+      deviceType,
+      os,
+      chip,
+      browser,
+      browserLabel,
+      isPwa,
+      screen,
+      enriched: Boolean(highEntropy)
+    };
+  }
+
+  function getDeviceSpecsSync() {
+    if (!cachedDeviceSpecs) {
+      cachedDeviceSpecs = buildDeviceSpecsSync(null, false);
+    }
+    return cachedDeviceSpecs;
+  }
+
+  async function detectDeviceSpecsAsync() {
+    if (cachedDeviceSpecs && cachedDeviceSpecs.enriched) return cachedDeviceSpecs;
+    if (deviceSpecsPromise) return deviceSpecsPromise;
+    deviceSpecsPromise = (async () => {
+      let he = null;
+      let isBrave = false;
+      try {
+        if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === "function") {
+          he = await navigator.userAgentData.getHighEntropyValues([
+            "platform",
+            "platformVersion",
+            "architecture",
+            "bitness",
+            "model",
+            "fullVersionList",
+            "mobile"
+          ]);
+        }
+      } catch (e) { /* ignore */ }
+      try {
+        if (navigator.brave && typeof navigator.brave.isBrave === "function") {
+          isBrave = await navigator.brave.isBrave();
+        }
+      } catch (e) { /* ignore */ }
+      cachedDeviceSpecs = buildDeviceSpecsSync(he, isBrave);
+      return cachedDeviceSpecs;
+    })().finally(() => {
+      deviceSpecsPromise = null;
+    });
+    return deviceSpecsPromise;
   }
 
   function getCustomDeviceLabel() {
@@ -1328,25 +1703,9 @@
   function detectBaseDeviceLabel() {
     const custom = getCustomDeviceLabel();
     if (custom) return custom;
-    const ua = navigator.userAgent || "";
-    const plat = navigator.platform || "";
-    const isIpad = /iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
-    let os = "Desktop";
-    if (/iPhone/i.test(ua)) os = "iPhone";
-    else if (isIpad) os = "iPad";
-    else if (/Android/i.test(ua)) os = "Android";
-    else if (/Mac/i.test(plat) || /Macintosh/i.test(ua)) os = "MacBook";
-    else if (/Win/i.test(plat) || /Windows/i.test(ua)) os = "Windows PC";
-    else if (/Linux/i.test(ua)) os = "Linux PC";
-
-    let browser = "Browser";
-    if (/MicroMessenger/i.test(ua)) browser = "微信";
-    else if (/Edg\//i.test(ua) || /EdgiOS/i.test(ua)) browser = "Edge";
-    else if (/CriOS/i.test(ua) || (/Chrome\//i.test(ua) && !/Edg\//i.test(ua))) browser = "Chrome";
-    else if (/FxiOS/i.test(ua) || /Firefox\//i.test(ua)) browser = "Firefox";
-    else if (/Safari\//i.test(ua)) browser = "Safari";
-
-    return `${os} · ${browser}`;
+    const sp = getDeviceSpecsSync();
+    const client = sp.isPwa ? "桌面 Web App" : (sp.browserLabel || sp.browser);
+    return `${sp.deviceType} · ${client}`;
   }
 
   function detectDeviceName() {
@@ -1355,18 +1714,44 @@
     return reg && reg !== "未知地区" ? `${base} (${reg})` : base;
   }
 
+  function buildMyDeviceProfile() {
+    const sp = getDeviceSpecsSync();
+    const net = getDeviceNetworkSync();
+    const tz = getLocalTimezoneInfo();
+    return {
+      label: detectBaseDeviceLabel(),
+      customNamed: Boolean(getCustomDeviceLabel()),
+      deviceType: sp.deviceType,
+      os: sp.os,
+      chip: sp.chip,
+      browser: sp.browserLabel || sp.browser,
+      isPwa: sp.isPwa,
+      screen: sp.screen,
+      region: net.label || "未知地区",
+      ipMasked: net.ipMasked || "",
+      isp: net.isp || "",
+      geoCc: net.countryCode || "",
+      tzLabel: tz.label || "",
+      tzCity: tz.city || "",
+      tzCc: tz.cc || "",
+      proxyMismatch: Boolean(net.proxyMismatch),
+      isDesktop: isCurrentDeviceDesktop(),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
   function syncMyDeviceProfile(forcePush = false) {
     const st = S();
     if (!st.deviceProfiles || typeof st.deviceProfiles !== "object") st.deviceProfiles = {};
     const myId = getDeviceId();
-    const next = {
-      label: detectBaseDeviceLabel(),
-      region: getDeviceRegionSync(),
-      isDesktop: isCurrentDeviceDesktop(),
-      updatedAt: new Date().toISOString()
-    };
+    const next = buildMyDeviceProfile();
     const prev = st.deviceProfiles[myId];
-    const changed = !prev || prev.label !== next.label || prev.region !== next.region || prev.isDesktop !== next.isDesktop;
+    const keys = [
+      "label", "customNamed", "deviceType", "os", "chip", "browser",
+      "isPwa", "screen", "region", "ipMasked", "isp", "geoCc",
+      "tzLabel", "proxyMismatch", "isDesktop"
+    ];
+    const changed = !prev || keys.some((k) => prev[k] !== next[k]);
     if (changed || forcePush) {
       st.deviceProfiles[myId] = next;
       if (isUnlocked()) {
@@ -1377,12 +1762,16 @@
     }
   }
 
-  function deviceIconSvg(name = "") {
-    if (/iPhone|Android/i.test(name)) {
+  function deviceIconSvg(name = "", deviceType = "") {
+    const target = `${deviceType} ${name}`;
+    if (/iPhone|Android|Pixel|Xiaomi|Huawei|OPPO|vivo|SM-/i.test(target)) {
       return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.8"></rect><line x1="10.5" y1="18.2" x2="13.5" y2="18.2"></line></svg>`;
     }
-    if (/iPad/i.test(name)) {
+    if (/iPad/i.test(target)) {
       return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"></rect><line x1="10.5" y1="17.8" x2="13.5" y2="17.8"></line></svg>`;
+    }
+    if (/^(Mac|Windows PC|Linux PC|Desktop)$/i.test(String(deviceType || "").trim())) {
+      return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2"></rect><path d="M8.5 20.5h7"></path><path d="M12 16.5v4"></path></svg>`;
     }
     return `<svg class="sf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12.5" rx="2"></rect><path d="M2 19.5h20"></path></svg>`;
   }
@@ -1552,24 +1941,59 @@
     listEl.innerHTML = devs
       .map((d) => {
         const isSelf = d.device_id === myId;
-        const prof = profiles[d.device_id] || null;
+        const storedProf = profiles[d.device_id] || null;
+        const prof = isSelf ? buildMyDeviceProfile() : storedProf;
         const rawName = d.device_name || "未知设备";
         const parenRegionMatch = rawName.match(/\(([^)]+)\)\s*$/);
         const displayName = (prof && prof.label) || rawName.replace(/\s*\([^)]+\)\s*$/, "") || rawName;
-        const region = (prof && prof.region) || (parenRegionMatch ? parenRegionMatch[1] : (isSelf ? getDeviceRegionSync() : ""));
+        const region = (prof && prof.region) || (parenRegionMatch ? parenRegionMatch[1] : "");
         const isMaster = prof ? !!prof.isDesktop : isDesktopDeviceName(rawName);
+
+        const specParts = [];
+        if (prof) {
+          if (prof.os) specParts.push(prof.os);
+          if (prof.chip) specParts.push(prof.chip);
+          if (prof.browser && (prof.customNamed || prof.isPwa || !displayName.includes(prof.browser.split(" ")[0]))) {
+            specParts.push(prof.browser);
+          }
+          if (prof.screen) specParts.push(prof.screen);
+        }
+
+        const netPieces = [];
+        const hasRegion = region && region !== "未知地区";
+        const tzLabel = prof && prof.tzLabel ? prof.tzLabel : "";
+        const ipMasked = prof && prof.ipMasked ? prof.ipMasked : "";
+        const isp = prof && prof.isp ? prof.isp : "";
+        const exitTip = [isp ? `网络：${isp}` : "", ipMasked ? `IP：${ipMasked}` : ""].filter(Boolean).join(" · ");
+
+        if (prof && prof.proxyMismatch && hasRegion) {
+          if (tzLabel) {
+            netPieces.push(`<span class="device-region-tag" title="设备系统时区">${esc(tzLabel)}</span>`);
+          }
+          netPieces.push(`<span class="device-exit-tag" title="${esc(exitTip || "当前网络出口位置")}">出口 ${esc(region)}</span>`);
+        } else if (hasRegion) {
+          netPieces.push(`<span class="device-region-tag" title="${esc(exitTip || "当前位置")}">${esc(region)}</span>`);
+        } else if (tzLabel) {
+          netPieces.push(`<span class="device-region-tag">${esc(tzLabel)}</span>`);
+        }
+        if (ipMasked) {
+          netPieces.push(`<span class="device-ip-mono" title="${esc(isp ? `网络服务商：${isp}` : "已脱敏公网 IP")}">${esc(ipMasked)}</span>`);
+        }
+        netPieces.push(`<span>${esc(fmtRelativeTime(d.last_seen))}</span>`);
+
         return `
           <div class="device-row ${isSelf ? "is-self" : ""}">
-            <div class="device-icon">${deviceIconSvg(displayName + " " + rawName)}</div>
+            <div class="device-icon">${deviceIconSvg(displayName + " " + rawName, prof && prof.deviceType)}</div>
             <div class="device-meta">
               <div class="device-name-line">
                 <strong class="device-name">${esc(displayName)}</strong>
                 ${isMaster ? `<span class="device-master-badge">主控端</span>` : ""}
+                ${prof && prof.isPwa ? `<span class="device-pwa-badge">PWA</span>` : ""}
                 ${isSelf ? `<span class="device-self-badge">本机</span>` : `<span class="device-online-pill">在线</span>`}
               </div>
+              ${specParts.length ? `<div class="device-spec-row">${esc(specParts.join(" · "))}</div>` : ""}
               <div class="device-sub-row">
-                ${region && region !== "未知地区" ? `<span class="device-region-tag">${esc(region)}</span><span>·</span>` : ""}
-                <span>${esc(fmtRelativeTime(d.last_seen))}</span>
+                ${netPieces.join(`<span class="device-dot-sep">·</span>`)}
               </div>
             </div>
             <div class="device-act">
@@ -1868,9 +2292,11 @@
       if (fillEl) fillEl.style.width = `${pct}%`;
       if (sigEl) {
         const label = detectBaseDeviceLabel();
-        const reg = getDeviceRegionSync();
+        const net = getDeviceNetworkSync();
+        const tz = getLocalTimezoneInfo();
+        const loc = net.proxyMismatch ? (tz.label || net.label) : (net.label !== "未知地区" ? net.label : tz.label);
         const role = isCurrentDeviceDesktop() ? "主控端" : "";
-        sigEl.textContent = [label, reg !== "未知地区" ? reg : "", role].filter(Boolean).join(" · ");
+        sigEl.textContent = [label, loc, role].filter(Boolean).join(" · ");
       }
     } catch (e) {
       if (metaEl) metaEl.textContent = "准备就绪，随时开始";
@@ -2017,8 +2443,9 @@
     if (isUnlocked()) {
       unlockGate(true);
       updateLaunchSplashMeta();
-      detectDeviceRegionAsync().then(() => {
+      Promise.all([detectDeviceSpecsAsync(), detectDeviceRegionAsync()]).then(() => {
         syncMyDeviceProfile();
+        renderOnlineDevices();
         updateLaunchSplashMeta();
       });
       cloudPull({ silent: true }).then(() => {
@@ -2029,6 +2456,7 @@
       }).catch(() => {});
     } else {
       dismissLaunchSplash(true);
+      detectDeviceSpecsAsync();
       detectDeviceRegionAsync();
       document.body.classList.add("auth-locked");
       setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 50);
@@ -2052,6 +2480,7 @@
       }
       if (kickBtn) kickBtn.disabled = true;
 
+      await Promise.race([detectDeviceSpecsAsync(), new Promise((r) => setTimeout(r, 250))]);
       const deviceId = getDeviceId();
       const deviceName = detectDeviceName();
 
@@ -2099,6 +2528,7 @@
 
           setTimeout(() => {
             unlockGate(false);
+            syncMyDeviceProfile();
             App.toast(
               kickOldest
                 ? `Welcome back, Kai · 已替换最早设备 (${cloudState.devices.length}/${MAX_ONLINE_DEVICES})`
@@ -2184,6 +2614,10 @@
       btnBackup.addEventListener("click", () => {
         renderOnlineDevices();
         setCloudUiStatus(cloudState.status);
+        Promise.all([detectDeviceSpecsAsync(), detectDeviceRegionAsync(false)]).then(() => {
+          syncMyDeviceProfile();
+          renderOnlineDevices();
+        });
         cloudPull({ silent: true });
       });
     }
@@ -2197,7 +2631,13 @@
     }
     const btnRefresh = $("btnRefreshDevices");
     if (btnRefresh) {
-      btnRefresh.addEventListener("click", () => cloudPull({ silent: false }));
+      btnRefresh.addEventListener("click", () => {
+        Promise.all([detectDeviceSpecsAsync(), detectDeviceRegionAsync(true)]).then(() => {
+          syncMyDeviceProfile();
+          renderOnlineDevices();
+        });
+        cloudPull({ silent: false });
+      });
     }
     const btnKickAll = $("btnKickAllOthers");
     if (btnKickAll) {
