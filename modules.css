@@ -7152,3 +7152,213 @@ body.dark .pr-stage-num.is-s2 { color: #2dd4bf; }
   .pr-grid-notes { grid-template-columns: 1fr; }
   .practice-form-card { padding: 16px !important; }
 }
+
+/* =========================================================
+ * CALM PASS · 每日页单行进度条 + 中性配色路线（Apple / Claude 克制风格）
+ * 规则：未开始 = 灰色细线圈；进行中 = 系统蓝实心；已完成 = 绿色对勾
+ * ========================================================= */
+.day-route-slot, .day-route-detail, .route-card { --sc: var(--primary); }
+
+/* ---- 学习日选择：自定义箭头紧贴文字 ---- */
+.day-slim-bar .select-input.day-select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 32px;
+  padding: 0 28px 0 12px !important;
+  border-radius: 9px !important;
+  background-color: var(--surface-alt) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 11px 11px !important;
+  border: 1px solid transparent !important;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.day-slim-bar .select-input.day-select:hover { background-color: rgba(120, 120, 128, 0.14) !important; }
+.day-slim-bar .select-input.day-select:focus { border-color: var(--primary) !important; }
+
+/* ---- 单行进度条 ---- */
+.day-header-slim { padding: 10px 12px !important; }
+.day-slim-bar { flex-wrap: nowrap; gap: 14px; }
+.day-route-slot { flex: 1 1 auto; min-width: 0; }
+.rs-bar { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.rs-bar .rs-dots { display: flex; gap: 4px; flex-shrink: 0; }
+.rs-bar .rs-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.25px rgba(120, 120, 128, 0.32);
+  cursor: pointer;
+  animation: none;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.rs-bar .rs-dot:hover { transform: scale(1.1); }
+.rs-bar .rs-dot svg { width: 11px; height: 11px; }
+.rs-bar .rs-dot.is-done { color: #248a3d; background: rgba(52, 199, 89, 0.14); box-shadow: none; }
+body.dark .rs-bar .rs-dot.is-done { color: #30d158; background: rgba(48, 209, 88, 0.16); }
+.rs-bar .rs-dot.is-current { color: #fff; background: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); animation: none; }
+body.dark .rs-bar .rs-dot.is-current { color: #0b0d12; }
+.rs-bar .rs-dot.is-picked { outline: 1.5px solid var(--text); outline-offset: 2px; }
+
+.rs-cur {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 32px;
+  padding: 0 10px;
+  margin-left: -4px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+.rs-cur:hover { background: var(--surface-alt); }
+.rs-cur.is-static { cursor: default; }
+.rs-cur.is-static:hover { background: transparent; }
+.rs-cur-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.rs-cur-note { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.rs-cur-done { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; color: #248a3d; white-space: nowrap; }
+.rs-cur-done svg { width: 11px; height: 11px; }
+body.dark .rs-cur-done { color: #30d158; }
+.rs-cur-caret { width: 13px; height: 13px; flex-shrink: 0; color: var(--text-muted); transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.rs-cur[aria-expanded="true"] .rs-cur-caret { transform: rotate(180deg); }
+.rs-go { flex-shrink: 0; white-space: nowrap; }
+.rs-bar.is-review { justify-content: space-between; }
+.rs-review-txt { font-size: 13px; color: var(--text-muted); }
+
+/* 任务按钮：和学习日选择器同一套「浅灰填充 + 小箭头」语言 */
+.day-slim-right .day-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 12px !important;
+  border: none;
+  border-radius: 9px;
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px !important;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.day-slim-right .day-drawer-toggle:hover { background: rgba(120, 120, 128, 0.14); }
+.day-slim-right .day-drawer-toggle .progress-text { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+.day-drawer-toggle .day-drawer-caret { width: 12px; height: 12px; color: var(--text-muted); transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.day-drawer-toggle.is-open .day-drawer-caret { transform: rotate(180deg); }
+
+/* ---- 展开的「这一步怎么做」 ---- */
+.day-route-detail { overflow: hidden; }
+.day-route-detail:not([hidden]) { animation: rdOpen 0.26s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes rdOpen {
+  from { opacity: 0; transform: translate3d(0, -4px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.rd-inner { margin-top: 10px; padding: 14px 4px 4px; border-top: 1px solid var(--border); }
+.rd-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.rd-step { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+.rd-target { font-size: 13px; font-weight: 600; color: var(--text); }
+.rd-how { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13.5px; line-height: 1.65; color: var(--text); }
+.rd-how li::marker { color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+.rd-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.rd-rule { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
+.rd-rule svg { width: 14px; height: 14px; color: #34c759; flex-shrink: 0; }
+.rd-rule em { font-style: normal; font-family: var(--font-mono); font-weight: 600; color: var(--text); margin-left: 6px; }
+
+/* ---- 总览页路线卡：去掉彩色块，改为细线串联的步骤条 ---- */
+.route-card .route-eyebrow { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.route-card .route-track { position: relative; gap: 0; margin-bottom: 16px; }
+.route-card .route-track::before {
+  content: "";
+  position: absolute;
+  left: calc(100% / 16);
+  right: calc(100% / 16);
+  top: 23px;
+  height: 1px;
+  background: var(--border);
+}
+.route-card .route-node {
+  position: relative;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 2px 8px;
+}
+.route-card .route-node:hover { transform: none; background: var(--surface-alt); }
+.route-card .route-node.is-picked { background: var(--surface-alt); border: none; }
+.route-card .rn-dot {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.25px rgba(120, 120, 128, 0.32), 0 0 0 4px var(--surface);
+  animation: none;
+}
+.route-card .route-node.is-picked .rn-dot,
+.route-card .route-node:hover .rn-dot { box-shadow: inset 0 0 0 1.25px rgba(120, 120, 128, 0.32), 0 0 0 4px var(--surface-alt); }
+.route-card .route-node.is-done .rn-dot { color: #248a3d; background: #e8f7ec; box-shadow: 0 0 0 4px var(--surface); }
+body.dark .route-card .route-node.is-done .rn-dot { color: #30d158; background: #16301f; }
+.route-card .route-node.is-current .rn-dot { color: #fff; background: var(--primary); box-shadow: 0 0 0 4px var(--surface), 0 0 0 7px var(--primary-soft); animation: none; }
+body.dark .route-card .route-node.is-current .rn-dot { color: #0b0d12; }
+.route-card .rn-label { font-size: 12px; font-weight: 500; color: var(--text); }
+.route-card .route-node.is-done .rn-label { color: var(--text-muted); }
+.route-card .route-node.is-current .rn-label { font-weight: 600; }
+.route-card .route-node.is-done .rn-sub { color: #248a3d; }
+body.dark .route-card .route-node.is-done .rn-sub { color: #30d158; }
+
+.route-card .route-focus { background: var(--surface-alt); border: none; border-radius: 14px; }
+.route-card .rf-step { background: transparent; color: var(--text-muted); padding: 0; font-weight: 600; }
+.route-card .rf-state.is-now { color: var(--primary); }
+.route-card .rf-target { background: var(--surface); border: none; }
+.route-card .rf-how li::before { color: var(--text-muted); background: var(--surface); }
+.route-card .btn.rf-go { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+body.dark .route-card .btn.rf-go { color: #0b0d12 !important; }
+
+/* ---- 移动端：第一行学习日 + 任务，第二行路线 ---- */
+@media (max-width: 860px) {
+  .day-slim-bar { flex-wrap: wrap; row-gap: 10px; }
+  .day-slim-bar .day-select-group { flex: 1 1 auto; min-width: 0; }
+  .day-route-slot { order: 3; flex-basis: 100%; }
+  .rs-cur-note { display: none; }
+  .route-card .route-track::before { display: none; }
+}
+@media (max-width: 640px) {
+  .rs-bar { gap: 8px; }
+  .rs-bar .rs-dot { width: 24px; height: 24px; }
+  .rs-go { padding-left: 12px !important; padding-right: 12px !important; }
+  .route-card .route-track::before { display: none; }
+  .rd-foot { flex-direction: column; align-items: flex-start; }
+}

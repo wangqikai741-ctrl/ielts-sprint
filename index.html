@@ -18,11 +18,11 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,500&family=Noto+Serif+SC:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261126g" />
-  <link rel="stylesheet" href="modules.css?v=20261126g" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261126g" />
-  <link rel="shortcut icon" href="favicon.svg?v=20261126g" />
-  <link rel="apple-touch-icon" href="favicon.svg?v=20261126g" />
+  <link rel="stylesheet" href="styles.css?v=20261128a" />
+  <link rel="stylesheet" href="modules.css?v=20261128a" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261128a" />
+  <link rel="shortcut icon" href="favicon.svg?v=20261128a" />
+  <link rel="apple-touch-icon" href="favicon.svg?v=20261128a" />
   <script>
     (function () {
       try {
@@ -357,42 +357,41 @@
     </section>
 
     <section class="tab-panel" id="tab-daily">
-      <!-- Slim Apple-Minimalist Day Header & Auto-Decluttering Task Strip -->
+      <!-- Day Header: day picker · 8-step route · tasks -->
       <div class="card day-header-card day-header-slim">
         <div class="day-slim-bar">
           <div class="day-select-group">
-            <select id="daySelect" class="select-input" aria-label="当前学习日"></select>
-            <button class="btn btn-ghost btn-sm" id="btnNewDay" title="手动新建一天">+ 新建</button>
+            <select id="daySelect" class="select-input day-select" aria-label="当前学习日"></select>
           </div>
-          <div class="day-compact-pills" id="dayCompactPills"></div>
+          <div class="day-route-slot" id="dailyRouteStrip"></div>
           <div class="day-slim-right">
-            <div class="day-progress-wrap">
+            <button class="day-drawer-toggle" id="btnToggleTaskDrawer" type="button" aria-expanded="false" title="今日任务清单">
+              <span>任务</span>
               <span class="progress-text" id="dayProgressText">0 / 0</span>
-              <div class="progress-bar">
-                <div class="progress-fill" id="dayProgressFill" style="width: 0%"></div>
-              </div>
-            </div>
-            <button class="btn btn-outline btn-sm day-drawer-toggle" id="btnToggleTaskDrawer" type="button" aria-expanded="false">
-              <span>详情</span>
-              <span class="day-drawer-caret">▾</span>
+              <svg class="day-drawer-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
           </div>
         </div>
 
+        <div class="day-route-detail" id="dailyRouteDetail" hidden></div>
+
         <div class="day-task-drawer hidden" id="dailyTaskDrawer">
+          <div class="hidden" aria-hidden="true">
+            <div id="dayCompactPills"></div>
+            <div class="progress-bar"><div class="progress-fill" id="dayProgressFill" style="width: 0%"></div></div>
+          </div>
           <div class="task-strip" id="dailyTaskList"></div>
           <details class="completed-tasks-fold hidden" id="completedTasksFold">
             <summary class="completed-fold-summary" id="completedTasksSummary">已完成 0 项</summary>
             <div class="task-strip completed-task-strip" id="dailyCompletedList"></div>
           </details>
           <div class="add-task-inline">
-            <input type="text" id="newTaskInput" class="text-input input-sm" placeholder="临时加一条今日待办（回车添加）…" />
+            <input type="text" id="newTaskInput" class="text-input input-sm" placeholder="添加一条今日待办，回车确认" />
             <button class="btn btn-outline btn-sm" id="btnAddTask">添加</button>
+            <button class="btn btn-ghost btn-sm" id="btnNewDay" title="手动新建一天">新建一天</button>
           </div>
         </div>
       </div>
-
-      <div id="dailyRouteStrip"></div>
 
       <!-- IELTS Split-Screen Reading & Vocabulary Workbench -->
       <div class="split-workbench">
@@ -434,7 +433,7 @@
 
           <div class="ielts-hint-bar" id="passageHintBar">
             <svg class="sf-icon-sm hint-sf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <span style="flex:1;">点蓝色词或橙虚线词直接右侧查义；选中任意英文可高亮、查词或收入生词本。</span>
+            <span style="flex:1;">点粗体词查看释义；选中任意文字可高亮、查词或收入生词本。</span>
             <button type="button" class="hint-dismiss-btn" id="btnDismissHint" title="不再显示提示" aria-label="关闭提示">✕</button>
           </div>
 
@@ -646,7 +645,7 @@
         <div class="panel-header">
           <div>
             <h2>我的生词本与错词本</h2>
-            <p class="muted">收录来自每日串文、雅思哥真题中所有不会的词；复习完把未掌握词一键复制给我，明天自动编进新串文帮你复现！</p>
+            <p class="muted">串文与真题里不会的词都在这里。未掌握的词会编进第二天的新串文。</p>
           </div>
           <div class="header-actions">
             <button class="btn btn-sm fc-launch-btn" id="btnOpenFlashcardsVocab">动态闪卡刷词</button>
@@ -1223,7 +1222,7 @@
         <div class="guide-panel active" data-guide-panel="flow">
           <div class="guide-timebar-card">
             <div class="guide-timebar-top">
-              <span class="guide-kicker">傻瓜式单线通关：按 1 → 8 从上往下挨个点，每步只做一件事</span>
+              <span class="guide-kicker">按 1 → 8 依次完成，每一步只做一件事</span>
               <span class="guide-mono-stat">总计 6.0 小时（360 分钟）</span>
             </div>
             <div class="guide-timebar" aria-label="每日 6 小时 8 步分配">
@@ -1256,12 +1255,12 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 1 步 · 先读今日串文 & 查生词跟读</span>
+                    <span class="lf-step-name">第 1 步 · 精读今日串文</span>
                     <span class="lf-dur">40 分钟</span>
                     <span class="gt-done-pill hidden" data-step-done="词汇">✓ 已完成</span>
                   </div>
                   <div class="lf-target" id="gtTargetVocab">今日文章：Day 1 · 校园报到与租房生活（50 个高频词）</div>
-                  <p class="lf-desc">先不要急着默写！通读英文短文 → 挨个点<b>蓝色粗体词</b>看右侧释义与同义替换（难记的点「标为不熟」）→ 鼠标划词标黄/红 → 点「英音朗读」看着英文大声跟读 2 遍。</p>
+                  <p class="lf-desc">通读全文，点<b>粗体词</b>查看释义与同义替换；不熟的词点「标为不熟」；最后打开「英音朗读」跟读两遍。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-blue" data-guide-action="read-passage">去读串文 →</button>
               </div>
@@ -1272,11 +1271,11 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 2 步 · 再做听力词「拼写挖空」默写</span>
+                    <span class="lf-step-name">第 2 步 · 听力词拼写</span>
                     <span class="lf-dur">20 分钟</span>
                     <span class="gt-done-pill hidden" data-step-done="词汇">✓ 已完成</span>
                   </div>
-                  <p class="lf-desc">第 1 步读熟之后，点右边按钮直接进入挖空模式，把今日 <b>20 个听力必拼词</b> 盲打默写一遍并点「核对拼写」（正确率 ≥80% 自动勾选今日「词汇」任务）。</p>
+                  <p class="lf-desc">进入拼写挖空，凭中文提示拼出今日听力词，写完点「核对拼写」。独立拼对 80% 自动勾选「词汇」。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-sky" data-guide-action="cloze">去拼写挖空 →</button>
               </div>
@@ -1287,14 +1286,14 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 3 步 · 雅思哥做听力真题 + 录错题复盘</span>
+                    <span class="lf-step-name">第 3 步 · 听力真题与错题复盘</span>
                     <span class="lf-dur">80 分钟</span>
                     <span class="gt-done-pill hidden" data-step-done="听力">✓ 已完成</span>
                   </div>
                   <div class="lf-target" id="gtTargetListening">今日真题：剑10 Test 1 Part 1 & Part 2（电脑端雅思哥 Pro 机考）</div>
-                  <p class="lf-desc">先去<b>雅思哥 Pro</b> 原速一遍做完对答案 → 错题<b>不看原文先盲听 2–3 遍</b>抓连读/单复数/干扰项 → 点右边按钮回本网站保存正确率与错因（保存即自动勾选「听力」）。</p>
+                  <p class="lf-desc">在<b>雅思哥 Pro</b> 限时做一遍并对答案；错题先不看原文，盲听两到三遍；回听力工作台保存成绩与错因。</p>
                 </div>
-                <button type="button" class="lf-go-btn s-teal" data-guide-jump="practice">录听力复盘 →</button>
+                <button type="button" class="lf-go-btn s-teal" data-guide-jump="practice">打开听力工作台 →</button>
               </div>
             </div>
 
@@ -1303,12 +1302,12 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 4 步 · 雅思哥做阅读真题 + 真题雷达入库</span>
+                    <span class="lf-step-name">第 4 步 · 阅读真题与同义替换</span>
                     <span class="lf-dur">85 分钟</span>
                     <span class="gt-done-pill hidden" data-step-done="阅读">✓ 已完成</span>
                   </div>
                   <div class="lf-target" id="gtTargetReading">今日真题：剑10 Test 1 Passage 1（限时 20 分钟做完）</div>
-                  <p class="lf-desc">先去<b>雅思哥 Pro</b> 计时 20m 做完对答案、找题干同义替换 → 点右边按钮打开<b>真题雷达</b>粘贴原文 → 点生词自动查义入库 → 点「存入精听精读」（自动勾选「阅读」并建立真题溯源）。</p>
+                  <p class="lf-desc">计时 20 分钟做完一篇，逐题找出同义替换，在阅读工作台保存成绩。原文可用<b>真题雷达</b>扫出生词。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-indigo" data-guide-action="analyzer">开真题雷达 →</button>
               </div>
@@ -1319,11 +1318,11 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 5 步 · 机考写作盲打训练（稳住 6.0 优势）</span>
+                    <span class="lf-step-name">第 5 步 · 机考写作</span>
                     <span class="lf-dur">45 分钟</span>
                   </div>
                   <div class="lf-target">节奏：周一/四写大作文 (40m) · 周二/五写小作文 (20m) · 其余日审 2 题写主体段骨架</div>
-                  <p class="lf-desc">点右边进写作机考台开倒计时盲打，刻意用上今天第 1 步学的 <b>3–5 个同义替换词</b>，写完点保存（晚间汇报会自动附带全文发 AI 精批）。</p>
+                  <p class="lf-desc">开启倒计时直接打字，用上今天的 3–5 个同义替换。写完保存，汇报会附上全文。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-purple" data-guide-jump="writing">去练写作 →</button>
               </div>
@@ -1334,12 +1333,12 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 6 步 · 今日必练口语 3 题开口说 + 存草稿</span>
+                    <span class="lf-step-name">第 6 步 · 口语开口练习</span>
                     <span class="lf-dur">45 分钟</span>
                     <span class="gt-done-pill hidden" data-step-done="口语">✓ 已完成</span>
                   </div>
                   <div class="lf-target" id="gtTargetSpeaking">今日必练：口语 Part 1 Accommodation 住宿 3 题</div>
-                  <p class="lf-desc">先开 45 秒计时器<b>脱稿出声说 2 遍</b>（绝不先写中文），再点编辑把英文回答敲进「作答草稿」保存（自动勾选「口语」），顺带背熟前一天 AI 升级的 6.5 版。</p>
+                  <p class="lf-desc">开 45 秒计时，不看稿说两遍；把回答打进作答框并保存草稿；朗读昨天升级后的版本。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-rose" data-guide-jump="speaking">去练口语 →</button>
               </div>
@@ -1350,10 +1349,10 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 7 步 · 晚间脱离文章刷两轮「动态闪卡」</span>
+                    <span class="lf-step-name">第 7 步 · 闪卡回顾</span>
                     <span class="lf-dur">35 分钟</span>
                   </div>
-                  <p class="lf-desc">前面任务全做完后单独验收记忆：<b>第 1 轮看词四选一 → 第 2 轮只听声音盲选中文</b>（选错或犹豫按 W 标不熟），把「假熟词」筛进生词本等明天复现。</p>
+                  <p class="lf-desc">第一轮看词选义，第二轮听音选义。犹豫或选错的词按 W 标为不熟，明天的串文会再次编入。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-amber" data-guide-action="flashcards">刷动态闪卡 →</button>
               </div>
@@ -1364,10 +1363,10 @@
               <div class="lf-card">
                 <div class="lf-main">
                   <div class="lf-head-line">
-                    <span class="lf-step-name">第 8 步 · 一键复制今日汇报发给 AI 教练</span>
+                    <span class="lf-step-name">第 8 步 · 提交今日汇报</span>
                     <span class="lf-dur">10 分钟</span>
                   </div>
-                  <p class="lf-desc">点右边生成汇报一键复制发给 AI：为你逐句升级 6.5 口语/精批作文，并把今晚筛出的<b>不熟词编进明天 Day N+1 新串文</b>自动上线（每满 7 天出一篇周度长文大串烧）！</p>
+                  <p class="lf-desc">生成并复制今日汇报，发给 AI 教练。收到批改后，次日内容会自动上线；每满 7 天会有一篇周度复习长文。</p>
                 </div>
                 <button type="button" class="lf-go-btn s-ink" data-guide-action="report">生成汇报 →</button>
               </div>
@@ -1688,8 +1687,8 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast"></div>
 
-  <script src="data.js?v=20261126g"></script>
-  <script src="app.js?v=20261126g"></script>
-  <script src="modules.js?v=20261126g"></script>
+  <script src="data.js?v=20261128a"></script>
+  <script src="app.js?v=20261128a"></script>
+  <script src="modules.js?v=20261128a"></script>
 </body>
 </html>

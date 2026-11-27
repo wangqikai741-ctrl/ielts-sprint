@@ -317,8 +317,10 @@
     // 当前顺序进度（严格按 Day 1 → Day 2 → ... 推进，未完成不跳过）
     const dayObj = prog.activeDay;
     const tasks = dayObj ? dayObj.tasks || [] : [];
-    const doneCount = tasks.filter((x) => x.done).length;
-    const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+    const stepStat = dayObj ? App.getStepStatus(dayObj) : null;
+    const doneCount = stepStat ? stepStat.doneCount : tasks.filter((x) => x.done).length;
+    const stepTotal = stepStat ? 8 : tasks.length;
+    const pct = stepTotal ? Math.round((doneCount / stepTotal) * 100) : 0;
     const C = 2 * Math.PI * 52;
 
     // 统计
@@ -454,7 +456,7 @@
                 <circle cx="60" cy="60" r="52" class="ring-bg"></circle>
                 <circle cx="60" cy="60" r="52" class="ring-fg" style="stroke-dasharray:${C};stroke-dashoffset:${C * (1 - pct / 100)}"></circle>
               </svg>
-              <div class="ring-text"><strong>${pct}%</strong><span>Day ${prog.activeSeq} · ${doneCount}/${tasks.length}</span></div>
+              <div class="ring-text"><strong>${pct}%</strong><span>Day ${prog.activeSeq} · ${doneCount}/${stepTotal} 步</span></div>
             </div>
             <div class="hero-mini">
               <div><strong>${daysLeft}</strong><span>天后考试</span></div>
@@ -466,7 +468,7 @@
         <div class="card dash-tip">
           <div class="tip-head">
             <svg class="sf-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"></path></svg>
-            <span>教练今日提醒</span>
+            <span>今日提醒</span>
           </div>
           <p>${esc(tip)}</p>
           ${examWarn ? `<div class="exam-alert">${sinceCheck === null ? "尚未查询考位" : `已 ${sinceCheck} 天未查考位`} · 建议前往官网查看开封 / 郑州 1 月机考。</div>` : ""}
@@ -631,7 +633,7 @@
         App.save();
         App.toast("已记录，后天记得再刷一次");
       } else if (act === "book") {
-        const info = prompt("恭喜！填写报名信息（如：2027-01-16 开封 机考）", "");
+        const info = prompt("填写报名信息（如：2027-01-16 开封 机考）", "");
         if (info === null) return;
         s.examTracker.booked = true;
         s.examTracker.bookedInfo = info.trim();
@@ -883,7 +885,7 @@
       localStorage.removeItem(DRAFT_KEY);
       App.save();
       resetWritingForm();
-      if (!App.markStepDone("5", "已保存作文")) App.toast(id ? "作文已更新" : "作文已保存！记得复制给 AI 批改");
+      if (!App.markStepDone("5", "已保存作文")) App.toast(id ? "作文已更新" : "作文已保存");
     });
 
     $("btnCopyWriting").addEventListener("click", () => {
@@ -950,7 +952,7 @@
         writingTimer = setInterval(() => {
           writingTimerLeft--;
           draw();
-          if (writingTimerLeft <= 0) { clearInterval(writingTimer); App.toast("⏰ 时间到！停笔检查"); }
+          if (writingTimerLeft <= 0) { clearInterval(writingTimer); App.toast("时间到，停笔检查"); }
         }, 1000);
       })
     );
@@ -2665,31 +2667,32 @@
 
   // ==================== TODAY'S ROUTE（8 步路线卡：现在做哪一步 · 怎么做 · 做完自动打勾） ====================
   const ROUTE_STEPS = [
-    { n: "1", c: "s-blue", dur: 40, title: "读今日串文，点词查义并跟读", go: "去读串文", act: "read-passage",
-      how: ["通读英文短文，遇到蓝色粗体词就点一下，右侧看释义、同义替换和例句", "记不住的词点「标为不熟 · 明日复现」，也可以划词标黄 / 红", "点工具栏「英音朗读」，看着原文大声跟读 2 遍"],
-      rule: "点开查看 10 个蓝色粗体词后自动完成" },
-    { n: "2", c: "s-sky", dur: 20, title: "听力词「拼写挖空」默写", go: "去拼写挖空", act: "cloze",
-      how: ["点工具栏「拼写挖空」，文中的听力拼写词变成空格", "根据中文提示盲打拼写，全部写完点「核对拼写」", "拼错的词点「显示答案」对照，再默写一遍"],
-      rule: "「核对拼写」正确率达到 80% 自动完成，同时勾选「词汇」任务" },
-    { n: "3", c: "s-teal", dur: 80, title: "雅思哥做听力真题并复盘错题", go: "去录听力复盘", jump: "practice", tag: "听力",
-      how: ["电脑端打开雅思哥 Pro，原速做完一遍并对答案", "错题先不看原文，盲听 2–3 遍，找出连读、单复数和干扰项", "回到「精听 & 精读」，科目选听力，填对题数和错因后保存"],
-      rule: "保存一条听力精听记录后自动完成，同时勾选「听力」任务" },
-    { n: "4", c: "s-indigo", dur: 85, title: "雅思哥做阅读真题，同义替换入库", go: "开真题雷达", act: "analyzer", tag: "阅读",
-      how: ["雅思哥 Pro 计时 20 分钟做完一篇，对答案", "逐题找出题干和原文之间的同义替换", "打开「真题雷达」粘贴原文，生词入库后点「存入精听精读」"],
-      rule: "保存一条阅读记录或真题雷达入库后自动完成，同时勾选「阅读」任务" },
-    { n: "5", c: "s-purple", dur: 45, title: "机考写作盲打", go: "去练写作", jump: "writing",
-      how: ["__WRITING_PLAN__", "进入「写作批改」，打开倒计时盲打，刻意用上今天学的 3–5 个同义替换", "写完点保存，晚上的汇报会自动附上全文"],
-      rule: "在「写作批改」保存一篇作文后自动完成" },
-    { n: "6", c: "s-rose", dur: 45, title: "今日必练口语开口说，并保存草稿", go: "去练口语", jump: "speaking", tag: "口语",
-      how: ["打开「口语话题库」，开 45 秒计时器，不看稿说 2 遍", "把英文回答打进题目下方的作答框，点「保存草稿」", "顺带朗读前一天 AI 升级的 6.5 版回答"],
-      rule: "任意一题保存作答草稿后自动完成，同时勾选「口语」任务" },
-    { n: "7", c: "s-amber", dur: 35, title: "动态闪卡两轮验收", go: "刷动态闪卡", act: "flashcards",
-      how: ["第 1 轮看英文选中文，第 2 轮只听发音选中文", "犹豫或选错的词按 W 标为不熟", "不熟词会编进明天的新串文再次出现"],
-      rule: "刷完一轮动态闪卡后自动完成" },
-    { n: "8", c: "s-ink", dur: 10, title: "复制今日汇报发给 AI 教练", go: "生成汇报", act: "report",
-      how: ["点「生成汇报」，检查今天每一步的完成情况", "点「复制汇报」，粘贴发给 AI 教练", "AI 批改口语和作文，并生成明天的 Day N+1"],
-      rule: "在汇报弹窗点「复制汇报」后自动完成" }
+    { n: "1", dur: 40, title: "精读今日串文", go: "开始阅读", act: "read-passage",
+      how: ["通读全文，点粗体词查看释义与同义替换", "不熟的词点「标为不熟」，明天会再次出现", "打开「英音朗读」，跟读两遍"],
+      rule: "查看 10 个粗体词后自动完成" },
+    { n: "2", dur: 20, title: "听力词拼写", go: "开始拼写", act: "cloze",
+      how: ["点「拼写挖空」，听力词会变成空格", "凭中文提示拼写，写完点「核对拼写」", "拼错的词看过答案后，再写一遍"],
+      rule: "独立拼对 80% 自动完成，并勾选「词汇」" },
+    { n: "3", dur: 80, title: "听力真题与错题复盘", go: "打开听力工作台", jump: "practice", mode: "listening", tag: "听力",
+      how: ["在雅思哥 Pro 限时做一遍，记下对题数", "错题先不看原文，盲听两到三遍", "在听力工作台填写成绩与错因，保存"],
+      rule: "保存一条听力记录后自动完成，并勾选「听力」" },
+    { n: "4", dur: 85, title: "阅读真题与同义替换", go: "打开阅读工作台", jump: "practice", mode: "reading", tag: "阅读",
+      how: ["计时 20 分钟做完一篇，对答案", "逐题找出题干与原文的同义替换", "在阅读工作台保存成绩，原文可用「真题雷达」扫出生词"],
+      rule: "保存一条阅读记录后自动完成，并勾选「阅读」" },
+    { n: "5", dur: 45, title: "机考写作", go: "开始写作", jump: "writing",
+      how: ["__WRITING_PLAN__", "开启倒计时直接打字，用上今天的 3–5 个同义替换", "写完保存，汇报会附上全文"],
+      rule: "保存一篇作文后自动完成" },
+    { n: "6", dur: 45, title: "口语开口练习", go: "开始口语", jump: "speaking", tag: "口语",
+      how: ["开 45 秒计时，不看稿说两遍", "把回答打进作答框，点「保存草稿」", "朗读昨天升级后的版本"],
+      rule: "任意一题保存草稿后自动完成，并勾选「口语」" },
+    { n: "7", dur: 35, title: "闪卡回顾", go: "开始闪卡", act: "flashcards",
+      how: ["第一轮看词选义，第二轮听音选义", "犹豫或选错的词按 W 标为不熟", "不熟的词会编进明天的串文"],
+      rule: "完成一轮闪卡后自动完成" },
+    { n: "8", dur: 10, title: "提交今日汇报", go: "生成汇报", act: "report",
+      how: ["生成汇报，确认今天的完成情况", "点「复制汇报」，发给 AI 教练", "收到批改后，次日内容会自动上线"],
+      rule: "复制汇报后自动完成" }
   ];
+  let routeDetailOpen = false;
   let routePick = null;
   let runRouteStep = null;
   const SF_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -2719,14 +2722,14 @@
       const listenCnt = (day.words || []).filter((w) => w.category === "听力拼写").length;
       return meta.n === "1" ? `${day.title || day.label}（${cnt} 个高频词）` : `今日听力拼写词 ${listenCnt || cnt} 个`;
     }
-    if (meta.n === "5") return writingPlanToday();
+    if (meta.n === "5") return "";
     const t = meta.tag ? find(meta.tag) : null;
     return t ? t.text : "";
   }
 
   function routeProgressNote(n, status) {
-    if (n === "1" && !status.steps[0].done) return `已查看 ${Math.min(status.seen, status.seenTarget)} / ${status.seenTarget} 个词`;
-    if (n === "2" && status.cloze) return `最佳成绩 ${status.cloze}`;
+    if (n === "1" && !status.steps[0].done) return `${Math.min(status.seen, status.seenTarget)}/${status.seenTarget}`;
+    if (n === "2" && status.cloze) return `最佳 ${status.cloze}`;
     return "";
   }
 
@@ -2746,20 +2749,20 @@
     const note = routeProgressNote(pick, status);
     const stateLbl = st.done
       ? `已完成${st.at ? " · " + fmtStepTime(st.at) : ""}`
-      : isCurrent ? "现在做这一步" : "尚未完成";
+      : isCurrent ? "进行中" : "未开始";
 
     const nodes = ROUTE_STEPS.map((m) => {
       const x = status.steps.find((y) => y.num === m.n);
       const cur = status.next && status.next.num === m.n;
-      return `<button type="button" class="route-node ${m.c} ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${m.n === pick ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}">
-        <span class="rn-dot ${m.c}">${x.done ? SF_CHECK : m.n}</span>
+      return `<button type="button" class="route-node ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${m.n === pick ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}">
+        <span class="rn-dot">${x.done ? SF_CHECK : m.n}</span>
         <span class="rn-label">${esc(App.stepShort[m.n])}</span>
         <span class="rn-sub">${x.done ? (x.at ? fmtStepTime(x.at) : "已完成") : `${m.dur} 分钟`}</span>
       </button>`;
     }).join("");
 
     const focus = `
-      <div class="route-focus ${meta.c} ${st.done ? "is-done" : ""}">
+      <div class="route-focus ${st.done ? "is-done" : ""}">
         <div class="rf-head">
           <span class="rf-step">第 ${pick} 步</span>
           <h4 class="rf-title">${esc(meta.title)}</h4>
@@ -2768,10 +2771,10 @@
         </div>
         ${target ? `<div class="rf-target">${esc(target)}</div>` : ""}
         <ol class="rf-how">${how.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
-        <div class="rf-rule">${SF_CIRCLE_CHECK}<span><b>完成标准：</b>${esc(meta.rule)}${note ? `<em>${esc(note)}</em>` : ""}</span></div>
+        <div class="rf-rule">${SF_CIRCLE_CHECK}<span>${esc(meta.rule)}${note ? `<em>${esc(note)}</em>` : ""}</span></div>
         <div class="rf-actions">
-          <button type="button" class="btn btn-primary rf-go ${meta.c}" data-route-go="${pick}">${esc(meta.go)} →</button>
-          <button type="button" class="btn btn-outline" data-route-toggle="${pick}">${st.done ? "撤销完成" : "已在别处完成，手动标记"}</button>
+          <button type="button" class="btn btn-primary rf-go" data-route-go="${pick}">${esc(meta.go)}</button>
+          <button type="button" class="btn btn-ghost" data-route-toggle="${pick}">${st.done ? "撤销完成" : "标记完成"}</button>
         </div>
       </div>`;
 
@@ -2781,29 +2784,29 @@
         <div class="card route-card">
           <div class="route-head">
             <div>
-              <span class="route-eyebrow">TODAY'S ROUTE · DAY ${seq}</span>
-              <h3 class="route-title">今日学习路线</h3>
+              <span class="route-eyebrow">Day ${seq} · 今日</span>
+              <h3 class="route-title">学习路线</h3>
             </div>
             <div class="route-meta">
               <span class="route-count"><b>${status.doneCount}</b> / 8 步</span>
               <span class="route-remain">${allDone ? "今日 8 步全部完成" : `剩余约 ${remain >= 60 ? `${Math.floor(remain / 60)} 小时` : ""}${remain % 60 ? ` ${remain % 60} 分钟` : ""}`.replace("约 ", "约")}</span>
             </div>
           </div>
-          <div class="route-bar"><span style="width:${Math.round((status.doneCount / 8) * 100)}%"></span></div>
           <div class="route-track">${nodes}</div>
-          ${allDone && !routePick ? `<div class="route-all-done">${SF_CIRCLE_CHECK}<div><b>Day ${seq} 的 8 步已全部完成</b><span>把复制好的汇报发给 AI 教练，等待明天的 Day ${seq + 1} 上线。点击上方任意一步可回看详情。</span></div></div>` : focus}
+          ${allDone && !routePick ? `<div class="route-all-done">${SF_CIRCLE_CHECK}<div><b>Day ${seq} 已全部完成</b><span>汇报发出后，Day ${seq + 1} 会在这里出现。</span></div></div>` : focus}
         </div>`;
     }
 
     const strip = $("dailyRouteStrip");
+    const detail = $("dailyRouteDetail");
     if (strip) {
       const viewingId = App.getCurrentDayId();
       if (viewingId && viewingId !== day.id) {
-        const vDay = S().days.find((d) => d.id === viewingId);
-        strip.innerHTML = `<div class="card route-strip is-review">
-          <span class="rs-review-txt">正在回看 ${esc(vDay ? vDay.label : viewingId)} · 当前进度在 <b>Day ${seq}</b>，回看期间不会记录步骤完成</span>
-          <button type="button" class="btn btn-primary btn-sm" data-route-back="${esc(day.id)}">回到 Day ${seq} →</button>
+        strip.innerHTML = `<div class="rs-bar is-review">
+          <span class="rs-review-txt">回看模式 · 当前进度在 Day ${seq}</span>
+          <button type="button" class="btn btn-outline btn-sm" data-route-back="${esc(day.id)}">回到 Day ${seq}</button>
         </div>`;
+        if (detail) detail.hidden = true;
       } else {
         const sNow = status.next ? ROUTE_STEPS.find((m) => m.n === status.next.num) : null;
         const showMeta = routePick ? meta : sNow;
@@ -2812,31 +2815,40 @@
         const dots = ROUTE_STEPS.map((m) => {
           const x = status.steps.find((y) => y.num === m.n);
           const cur = status.next && status.next.num === m.n;
-          return `<button type="button" class="rs-dot ${m.c} ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${showMeta && showMeta.n === m.n ? "is-picked" : ""}" data-route-pick="${m.n}" title="第 ${m.n} 步 · ${esc(App.stepShort[m.n])}${x.done ? "（已完成）" : ""}">${x.done ? SF_CHECK : m.n}</button>`;
+          return `<button type="button" class="rs-dot ${x.done ? "is-done" : ""} ${cur ? "is-current" : ""} ${showMeta && showMeta.n === m.n && routePick ? "is-picked" : ""}" data-route-pick="${m.n}" title="${m.n}. ${esc(App.stepShort[m.n])}${x.done ? " · 已完成" : ""}" aria-label="第 ${m.n} 步 ${esc(App.stepShort[m.n])}">${x.done ? SF_CHECK : m.n}</button>`;
         }).join("");
-        strip.innerHTML = `<details class="card route-strip route-strip-compact" ${routePick ? "open" : ""}>
-          <summary class="rs-compact-bar">
-            <div class="rs-dots">${dots}</div>
-            <div class="rs-compact-cur">
-              ${showMeta
-                ? `<span class="rs-step ${showMeta.c}">第 ${showMeta.n} 步</span><b class="rs-compact-title">${esc(showMeta.title)}</b>${sNote ? `<span class="rs-compact-note">${esc(sNote)}</span>` : ""}`
-                : `<b class="rs-compact-title">今日 8 步已全部完成</b>`}
-            </div>
-            <div class="rs-compact-right">
-              ${showMeta ? `<button type="button" class="btn btn-primary btn-sm rf-go ${showMeta.c}" data-route-go="${showMeta.n}">${esc(showMeta.go)} →</button>` : ""}
-              <span class="rs-count">${status.doneCount}/8</span>
-              <span class="rs-caret" aria-hidden="true">▾</span>
-            </div>
-          </summary>
-          ${showMeta ? `
-          <div class="rs-compact-detail">
-            <div class="rs-rule"><b>完成标准：</b>${esc(showMeta.rule)}${sNote ? ` · <em>${esc(sNote)}</em>` : ""}</div>
-            <ol class="rs-compact-ol">${showMeta.how.map((h) => `<li>${esc(h === "__WRITING_PLAN__" ? writingPlanToday() : h)}</li>`).join("")}</ol>
-            <div class="rs-compact-foot">
-              <button type="button" class="btn btn-outline btn-sm" data-route-toggle="${showMeta.n}">${showSt && showSt.done ? "撤销此步完成" : "手动标记此步完成"}</button>
-            </div>
-          </div>` : ""}
-        </details>`;
+        strip.innerHTML = `<div class="rs-bar">
+          <div class="rs-dots" role="group" aria-label="今日 8 步">${dots}</div>
+          ${showMeta
+            ? `<button type="button" class="rs-cur" data-route-detail aria-expanded="${routeDetailOpen}">
+                <span class="rs-cur-title">${esc(showMeta.title)}</span>
+                ${showSt && showSt.done ? `<span class="rs-cur-done">${SF_CHECK}已完成</span>` : sNote ? `<span class="rs-cur-note">${esc(sNote)}</span>` : ""}
+                <svg class="rs-cur-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <button type="button" class="btn btn-primary btn-sm rs-go" data-route-go="${showMeta.n}">${esc(showMeta.go)}</button>`
+            : `<span class="rs-cur is-static"><span class="rs-cur-title">今日 8 步已完成</span></span>`}
+        </div>`;
+        if (detail) {
+          if (showMeta && routeDetailOpen) {
+            const howList = showMeta.how.map((h) => (h === "__WRITING_PLAN__" ? writingPlanToday() : h));
+            const tgt = routeTarget(showMeta, day);
+            detail.innerHTML = `
+              <div class="rd-inner">
+                <div class="rd-head">
+                  <span class="rd-step">第 ${showMeta.n} 步 · ${showMeta.dur} 分钟</span>
+                  ${tgt ? `<span class="rd-target">${esc(tgt)}</span>` : ""}
+                </div>
+                <ol class="rd-how">${howList.map((h) => `<li>${esc(h)}</li>`).join("")}</ol>
+                <div class="rd-foot">
+                  <span class="rd-rule">${SF_CIRCLE_CHECK}${esc(showMeta.rule)}${sNote ? `<em>${esc(sNote)}</em>` : ""}</span>
+                  <button type="button" class="btn btn-ghost btn-sm" data-route-toggle="${showMeta.n}">${showSt && showSt.done ? "撤销完成" : "标记完成"}</button>
+                </div>
+              </div>`;
+            detail.hidden = false;
+          } else {
+            detail.hidden = true;
+          }
+        }
       }
     }
   }
@@ -2849,7 +2861,26 @@
         e.stopPropagation();
         const n = pickBtn.dataset.routePick;
         const status = App.getStepStatus();
-        routePick = status.next && status.next.num === n && routePick === null ? null : (routePick === n ? null : n);
+        const isNext = status.next && status.next.num === n;
+        if (pickBtn.classList.contains("rs-dot")) {
+          const showing = routePick || (status.next && status.next.num);
+          if (showing === n && routeDetailOpen) {
+            routeDetailOpen = false;
+            routePick = null;
+          } else {
+            routeDetailOpen = true;
+            routePick = isNext ? null : n;
+          }
+        } else {
+          routePick = isNext && routePick === null ? null : (routePick === n ? null : n);
+        }
+        renderRoute();
+        return;
+      }
+      const detBtn = e.target.closest("[data-route-detail]");
+      if (detBtn) {
+        routeDetailOpen = !routeDetailOpen;
+        if (!routeDetailOpen) routePick = null;
         renderRoute();
         return;
       }
@@ -3221,15 +3252,9 @@
       if (meta.act) return runGuideAct(meta.act);
       if (!meta.jump) return;
       navigateWithSpotlight(meta.jump, meta.jump);
-      if (meta.jump === "practice" && $("prType") && !($("prEditId") && $("prEditId").value)) {
-        $("prType").value = meta.n === "3" ? "listening" : "reading";
-        $("prType").dispatchEvent(new Event("change", { bubbles: true }));
-        const src = $("prSource");
-        const day = App.getStepStatus().day;
-        const task = day && (day.tasks || []).find((t) => t.tag === meta.tag);
-        if (src && !src.value.trim() && task) {
-          src.value = String(task.text).replace(/^雅思哥机考[:：]\s*/, "").split(/\s*\+\s*/)[0].trim();
-        }
+      if (meta.mode) {
+        const modeBtn = document.querySelector(`#practiceModeSwitch [data-pr-mode="${meta.mode}"]`);
+        if (modeBtn && !modeBtn.classList.contains("active")) modeBtn.click();
       }
     };
 
@@ -3443,7 +3468,7 @@
           ${weakArr.length ? `
             <div style="font-size:12px;color:var(--text-muted);">以下不熟词已自动同步到生词本，将在明日串文中复现：</div>
             <div class="fc-weak-chips">${weakArr.map((w) => `<span class="fc-weak-chip">${esc(w.word)}</span>`).join("")}</div>
-          ` : `<div style="font-size:13px;color:#0d9488;font-weight:600;">本轮全部掌握，记忆非常扎实！</div>`}
+          ` : `<div style="font-size:13px;color:#0d9488;font-weight:600;">本轮全部掌握</div>`}
           <div class="fc-summary-btns">
             ${isRound1 ? `<button class="btn btn-primary" id="btnFcNextRound">进入第 2 轮 · 听音盲选 →</button>` : `<button class="btn btn-primary" id="btnFcRestartAll">再来一轮综合巩固</button>`}
             ${weakArr.length ? `<button class="btn btn-outline" id="btnFcDrillWeak">仅重刷这 ${weakArr.length} 个不熟词</button>` : ""}
@@ -3665,7 +3690,7 @@
         const txt = "这是我动态闪卡中标记为「不熟」的词，请编进明天的情景串文里复现：\n" +
           weakArr.map((w) => `- ${w.word}: ${w.meaning || w.cn}`).join("\n");
         navigator.clipboard.writeText(txt).then(
-          () => App.toast(`已复制 ${weakArr.length} 个不熟词，直接发给 AI 即可！`),
+          () => App.toast(`已复制 ${weakArr.length} 个不熟词，可直接发给 AI`),
           () => App.toast("复制失败，请手动查看生词本")
         );
         return;

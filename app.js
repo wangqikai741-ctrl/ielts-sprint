@@ -106,7 +106,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       document.dispatchEvent(new CustomEvent("ielts:saved"));
     } catch (e) {
-      showToast("本地存储空间不足，请先导出备份！");
+      showToast("本地存储空间不足，请先导出备份");
     }
   }
 
@@ -1062,6 +1062,20 @@
     sel.innerHTML = state.days
       .map((d) => `<option value="${escapeHtml(d.id)}" ${d.id === currentDayId ? "selected" : ""}>${escapeHtml(d.label)}</option>`)
       .join("");
+    fitSelectWidth(sel);
+  }
+
+  // Size a <select> to its current label so the chevron sits right after the text
+  let measureCtx = null;
+  function fitSelectWidth(sel) {
+    if (!sel || !sel.options.length) return;
+    const opt = sel.options[sel.selectedIndex] || sel.options[0];
+    const cs = getComputedStyle(sel);
+    if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
+    measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const textW = measureCtx.measureText(opt.textContent || "").width;
+    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderLeftWidth) || 0) * 2;
+    sel.style.width = `${Math.ceil(textW + pad + 2)}px`;
   }
 
   function renderDailyTasks() {
@@ -1078,7 +1092,7 @@
     const doneCount = doneTasks.length;
     const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
-    $("dayProgressText").textContent = `${doneCount} / ${tasks.length}`;
+    $("dayProgressText").textContent = `${doneCount}/${tasks.length}`;
     $("dayProgressFill").style.width = `${pct}%`;
 
     // Compact 1-line status pills: completed items softly dim; when all done, collapse into 1 clean pill
@@ -1821,7 +1835,7 @@
 
     const container = $("vocabList");
     if (!filtered.length) {
-      container.innerHTML = `<div class="empty-state">暂无生词记录。你可以在「每日串文」里点词收藏，或直接在这里添加/批量导入雅思哥里不会的词！</div>`;
+      container.innerHTML = `<div class="empty-state">还没有生词。在串文里点词收藏，或在上方直接添加。</div>`;
       return;
     }
 
@@ -1878,7 +1892,7 @@
   function startVocabQuiz() {
     quizQueue = state.vocabBook.filter((v) => !v.mastered);
     if (!quizQueue.length) {
-      showToast("生词本里目前没有未掌握的词！先收录几个吧。");
+      showToast("目前没有未掌握的词");
       return;
     }
     quizQueue = [...quizQueue].sort(() => Math.random() - 0.5).slice(0, 15);
@@ -2109,7 +2123,7 @@
     if ($("prPlanNextLine")) {
       $("prPlanNextLine").textContent = nextPlan
         ? `明日预告（Day ${daySeq + 1}）：${nextPlan.src}（${nextPlan.total} 题 · ${nextPlan.min} 分钟）`
-        : "已是考前冲刺收官日，稳住心态！";
+        : "考前最后一天，保持节奏";
     }
     if ($("prScheduleDrawer")) {
       const rows = [];
@@ -2166,7 +2180,7 @@
     if (!activeList.length) {
       const daySeq = getActiveDaySeqNumber();
       const plan = getCambridgePlanForDay(daySeq, currentPracticeMode);
-      list.innerHTML = `<div class="card empty-state">还没有${isListen ? "听力" : "阅读"}记录。先去雅思哥限时盲做 <b>${escapeHtml(plan.src)}</b>，在左侧第一步记下真实首做对题数，第二步导入${isListen ? "精听原文" : "精读文章"}与错题复盘吧！</div>`;
+      list.innerHTML = `<div class="card empty-state">还没有${isListen ? "听力" : "阅读"}记录。先去雅思哥限时盲做 <b>${escapeHtml(plan.src)}</b>，在左侧第一步记下真实首做对题数，第二步导入${isListen ? "精听原文" : "精读文章"}与错题复盘。</div>`;
       return;
     }
 
@@ -2253,7 +2267,7 @@
 
     const list = $("speakingList");
     if (!filtered.length) {
-      list.innerHTML = `<div class="card empty-state">没有匹配的口语题。快从雅思哥挑选今天要练的题目填到左侧吧！</div>`;
+      list.innerHTML = `<div class="card empty-state">没有匹配的口语题。可在左侧添加今天要练的题目。</div>`;
       return;
     }
 
@@ -2749,8 +2763,8 @@
       if (!box || !list) return;
       clozeLastWrongWords = wrongItems.map((x) => x.wObj || x.ans).filter(Boolean);
       if (!wrongItems.length) {
-        title.textContent = "全部拼写正确！";
-        list.innerHTML = `<div class="ca-all-right">本组核心词 100% 全对，听力拼写稳稳过关！</div>`;
+        title.textContent = "全部拼写正确";
+        list.innerHTML = `<div class="ca-all-right">本组拼写全部正确。</div>`;
         if ($("btnCaMarkAllWeak")) $("btnCaMarkAllWeak").classList.add("hidden");
         if ($("btnCaRetryWrong")) $("btnCaRetryWrong").classList.add("hidden");
         box.classList.remove("hidden");
@@ -2811,7 +2825,7 @@
         renderBlankDiffBox(target);
         speakText(ans);
         target.focus();
-        showToast(`✓ 这一空完全拼对：${ans}！`);
+        showToast(`拼写正确：${ans}`);
         return;
       }
       // Preserve what the user typed BEFORE filling answer so we can show letter-by-letter diff!
@@ -3063,7 +3077,7 @@
         }
       });
       updateClozeProgressPill();
-      showToast(count ? `已显示剩余 ${count} 空答案（这些空不计入通关分，点「重做」可清零重默）` : "全部已填正确！");
+      showToast(count ? `已显示剩余 ${count} 空答案（这些空不计入通关分，点「重做」可清零重默）` : "全部已填正确");
     });
 
     // Word inspector buttons
@@ -3304,7 +3318,7 @@
       const text = "这是我最近不会/未掌握的雅思生词，请帮我编进明天的情景串文里复习：\n" +
         list.map((v) => `- ${v.word}: ${v.meaning}${v.note ? ` (${v.note})` : ""}`).join("\n");
       navigator.clipboard.writeText(text).then(
-        () => showToast(`已复制 ${list.length} 个未掌握生词，直接粘贴发给我就行！`),
+        () => showToast(`已复制 ${list.length} 个未掌握生词，可直接粘贴发送`),
         () => showToast("复制失败，请手动查看生词本")
       );
     });
@@ -3411,7 +3425,7 @@
       });
       $("batchVocabText").value = "";
       closeAllModals();
-      showToast(`成功导入 ${count} 个生词！`);
+      showToast(`已导入 ${count} 个生词`);
     });
 
     // TAB 3: Separated Listening & Reading Workspaces
@@ -3526,7 +3540,7 @@
       updateBadges();
       const stepNo = payload.type === "listening" ? "3" : "4";
       if (!markStepDone(stepNo, `已保存${payload.type === "listening" ? "听力" : "阅读"}复盘`)) {
-        showToast(`${payload.type === "listening" ? "听力" : "阅读"}记录已保存！`);
+        showToast(`${payload.type === "listening" ? "听力" : "阅读"}记录已保存`);
       }
     });
 
@@ -3585,7 +3599,7 @@
         } else {
           clearInterval(timerInterval);
           timerInterval = null;
-          showToast("时间到！");
+          showToast("时间到");
         }
       }, 1000);
     });
@@ -3634,7 +3648,7 @@
       renderSpeakingList();
       updateBadges();
       if (!(payload.draft && markStepDone("6", "已保存口语作答草稿"))) {
-        showToast("口语题已保存！");
+        showToast("口语题已保存");
       }
     });
 
@@ -3671,11 +3685,11 @@
         if (inAi) {
           const msg = `请按雅思口语 6.0–6.5 标准帮我批改并升级这道题：\n【${item.part} · ${item.topic}】\n题目：${item.question}\n我的回答：${item.draft}`;
           navigator.clipboard.writeText(msg).then(
-            () => showToast("草稿已保存并复制，直接粘贴发给 AI 批改！"),
-            () => { if (!checkedTask) showToast("草稿已保存！"); }
+            () => showToast("草稿已保存并复制，可直接粘贴给 AI 批改"),
+            () => { if (!checkedTask) showToast("草稿已保存"); }
           );
         } else if (!checkedTask) {
-          showToast("口语草稿已保存！");
+          showToast("口语草稿已保存");
         }
         return;
       }
@@ -3686,7 +3700,7 @@
         if (!item) return;
         const msg = `请按雅思口语 6.0–6.5 标准帮我批改并升级这道题：\n【${item.part} · ${item.topic}】\n题目：${item.question}\n我的回答：${item.draft || "（还没写，请先给我一个 6.5 分参考示范和思路）"}`;
         navigator.clipboard.writeText(msg).then(
-          () => showToast("已复制题目与回答，直接粘贴发给我批改！"),
+          () => showToast("已复制题目与回答，可直接粘贴批改"),
           () => showToast("复制失败")
         );
         return;
@@ -3821,7 +3835,7 @@
       a.download = `ielts-sprint-backup-${todayStr()}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("备份文件已导出！");
+      showToast("备份文件已导出");
     });
 
     $("inputRestoreFile").addEventListener("change", (e) => {
@@ -3837,7 +3851,7 @@
           saveState();
           initRenderAll();
           closeAllModals();
-          showToast("备份恢复成功！");
+          showToast("备份已恢复");
         } catch (err) {
           showToast("恢复失败：" + err.message);
         }
@@ -3956,8 +3970,8 @@
   const STEP_ORDER = ["1", "2", "3", "4", "5", "6", "7", "8"];
   const STEP_TASK_TAG = { "1": "词汇", "2": "词汇", "3": "听力", "4": "阅读", "5": "写作", "6": "口语" };
   const STEP_SHORT = {
-    "1": "读串文查词", "2": "拼写挖空", "3": "听力真题复盘", "4": "阅读真题复盘",
-    "5": "写作盲打", "6": "口语开口练", "7": "动态闪卡", "8": "交今日汇报"
+    "1": "精读串文", "2": "拼写听写", "3": "听力复盘", "4": "阅读复盘",
+    "5": "机考写作", "6": "口语练习", "7": "闪卡回顾", "8": "今日汇报"
   };
   const READ_SEEN_TARGET = 10;
 
@@ -4153,4 +4167,5 @@
   if (firstPending) currentDayId = firstPending.id;
   else if (orderedBootDays.length) currentDayId = orderedBootDays[orderedBootDays.length - 1].id;
   initRenderAll();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitSelectWidth($("daySelect")));
 })();
