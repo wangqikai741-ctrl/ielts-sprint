@@ -2424,6 +2424,7 @@
     // Day selector & tasks
     $("daySelect").addEventListener("change", (e) => {
       currentDayId = e.target.value;
+      fitSelectWidth(e.target);
       clozeMode = false;
       $("clozeBar").classList.add("hidden");
       $("btnToggleCloze").classList.remove("active-toggle");
