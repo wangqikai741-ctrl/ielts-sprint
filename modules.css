@@ -7130,10 +7130,19 @@ body.dark .pr-stage-num.is-s2 { color: #2dd4bf; }
   grid-template-columns: 1.6fr 1fr;
   gap: 12px;
   margin-bottom: 12px;
+  align-items: end;
+}
+.pr-grid-source > div,
+.pr-grid-scores > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
 }
 .pr-grid-scores {
   gap: 12px;
   margin-bottom: 12px;
+  align-items: end;
 }
 .pr-num-input {
   font-family: "JetBrains Mono", monospace !important;
@@ -7143,6 +7152,21 @@ body.dark .pr-stage-num.is-s2 { color: #2dd4bf; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+.pr-grid-notes .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  min-width: 0;
+}
+.pr-grid-notes .pr-field-lbl {
+  line-height: 1.4;
+}
+.pr-grid-notes .textarea-input {
+  margin-top: auto;
+  min-height: 92px;
 }
 .pr-form-actions {
   margin-top: 16px;

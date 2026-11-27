@@ -2091,16 +2091,16 @@
     if ($("prSource")) $("prSource").placeholder = isListen ? "例如：剑10 Test 1 Part 1 & Part 2" : "例如：剑10 Test 1 Passage 1";
     if ($("prCorrectLabel")) $("prCorrectLabel").textContent = isListen ? "首做对题数（非精听）" : "首做对题数（非精读）";
     if ($("prStage2Title")) $("prStage2Title").textContent = isListen ? "第二步 · 错题精听复盘 & 导入精听原文" : "第二步 · 同义替换拆解 & 导入精读文章";
-    if ($("prSynLabel")) $("prSynLabel").textContent = isListen ? "同义替换积累（每行一组：题干词 = 录音原文词）" : "同义替换积累（每行一组：题干词 = 文章原文词）";
+    if ($("prSynLabel")) $("prSynLabel").textContent = "同义替换积累（每行：题干词 = 原文词）";
     if ($("prNotesLabel")) {
       $("prNotesLabel").textContent = isListen
-        ? "错题复盘 / 精听卡壳点（漏听词、连读弱读、单复数拼写、干扰项）"
-        : "错题复盘 / 精读卡壳点（定位偏了、同义替换没认出、TFNG 逻辑混淆）";
+        ? "错题复盘 / 精听卡壳点"
+        : "错题复盘 / 精读卡壳点";
     }
     if ($("prNotes")) {
       $("prNotes").placeholder = isListen
-        ? "例：Q7 把 receipt 拼错了；Q14 没听出 however 后的改口答案"
-        : "例：Q5 把 Not Given 选成 False；Q11 没认出 mandatory = compulsory";
+        ? "记录漏听词、连读弱读、拼写或干扰项，如：Q7 receipt 拼错；Q14 漏听 however 后的改口"
+        : "记录定位偏差、同义替换或 TFNG 逻辑混淆，如：Q5 把 Not Given 选成 False";
     }
     if ($("prExcerptLabel")) {
       $("prExcerptLabel").textContent = isListen
