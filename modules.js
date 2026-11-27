@@ -2239,12 +2239,15 @@
     return !!getCloudSession();
   }
 
+  let authParticles = null;
+
   function unlockGate(instant = false) {
     const gate = $("authGate");
     if (!gate) return;
     if (instant) {
       gate.classList.add("hidden");
       document.body.classList.remove("auth-locked");
+      if (authParticles) authParticles.stop();
       return;
     }
     gate.classList.add("unlocking");
@@ -2254,6 +2257,7 @@
       gate.classList.add("hidden");
       gate.classList.remove("unlocking");
       document.body.classList.remove("auth-revealing");
+      if (authParticles) authParticles.stop();
     }, 430);
   }
 
@@ -2341,11 +2345,15 @@
       submitBtn.innerHTML = APPLE_ARROW_SVG;
     }
     const card = gate.querySelector(".auth-card");
-    if (card) card.classList.remove("is-verified", "shake");
+    if (card) card.classList.remove("is-verified", "is-verifying", "shake");
     gate.classList.remove("hidden", "unlocking");
     gate.classList.add("locking");
     document.body.classList.add("auth-locked");
-    setTimeout(() => gate.classList.remove("locking"), 560);
+    if (authParticles) {
+      authParticles.setMode("idle");
+      authParticles.start();
+    }
+    setTimeout(() => gate.classList.remove("locking"), 460);
     setTimeout(() => { if ($("authUser")) $("authUser").focus(); }, 120);
   }
 
@@ -2471,7 +2479,11 @@
 
       errEl.classList.add("hidden");
       if (!kickOldest && maxBox) maxBox.classList.add("hidden");
-      if (card) card.classList.remove("shake");
+      if (card) {
+        card.classList.remove("shake", "is-verified");
+        card.classList.add("is-verifying");
+      }
+      if (authParticles) authParticles.setMode("verifying");
 
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -2502,7 +2514,14 @@
           cloudState.devices = Array.isArray(res.devices) ? res.devices : [];
           renderOnlineDevices();
 
-          if (card) card.classList.add("is-verified");
+          if (card) {
+            card.classList.remove("is-verifying");
+            card.classList.add("is-verified");
+          }
+          if (authParticles) {
+            authParticles.setMode("idle");
+            authParticles.emitSuccessBurst();
+          }
           if (submitBtn) {
             submitBtn.classList.remove("is-verifying");
             submitBtn.classList.add("is-success");
@@ -2538,6 +2557,11 @@
           return;
         }
 
+        if (card) card.classList.remove("is-verifying");
+        if (authParticles) {
+          authParticles.setMode("idle");
+          authParticles.emitErrorBurst();
+        }
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-verifying");
@@ -2564,6 +2588,11 @@
         $("authPass").value = "";
         $("authPass").focus();
       } catch (err) {
+        if (card) card.classList.remove("is-verifying");
+        if (authParticles) {
+          authParticles.setMode("idle");
+          authParticles.emitErrorBurst();
+        }
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove("is-verifying");
@@ -2691,55 +2720,459 @@
       }
     }, 45000);
 
-    // Interactive Zero-Lag Core + Tapered Comet-Tail Aurora on Lock Screen (GPU transform only)
-    const glowEl = $("authCursorGlow");
-    const glowCore = glowEl && glowEl.querySelector(".acg-core");
-    const glowT1 = glowEl && glowEl.querySelector(".acg-t1");
-    const glowT2 = glowEl && glowEl.querySelector(".acg-t2");
-    let targetX = -600, targetY = -600;
-    let tx1 = -600, ty1 = -600;
-    let tx2 = -600, ty2 = -600;
-    let trailActive = false;
-    let trailRaf = null;
-    let cardRect = null;
-    let cardDirty = false;
+    // Precision Micro-Particle Field & Tactile Feedback Engine on Lock Screen
+    const particleCanvas = $("authParticleCanvas");
     const authCardEl = $("authCard");
+    const authSquircleEl = gate.querySelector(".auth-squircle");
+    const authPodEl = $("appleInputPod");
 
-    function stepTrail() {
-      trailRaf = null;
-      if (gate.classList.contains("hidden")) return;
-      tx1 += (targetX - tx1) * 0.24;
-      ty1 += (targetY - ty1) * 0.24;
-      tx2 += (targetX - tx2) * 0.13;
-      ty2 += (targetY - ty2) * 0.13;
-      if (glowCore) glowCore.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
-      if (glowT1) glowT1.style.transform = `translate3d(${tx1.toFixed(1)}px, ${ty1.toFixed(1)}px, 0)`;
-      if (glowT2) glowT2.style.transform = `translate3d(${tx2.toFixed(1)}px, ${ty2.toFixed(1)}px, 0)`;
-      if (cardDirty && authCardEl && cardRect) {
-        cardDirty = false;
-        authCardEl.style.setProperty("--cx", `${Math.round(targetX - cardRect.left)}px`);
-        authCardEl.style.setProperty("--cy", `${Math.round(targetY - cardRect.top)}px`);
+    function createAuthParticleEngine(canvas) {
+      if (!canvas) {
+        return { start() {}, stop() {}, setMode() {}, emitClickBurst() {}, emitKeyPulse() {}, emitSuccessBurst() {}, emitErrorBurst() {} };
       }
-      if (Math.hypot(targetX - tx2, targetY - ty2) > 0.5) trailRaf = requestAnimationFrame(stepTrail);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return { start() {}, stop() {}, setMode() {}, emitClickBurst() {}, emitKeyPulse() {}, emitSuccessBurst() {}, emitErrorBurst() {} };
+      }
+
+      const reducedMotion = Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      const isCoarse = Boolean(window.matchMedia && window.matchMedia("(hover: none)").matches);
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+      let rafId = 0;
+      let running = false;
+      let lastTs = 0;
+      let mode = "idle"; // "idle" | "verifying"
+
+      const pointer = { x: -9999, y: -9999, prevX: -9999, prevY: -9999, vx: 0, vy: 0, active: false };
+      let lastMoveSpawnTs = 0;
+      const field = [];
+      const sparks = [];
+      const MAX_SPARKS = 150;
+
+      const PALETTE = [
+        [245, 246, 250], // crisp alabaster
+        [245, 246, 250],
+        [245, 246, 250],
+        [196, 212, 236], // muted titanium-ice
+        [236, 228, 214]  // editorial warm ivory
+      ];
+
+      function makeAmbientParticle(randomPos = true) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.08 + Math.random() * 0.16;
+        const color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+        return {
+          x: randomPos ? Math.random() * width : (Math.random() < 0.5 ? 0 : width),
+          y: Math.random() * height,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          baseVx: Math.cos(angle) * speed,
+          baseVy: Math.sin(angle) * speed,
+          r: 0.7 + Math.random() * 1.05,
+          alpha: 0.16 + Math.random() * 0.34,
+          phase: Math.random() * Math.PI * 2,
+          twinkle: 0.012 + Math.random() * 0.018,
+          c: color
+        };
+      }
+
+      function resize() {
+        width = gate.clientWidth || window.innerWidth;
+        height = gate.clientHeight || window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.floor(width * dpr));
+        canvas.height = Math.max(1, Math.floor(height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const targetCount = isCoarse
+          ? Math.min(34, Math.max(22, Math.floor((width * height) / 14000)))
+          : Math.min(72, Math.max(42, Math.floor((width * height) / 18500)));
+        if (field.length === 0) {
+          for (let i = 0; i < targetCount; i++) field.push(makeAmbientParticle(true));
+        } else {
+          field.forEach((p) => {
+            if (p.x > width) p.x = Math.random() * width;
+            if (p.y > height) p.y = Math.random() * height;
+          });
+          while (field.length < targetCount) field.push(makeAmbientParticle(true));
+          if (field.length > targetCount) field.length = targetCount;
+        }
+      }
+
+      function pushSpark(s) {
+        if (sparks.length >= MAX_SPARKS) sparks.shift();
+        sparks.push(s);
+      }
+
+      function getAnchorCenter(el, fallbackRatioY = 0.42) {
+        if (el) {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) {
+            return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.5, rect: r };
+          }
+        }
+        return { x: width * 0.5, y: height * fallbackRatioY, rect: null };
+      }
+
+      function emitPointerSpecks(x, y, vx, vy) {
+        if (reducedMotion || !running) return;
+        const speed = Math.hypot(vx, vy);
+        if (speed < 2.2) return;
+        const now = performance.now();
+        if (now - lastMoveSpawnTs < 24) return;
+        lastMoveSpawnTs = now;
+
+        const count = speed > 18 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          const spread = (Math.random() - 0.5) * 1.4;
+          const jitterAngle = Math.atan2(vy, vx) + Math.PI + spread;
+          const mag = 0.25 + Math.random() * 0.75;
+          const c = Math.random() < 0.75 ? [245, 246, 250] : [196, 212, 236];
+          pushSpark({
+            x: x + (Math.random() - 0.5) * 6,
+            y: y + (Math.random() - 0.5) * 6,
+            vx: Math.cos(jitterAngle) * mag,
+            vy: Math.sin(jitterAngle) * mag - 0.08,
+            r: 0.75 + Math.random() * 0.85,
+            life: 1,
+            decay: 0.024 + Math.random() * 0.016,
+            drag: 0.94,
+            alpha: 0.46 + Math.random() * 0.26,
+            c
+          });
+        }
+      }
+
+      function emitClickBurst(x, y) {
+        if (reducedMotion || !running) return;
+        const n = 12;
+        for (let i = 0; i < n; i++) {
+          const angle = (Math.PI * 2 * i) / n + (Math.random() - 0.5) * 0.35;
+          const spd = 1.0 + Math.random() * 1.75;
+          pushSpark({
+            x,
+            y,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            r: 0.85 + Math.random() * 0.95,
+            life: 1,
+            decay: 0.02 + Math.random() * 0.012,
+            drag: 0.935,
+            alpha: 0.65,
+            c: i % 3 === 0 ? [196, 212, 236] : [245, 246, 250]
+          });
+        }
+      }
+
+      function emitKeyPulse() {
+        if (reducedMotion || !running) return;
+        const anchor = getAnchorCenter(authPodEl, 0.52);
+        const rect = anchor.rect;
+        const n = 4;
+        for (let i = 0; i < n; i++) {
+          let sx = anchor.x;
+          let sy = anchor.y;
+          let angle = Math.random() * Math.PI * 2;
+          if (rect) {
+            const onHorizontal = Math.random() < 0.7;
+            if (onHorizontal) {
+              const topEdge = Math.random() < 0.5;
+              sx = rect.left + 16 + Math.random() * Math.max(10, rect.width - 32);
+              sy = topEdge ? rect.top : rect.bottom;
+              angle = (topEdge ? -Math.PI / 2 : Math.PI / 2) + (Math.random() - 0.5) * 0.9;
+            } else {
+              const leftEdge = Math.random() < 0.5;
+              sx = leftEdge ? rect.left : rect.right;
+              sy = rect.top + 10 + Math.random() * Math.max(10, rect.height - 20);
+              angle = (leftEdge ? Math.PI : 0) + (Math.random() - 0.5) * 0.8;
+            }
+          }
+          const spd = 0.45 + Math.random() * 0.85;
+          pushSpark({
+            x: sx,
+            y: sy,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            r: 0.7 + Math.random() * 0.7,
+            life: 1,
+            decay: 0.028 + Math.random() * 0.016,
+            drag: 0.95,
+            alpha: 0.48,
+            c: [245, 246, 250]
+          });
+        }
+      }
+
+      function emitSuccessBurst() {
+        if (reducedMotion || !running) return;
+        const { x, y } = getAnchorCenter(authSquircleEl, 0.38);
+        const total = 44;
+        for (let i = 0; i < total; i++) {
+          const angle = (Math.PI * 2 * i) / total + (Math.random() - 0.5) * 0.2;
+          const fastRing = i % 2 === 0;
+          const spd = fastRing ? (2.4 + Math.random() * 2.6) : (1.1 + Math.random() * 1.4);
+          const isEmerald = i % 3 === 0;
+          pushSpark({
+            x: x + Math.cos(angle) * 18,
+            y: y + Math.sin(angle) * 18,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd,
+            r: fastRing ? (1.0 + Math.random() * 1.1) : (0.8 + Math.random() * 0.8),
+            life: 1,
+            decay: fastRing ? (0.014 + Math.random() * 0.008) : (0.018 + Math.random() * 0.01),
+            drag: 0.955,
+            alpha: isEmerald ? 0.92 : 0.78,
+            c: isEmerald ? [74, 222, 128] : [248, 250, 252]
+          });
+        }
+      }
+
+      function emitErrorBurst() {
+        if (reducedMotion || !running) return;
+        const { x, y, rect } = getAnchorCenter(authPodEl, 0.52);
+        const halfW = rect ? rect.width * 0.48 : 130;
+        for (let i = 0; i < 22; i++) {
+          const goRight = i % 2 === 0;
+          const angle = (goRight ? 0 : Math.PI) + (Math.random() - 0.5) * 0.75;
+          const spd = 1.2 + Math.random() * 2.1;
+          pushSpark({
+            x: x + (goRight ? halfW : -halfW) * (0.4 + Math.random() * 0.6),
+            y: y + (Math.random() - 0.5) * 38,
+            vx: Math.cos(angle) * spd,
+            vy: Math.sin(angle) * spd * 0.65,
+            r: 0.85 + Math.random() * 0.9,
+            life: 1,
+            decay: 0.02 + Math.random() * 0.014,
+            drag: 0.94,
+            alpha: 0.76,
+            c: i % 3 === 0 ? [245, 246, 250] : [248, 113, 113]
+          });
+        }
+      }
+
+      function renderFrame(ts) {
+        rafId = 0;
+        if (!running || gate.classList.contains("hidden")) return;
+
+        const dt = lastTs ? Math.min(32, Math.max(4, ts - lastTs)) / 16.667 : 1;
+        lastTs = ts;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const emblem = mode === "verifying" ? getAnchorCenter(authSquircleEl, 0.38) : null;
+        const nearCursor = [];
+        const ptrRadius = 132;
+        const linkRadius = 112;
+
+        for (let i = 0; i < field.length; i++) {
+          const p = field[i];
+          p.phase += p.twinkle * dt;
+
+          if (mode === "verifying" && emblem) {
+            const dx = emblem.x - p.x;
+            const dy = emblem.y - p.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            if (dist > 44 && dist < 360) {
+              const pull = 0.035 * dt;
+              p.vx += (dx / dist) * pull - (dy / dist) * (pull * 0.45);
+              p.vy += (dy / dist) * pull + (dx / dist) * (pull * 0.45);
+            }
+          }
+
+          if (pointer.active && !isCoarse) {
+            const dx = p.x - pointer.x;
+            const dy = p.y - pointer.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < ptrRadius && dist > 0.5) {
+              const norm = 1 - dist / ptrRadius;
+              const force = norm * norm * 0.24 * dt;
+              p.vx += (dx / dist) * force + pointer.vx * norm * 0.012;
+              p.vy += (dy / dist) * force + pointer.vy * norm * 0.012;
+            }
+            if (dist < linkRadius) {
+              nearCursor.push({ p, dist });
+            }
+          }
+
+          // Smoothly relax velocity back toward gentle organic drift
+          p.vx += (p.baseVx - p.vx) * 0.038 * dt;
+          p.vy += (p.baseVy - p.vy) * 0.038 * dt;
+
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          if (p.x < -12) p.x = width + 12;
+          else if (p.x > width + 12) p.x = -12;
+          if (p.y < -12) p.y = height + 12;
+          else if (p.y > height + 12) p.y = -12;
+
+          const a = p.alpha * (0.64 + 0.36 * Math.sin(p.phase));
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.c[0]},${p.c[1]},${p.c[2]},${a.toFixed(3)})`;
+          ctx.fill();
+        }
+
+        // Whisper-quiet hairline optical filaments only right around the active pointer
+        if (nearCursor.length > 1) {
+          ctx.lineWidth = 0.55;
+          const cap = Math.min(nearCursor.length, 14);
+          for (let i = 0; i < cap; i++) {
+            const a = nearCursor[i];
+            for (let j = i + 1; j < cap; j++) {
+              const b = nearCursor[j];
+              const d = Math.hypot(a.p.x - b.p.x, a.p.y - b.p.y);
+              if (d < 78) {
+                const lineFade = (1 - d / 78) * (1 - Math.max(a.dist, b.dist) / linkRadius);
+                const alpha = lineFade * 0.14;
+                if (alpha > 0.01) {
+                  ctx.strokeStyle = `rgba(235,240,250,${alpha.toFixed(3)})`;
+                  ctx.beginPath();
+                  ctx.moveTo(a.p.x, a.p.y);
+                  ctx.lineTo(b.p.x, b.p.y);
+                  ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+
+        // Render & advance interactive feedback sparks
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          const s = sparks[i];
+          const dragPow = Math.pow(s.drag, dt);
+          s.vx *= dragPow;
+          s.vy *= dragPow;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          s.life -= s.decay * dt;
+          if (s.life <= 0) {
+            sparks.splice(i, 1);
+            continue;
+          }
+          const eased = s.life * Math.sqrt(s.life);
+          const alpha = s.alpha * eased;
+          const radius = Math.max(0.35, s.r * (0.55 + 0.45 * s.life));
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${s.c[0]},${s.c[1]},${s.c[2]},${alpha.toFixed(3)})`;
+          ctx.fill();
+        }
+
+        pointer.vx *= 0.82;
+        pointer.vy *= 0.82;
+
+        if (!reducedMotion) {
+          rafId = requestAnimationFrame(renderFrame);
+        }
+      }
+
+      function drawStaticFrame() {
+        resize();
+        ctx.clearRect(0, 0, width, height);
+        for (let i = 0; i < field.length; i++) {
+          const p = field[i];
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.c[0]},${p.c[1]},${p.c[2]},${(p.alpha * 0.85).toFixed(3)})`;
+          ctx.fill();
+        }
+      }
+
+      function start() {
+        if (running) return;
+        resize();
+        if (reducedMotion) {
+          drawStaticFrame();
+          return;
+        }
+        running = true;
+        lastTs = 0;
+        rafId = requestAnimationFrame(renderFrame);
+      }
+
+      function stop() {
+        running = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+        sparks.length = 0;
+        pointer.active = false;
+      }
+
+      window.addEventListener("resize", () => {
+        if (running && !gate.classList.contains("hidden")) resize();
+      }, { passive: true });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        } else if (running && !gate.classList.contains("hidden") && !rafId) {
+          lastTs = 0;
+          rafId = requestAnimationFrame(renderFrame);
+        }
+      });
+
+      let cardRect = null;
+      gate.addEventListener("pointermove", (e) => {
+        if (gate.classList.contains("hidden")) return;
+        const x = e.clientX;
+        const y = e.clientY;
+        if (pointer.active) {
+          pointer.vx = Math.max(-28, Math.min(28, x - pointer.prevX));
+          pointer.vy = Math.max(-28, Math.min(28, y - pointer.prevY));
+          emitPointerSpecks(x, y, pointer.vx, pointer.vy);
+        }
+        pointer.prevX = x;
+        pointer.prevY = y;
+        pointer.x = x;
+        pointer.y = y;
+        pointer.active = true;
+
+        if (authCardEl) {
+          if (!cardRect) cardRect = authCardEl.getBoundingClientRect();
+          authCardEl.style.setProperty("--cx", `${Math.round(x - cardRect.left)}px`);
+          authCardEl.style.setProperty("--cy", `${Math.round(y - cardRect.top)}px`);
+        }
+      }, { passive: true });
+
+      gate.addEventListener("pointerleave", () => {
+        pointer.active = false;
+        cardRect = null;
+      }, { passive: true });
+
+      gate.addEventListener("pointerdown", (e) => {
+        if (gate.classList.contains("hidden")) return;
+        emitClickBurst(e.clientX, e.clientY);
+      }, { passive: true });
+
+      window.addEventListener("resize", () => { cardRect = null; }, { passive: true });
+
+      ["authUser", "authPass"].forEach((id) => {
+        const inputEl = $(id);
+        if (inputEl) {
+          inputEl.addEventListener("input", () => emitKeyPulse(), { passive: true });
+        }
+      });
+
+      return {
+        start,
+        stop,
+        setMode(next) { mode = next || "idle"; },
+        emitClickBurst,
+        emitKeyPulse,
+        emitSuccessBurst,
+        emitErrorBurst
+      };
     }
 
-    gate.addEventListener("mouseenter", () => {
-      cardRect = authCardEl ? authCardEl.getBoundingClientRect() : null;
-    });
-    window.addEventListener("resize", () => { cardRect = null; }, { passive: true });
-    gate.addEventListener("mousemove", (e) => {
-      targetX = e.clientX;
-      targetY = e.clientY;
-      if (!trailActive) {
-        trailActive = true;
-        tx1 = tx2 = targetX;
-        ty1 = ty2 = targetY;
-        if (glowEl) glowEl.classList.add("is-live");
-      }
-      if (!cardRect && authCardEl) cardRect = authCardEl.getBoundingClientRect();
-      cardDirty = true;
-      if (!trailRaf) trailRaf = requestAnimationFrame(stepTrail);
-    }, { passive: true });
+    authParticles = createAuthParticleEngine(particleCanvas);
+    if (!gate.classList.contains("hidden")) {
+      authParticles.start();
+    }
 
     // Global Card Cursor Spotlight inside Workbench (Linear / Vercel style hover feedback)
     let spotRaf = 0;
