@@ -2066,6 +2066,9 @@
     currentPracticeFilter = currentPracticeMode;
     if ($("prType")) $("prType").value = currentPracticeMode;
 
+    if ($("practiceModeSwitch")) {
+      $("practiceModeSwitch").dataset.mode = currentPracticeMode;
+    }
     document.querySelectorAll("#practiceModeSwitch .pr-seg-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.prMode === currentPracticeMode);
     });
@@ -3489,9 +3492,15 @@
       });
     }
     if ($("btnToggleSchedule") && $("prScheduleDrawer")) {
+      const setScheduleToggleUi = (open) => {
+        const btn = $("btnToggleSchedule");
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        const lbl = btn.querySelector(".pr-sched-toggle-lbl");
+        if (lbl) lbl.textContent = open ? "收起排期" : "排期预览";
+      };
       $("btnToggleSchedule").addEventListener("click", () => {
         const open = !$("prScheduleDrawer").classList.toggle("hidden");
-        $("btnToggleSchedule").textContent = open ? "收起排期 ▴" : "排期预览 ▾";
+        setScheduleToggleUi(open);
       });
       $("prScheduleDrawer").addEventListener("click", (e) => {
         const row = e.target.closest("[data-apply-sched]");
@@ -3499,7 +3508,7 @@
         if ($("prSource")) $("prSource").value = row.dataset.applySched;
         if ($("prTotal")) $("prTotal").value = row.dataset.applyTotal || "20";
         $("prScheduleDrawer").classList.add("hidden");
-        $("btnToggleSchedule").textContent = "排期预览 ▾";
+        setScheduleToggleUi(false);
         showToast(`已填入：${row.dataset.applySched}`);
       });
     }
